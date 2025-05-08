@@ -26,52 +26,62 @@ import { UserData } from "@/types/dashboard";
 // Dashboard routes
 const sidebarItems = [
   {
-    title: "Dashboard",
+    id: "dashboard",
+    label: "Dashboard",
     icon: LayoutDashboard,
     path: "/dashboard",
   },
   {
-    title: "Sell",
+    id: "sell",
+    label: "Sell",
     icon: ShoppingBag,
     path: "/dashboard/sell",
   },
   {
-    title: "Shift",
+    id: "shift",
+    label: "Shift",
     icon: Calendar,
     path: "/dashboard/shift",
   },
   {
-    title: "Sales",
+    id: "sales",
+    label: "Sales",
     icon: BarChart3,
     path: "/dashboard/sales",
   },
   {
-    title: "Stock",
+    id: "stock",
+    label: "Stock",
     icon: Package2,
     path: "/dashboard/stock",
   },
   {
-    title: "Accounts",
+    id: "accounts",
+    label: "Accounts",
     icon: Wallet,
     path: "/dashboard/accounts",
   },
   {
-    title: "Analytics",
+    id: "analytics",
+    label: "Analytics",
     icon: LineChart,
     path: "/dashboard/analytics",
   },
   {
-    title: "Users",
+    id: "users",
+    label: "Users",
     icon: Users,
     path: "/dashboard/users",
   },
   {
-    title: "Settings",
+    id: "settings",
+    label: "Settings",
     icon: Settings,
     path: "/dashboard/settings",
   },
   {
-    title: "Backoffice",
+    id: "backoffice",
+    label: "Backoffice",
     icon: Briefcase,
     path: "/dashboard/backoffice",
   }
@@ -80,9 +90,16 @@ const sidebarItems = [
 const Dashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activePath, setActivePath] = useState("/dashboard");
-  const [greeting, setGreeting] = useState("");
+  const [activeModule, setActiveModule] = useState("/dashboard");
   const navigate = useNavigate();
+
+  // In a real application, this would come from an authentication system
+  // For now, we'll use mock data
+  const userData: UserData = {
+    firstName: "Christopher",
+    lastName: "Njeru",
+    businessName: "AMAZING SHOP"
+  };
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
@@ -93,13 +110,22 @@ const Dashboard = () => {
   };
 
   const handleNavigation = (path: string) => {
-    setActivePath(path);
+    setActiveModule(path);
     navigate(path);
     if (window.innerWidth < 768) {
       setMobileMenuOpen(false);
     }
   };
   
+  // When the component mounts, set the active module based on the current path
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const matchingItem = sidebarItems.find(item => item.path === currentPath);
+    if (matchingItem) {
+      setActiveModule(matchingItem.id);
+    }
+  }, []);
+
   // Get greeting based on time of day
   useEffect(() => {
     const getGreeting = () => {
@@ -164,8 +190,8 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-2">
                 <p className="text-sm text-gray-600 dark:text-gray-400">{greeting},</p>
-                <p className="font-semibold text-sm">CHRISTOPHER NJERU</p>
-                <p className="text-xs text-tellerpos">AMAZING SHOP</p>
+                <p className="font-semibold text-sm">{userData.firstName} {userData.lastName}</p>
+                <p className="text-xs text-tellerpos">{userData.businessName}</p>
               </div>
             )}
           </div>
@@ -174,18 +200,18 @@ const Dashboard = () => {
           <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
             {sidebarItems.map((item) => (
               <button
-                key={item.title}
+                key={item.id}
                 onClick={() => handleNavigation(item.path)}
                 className={cn(
                   "flex items-center w-full px-2 py-3 rounded-md transition-colors",
-                  activePath === item.path 
+                  activeModule === item.id 
                     ? "bg-tellerpos text-white" 
                     : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50",
                   collapsed ? "justify-center" : "justify-start"
                 )}
               >
                 <item.icon size={20} className={collapsed ? "" : "mr-3"} />
-                {!collapsed && <span>{item.title}</span>}
+                {!collapsed && <span>{item.label}</span>}
               </button>
             ))}
           </nav>
@@ -232,8 +258,8 @@ const Dashboard = () => {
           <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-800">
             <div className="space-y-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">{greeting},</p>
-              <p className="font-semibold text-sm">CHRISTOPHER NJERU</p>
-              <p className="text-xs text-tellerpos">AMAZING SHOP</p>
+              <p className="font-semibold text-sm">{userData.firstName} {userData.lastName}</p>
+              <p className="text-xs text-tellerpos">{userData.businessName}</p>
             </div>
           </div>
           
@@ -241,17 +267,17 @@ const Dashboard = () => {
           <nav className="px-2 py-4 space-y-1 overflow-y-auto h-[calc(100%-172px)]">
             {sidebarItems.map((item) => (
               <button
-                key={item.title}
+                key={item.id}
                 onClick={() => handleNavigation(item.path)}
                 className={cn(
                   "flex items-center w-full px-2 py-3 rounded-md transition-colors",
-                  activePath === item.path 
+                  activeModule === item.id 
                     ? "bg-tellerpos text-white" 
                     : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50"
                 )}
               >
                 <item.icon size={20} className="mr-3" />
-                <span>{item.title}</span>
+                <span>{item.label}</span>
               </button>
             ))}
           </nav>
@@ -284,7 +310,7 @@ const Dashboard = () => {
           </button>
           
           <div className="flex-1 md:ml-4">
-            <h1 className="text-xl font-semibold">{sidebarItems.find(item => item.path === activePath)?.title || "Dashboard"}</h1>
+            <h1 className="text-xl font-semibold">{sidebarItems.find(item => item.path === activeModule)?.label || "Dashboard"}</h1>
           </div>
           
           <div className="flex items-center space-x-3">

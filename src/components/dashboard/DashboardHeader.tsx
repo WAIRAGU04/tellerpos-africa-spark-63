@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { UserData } from "@/types/dashboard";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { getGreeting } from "@/lib/utils";
 
 interface DashboardHeaderProps {
   userData: UserData;
@@ -11,19 +11,13 @@ const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
   const [greeting, setGreeting] = useState("");
   
   useEffect(() => {
-    const getGreeting = () => {
-      const hour = new Date().getHours();
-      if (hour < 12) return "Good morning";
-      if (hour < 18) return "Good afternoon";
-      return "Good evening";
-    };
-    
+    // Set initial greeting
     setGreeting(getGreeting());
     
-    // Update greeting if user keeps app open across time boundaries
+    // Update greeting if user keeps app open across time boundaries (check every minute)
     const intervalId = setInterval(() => {
       setGreeting(getGreeting());
-    }, 60000); // Check every minute
+    }, 60000);
     
     return () => clearInterval(intervalId);
   }, []);

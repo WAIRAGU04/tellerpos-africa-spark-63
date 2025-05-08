@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import UserRegistrationDialog from "./UserRegistrationDialog";
+import UserRegistrationDialog from "./user-registration/UserRegistrationDialog";
 import SignInDialog from "./SignInDialog";
 
 interface BusinessRegistrationDialogProps {

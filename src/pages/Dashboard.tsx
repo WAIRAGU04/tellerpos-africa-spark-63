@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, 
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { UserData } from "@/types/dashboard";
 
 // Dashboard routes
 const sidebarItems = [

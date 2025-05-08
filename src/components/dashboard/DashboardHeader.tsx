@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { UserData } from "@/pages/Dashboard";
+import { UserData } from "@/types/dashboard";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface DashboardHeaderProps {

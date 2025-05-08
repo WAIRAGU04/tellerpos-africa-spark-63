@@ -1,6 +1,6 @@
 
 import { LogOut } from "lucide-react";
-import { UserData } from "@/pages/Dashboard";
+import { UserData } from "@/types/dashboard";
 import { 
   Sidebar, 
   SidebarHeader, 

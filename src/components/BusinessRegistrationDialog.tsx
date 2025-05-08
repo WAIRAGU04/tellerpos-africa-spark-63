@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UserRegistrationDialog from "./UserRegistrationDialog";
+import SignInDialog from "./SignInDialog";
 
 interface BusinessRegistrationDialogProps {
   open: boolean;
@@ -82,6 +83,7 @@ const BusinessRegistrationDialog = ({ open, onOpenChange }: BusinessRegistration
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [signInDialogOpen, setSignInDialogOpen] = useState(false);
   
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -104,8 +106,15 @@ const BusinessRegistrationDialog = ({ open, onOpenChange }: BusinessRegistration
       return;
     }
     
-    // Instead of completing the process here, open the user registration dialog
+    // Now we don't automatically open the user dialog
+    // Instead, we'll pass the validated data to the next step
     setUserDialogOpen(true);
+  };
+
+  const handleSignIn = () => {
+    // Close the business registration dialog and open sign in dialog
+    onOpenChange(false);
+    setSignInDialogOpen(true);
   };
   
   return (
@@ -223,6 +232,16 @@ const BusinessRegistrationDialog = ({ open, onOpenChange }: BusinessRegistration
                       <span className="text-sm">Free 14-day trial</span>
                     </div>
                   </div>
+                  
+                  <div className="mt-6 text-center">
+                    <button 
+                      type="button"
+                      onClick={handleSignIn}
+                      className="text-tellerpos hover:text-tellerpos/80 text-sm underline"
+                    >
+                      Already have an account? Sign in
+                    </button>
+                  </div>
                 </div>
               </DialogFooter>
             </form>
@@ -235,16 +254,21 @@ const BusinessRegistrationDialog = ({ open, onOpenChange }: BusinessRegistration
         onOpenChange={(isOpen) => {
           setUserDialogOpen(isOpen);
           if (!isOpen) {
-            onOpenChange(false); // Close parent dialog when user dialog is closed
-            // Reset form data
+            // Reset form data if user dialog is closed
             setFormData({
               businessName: "",
               businessCategory: "",
               country: ""
             });
+            onOpenChange(false); // Close parent dialog when user dialog is closed
           }
         }}
         businessData={formData}
+      />
+      
+      <SignInDialog
+        open={signInDialogOpen}
+        onOpenChange={setSignInDialogOpen}
       />
     </>
   );

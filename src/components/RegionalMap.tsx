@@ -81,16 +81,18 @@ const RegionalMap = () => {
                   <text x="675" y="450" fill="white" fontSize="14">Ethiopia</text>
                 </svg>
                 
-                <style jsx>{`
-                  .pulse-circle {
-                    animation: pulse 2s infinite;
-                  }
-                  @keyframes pulse {
-                    0% { opacity: 1; r: 20; }
-                    70% { opacity: 0.7; r: 25; }
-                    100% { opacity: 1; r: 20; }
-                  }
-                `}</style>
+                <style>
+                  {`
+                    .pulse-circle {
+                      animation: pulse 2s infinite;
+                    }
+                    @keyframes pulse {
+                      0% { opacity: 1; r: 20; }
+                      70% { opacity: 0.7; r: 25; }
+                      100% { opacity: 1; r: 20; }
+                    }
+                  `}
+                </style>
               </div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { CheckCircle, Copy, ArrowRight } from "lucide-react";
 import { 
@@ -10,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 interface RegistrationSuccessDialogProps {
   open: boolean;
@@ -53,7 +53,6 @@ const RegistrationSuccessDialog = ({
 }: RegistrationSuccessDialogProps) => {
   const [businessId, setBusinessId] = useState("");
   const [agentCode, setAgentCode] = useState("");
-  const navigate = useNavigate();
   
   useEffect(() => {
     if (open) {
@@ -75,8 +74,8 @@ const RegistrationSuccessDialog = ({
   
   const handleClose = () => {
     onOpenChange(false);
-    // Redirect to dashboard
-    navigate("/dashboard");
+    // In a real app, this would redirect to the dashboard
+    // For now, we'll just close the dialog
   };
   
   return (

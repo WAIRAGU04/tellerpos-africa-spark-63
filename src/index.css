@@ -1,6 +1,4 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,82 +6,97 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 151 100% 40%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 151 100% 40%;
-
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142.1 76.2% 36.3%;
     --radius: 0.5rem;
   }
 
+  .dark {
+    --background: 20 14.3% 4.1%;
+    --foreground: 0 0% 95%;
+    --card: 24 9.8% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 144.9 80.4% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 12 6.5% 15.1%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.4 71.8% 29.2%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
   body {
-    @apply bg-tellerpos-bg text-white font-sans;
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-tellerpos hover:bg-tellerpos-dark text-white font-semibold py-3 px-6 rounded-md transition-colors duration-300;
+    @apply bg-tellerpos hover:bg-tellerpos-dark text-white font-medium px-6 py-3 rounded-md transition-colors duration-300;
   }
-  
+
   .btn-secondary {
-    @apply bg-transparent border border-tellerpos text-tellerpos hover:bg-tellerpos-dark/10 font-semibold py-3 px-6 rounded-md transition-colors duration-300;
+    @apply bg-white dark:bg-tellerpos-dark-accent text-tellerpos hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50 border border-tellerpos font-medium px-6 py-3 rounded-md transition-colors duration-300;
   }
 
   .nav-link {
-    @apply text-white/80 hover:text-white transition-colors duration-300;
+    @apply text-gray-200 hover:text-white transition-colors duration-200;
   }
-  
+
   .feature-card {
-    @apply bg-tellerpos-dark-accent p-6 rounded-lg hover:shadow-lg hover:shadow-tellerpos/20 transition-all duration-300;
+    @apply bg-tellerpos-dark-accent p-6 rounded-lg border border-tellerpos/10 hover:border-tellerpos/30 transition-all duration-300;
   }
-  
+
   .pricing-card {
-    @apply bg-tellerpos-dark-accent rounded-lg overflow-hidden transition-all duration-300 hover:translate-y-[-4px];
+    @apply bg-tellerpos-dark-accent rounded-xl p-6 border border-tellerpos/20 hover:border-tellerpos/50 transition-all duration-300;
   }
-  
+
   .section-title {
-    @apply text-3xl md:text-4xl font-bold mb-4 text-white leading-tight;
+    @apply text-3xl md:text-4xl font-bold text-white mb-4;
   }
   
   .section-subtitle {
-    @apply text-tellerpos-gray-light text-lg mb-12 max-w-3xl mx-auto;
+    @apply text-xl text-white/80 mb-10 max-w-3xl mx-auto;
   }
 }
 
-html {
-  scroll-behavior: smooth;
+/* Add custom animations */
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+.pulse-animation {
+  animation: pulse 2s infinite;
 }

@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import BusinessRegistrationDialog from "./BusinessRegistrationDialog";
+import BusinessRegistrationDialog from "./business-registration/BusinessRegistrationDialog";
 
 const Hero = () => {
   const [dialogOpen, setDialogOpen] = useState(false);

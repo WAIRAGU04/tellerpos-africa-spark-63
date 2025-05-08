@@ -20,7 +20,7 @@ import {
   Bell
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { cn, getGreeting } from "@/lib/utils";
 import { UserData } from "@/types/dashboard";
 
 // Dashboard routes
@@ -91,6 +91,7 @@ const Dashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeModule, setActiveModule] = useState("/dashboard");
+  const [greeting, setGreeting] = useState("");
   const navigate = useNavigate();
 
   // In a real application, this would come from an authentication system
@@ -126,16 +127,17 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Get greeting based on time of day
+  // Set initial greeting and update it periodically
   useEffect(() => {
-    const getGreeting = () => {
-      const hour = new Date().getHours();
-      if (hour >= 5 && hour < 12) return "Good morning";
-      if (hour >= 12 && hour < 18) return "Good afternoon";
-      return "Good evening";
-    };
-    
+    // Set initial greeting
     setGreeting(getGreeting());
+    
+    // Update greeting if user keeps app open across time boundaries (check every minute)
+    const intervalId = setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   return (

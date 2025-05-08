@@ -1,5 +1,10 @@
 
+import { useState } from "react";
+import BusinessRegistrationDialog from "./BusinessRegistrationDialog";
+
 const Hero = () => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
   return (
     <section className="min-h-screen flex items-center pt-16 bg-gradient-to-b from-tellerpos-bg to-tellerpos-dark-accent">
       <div className="container mx-auto px-4 py-16 md:py-24">
@@ -16,7 +21,14 @@ const Hero = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <a href="#getstarted" className="btn-primary text-center">
+              <a 
+                href="#" 
+                className="btn-primary text-center"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setDialogOpen(true);
+                }}
+              >
                 Start Free Trial
               </a>
               <a href="#demo" className="btn-secondary text-center">
@@ -37,6 +49,11 @@ const Hero = () => {
           </div>
         </div>
       </div>
+      
+      <BusinessRegistrationDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </section>
   );
 };

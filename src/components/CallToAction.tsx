@@ -1,5 +1,15 @@
 
+import { useState } from 'react';
+import BusinessRegistrationDialog from './BusinessRegistrationDialog';
+
 const CallToAction = () => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setDialogOpen(true);
+  };
+  
   return (
     <section id="getstarted" className="py-20 bg-gradient-to-r from-tellerpos/80 to-tellerpos">
       <div className="container mx-auto px-4">
@@ -13,7 +23,7 @@ const CallToAction = () => {
           </p>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 shadow-lg">
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label htmlFor="name" className="block text-white text-sm font-medium mb-2">Full Name</label>
@@ -108,6 +118,11 @@ const CallToAction = () => {
           </div>
         </div>
       </div>
+      
+      <BusinessRegistrationDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </section>
   );
 };

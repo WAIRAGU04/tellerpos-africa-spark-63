@@ -77,8 +77,8 @@ const Footer = () => {
                   className="w-4 h-3 mt-1 mr-2"
                 />
                 <div>
-                  <span className="block text-white">Kenya</span>
-                  <span className="block text-gray-400">+254 20 5231000</span>
+                  <span className="block text-white">Kenya (HQ)</span>
+                  <span className="block text-gray-400">+254 743 788818</span>
                 </div>
               </li>
               <li className="flex">
@@ -111,6 +111,9 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
               <p className="text-gray-400 text-sm">© 2025 TellerPOS. All rights reserved.</p>
+              <p className="text-gray-400 text-sm mt-1">
+                Registered Office: REGUS BUILDING, MUTHANGARI DRIVE, WESTLANDS NAIROBI. 
+              </p>
             </div>
             
             <div className="flex space-x-6">

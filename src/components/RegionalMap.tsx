@@ -36,6 +36,30 @@ const RegionalMap = () => {
       currency: "ETB",
       paymentMethods: ["CBE Birr", "HelloCash", "Bank Transfer"],
       languages: ["Amharic", "English"]
+    },
+    {
+      country: "Tanzania",
+      currency: "TZS",
+      paymentMethods: ["Tigo Pesa", "M-Pesa", "Airtel Money"],
+      languages: ["Swahili", "English"]
+    },
+    {
+      country: "Rwanda",
+      currency: "RWF",
+      paymentMethods: ["MTN Mobile Money", "Airtel Money", "Bank Transfer"],
+      languages: ["Kinyarwanda", "English", "French"]
+    },
+    {
+      country: "Uganda",
+      currency: "UGX",
+      paymentMethods: ["MTN Mobile Money", "Airtel Money", "Pesapal"],
+      languages: ["English", "Swahili"]
+    },
+    {
+      country: "Côte d'Ivoire",
+      currency: "XOF",
+      paymentMethods: ["Orange Money", "MTN Mobile Money", "Moov Money"],
+      languages: ["French"]
     }
   ];
 
@@ -79,6 +103,22 @@ const RegionalMap = () => {
                   {/* Ethiopia */}
                   <circle cx="650" cy="450" r="20" fill="#00cc66" className="pulse-circle" />
                   <text x="675" y="450" fill="white" fontSize="14">Ethiopia</text>
+                  
+                  {/* Tanzania */}
+                  <circle cx="620" cy="620" r="20" fill="#00cc66" className="pulse-circle" />
+                  <text x="645" y="620" fill="white" fontSize="14">Tanzania</text>
+                  
+                  {/* Rwanda */}
+                  <circle cx="580" cy="600" r="20" fill="#00cc66" className="pulse-circle" />
+                  <text x="605" y="600" fill="white" fontSize="14">Rwanda</text>
+                  
+                  {/* Uganda */}
+                  <circle cx="580" cy="520" r="20" fill="#00cc66" className="pulse-circle" />
+                  <text x="605" y="520" fill="white" fontSize="14">Uganda</text>
+                  
+                  {/* Côte d'Ivoire */}
+                  <circle cx="300" cy="580" r="20" fill="#00cc66" className="pulse-circle" />
+                  <text x="250" y="580" fill="white" fontSize="14">Côte d'Ivoire</text>
                 </svg>
                 
                 <style>

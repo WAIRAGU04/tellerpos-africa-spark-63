@@ -1,0 +1,53 @@
+import { useState, useEffect } from "react";
+import { UserData } from "@/pages/Dashboard";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+
+interface DashboardHeaderProps {
+  userData: UserData;
+}
+
+const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
+  const [greeting, setGreeting] = useState("");
+  
+  useEffect(() => {
+    const getGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good morning";
+      if (hour < 18) return "Good afternoon";
+      return "Good evening";
+    };
+    
+    setGreeting(getGreeting());
+    
+    // Update greeting if user keeps app open across time boundaries
+    const intervalId = setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  return (
+    <header className="bg-tellerpos-dark-accent/50 backdrop-blur-lg border-b border-tellerpos-dark-accent/30 p-4 sticky top-0 z-10">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <SidebarTrigger className="mr-4" />
+          <div>
+            <h1 className="text-xl font-semibold text-white">
+              {greeting}, {userData.firstName}
+            </h1>
+            <p className="text-sm text-tellerpos-gray-light">
+              Welcome to your TellerPOS dashboard
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {/* We'll implement notifications, settings, etc. later */}
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default DashboardHeader;

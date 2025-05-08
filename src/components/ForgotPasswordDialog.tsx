@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Mail, ArrowRight } from "lucide-react";
+import { Mail, ArrowRight, Briefcase } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -20,20 +20,32 @@ interface ForgotPasswordDialogProps {
 }
 
 const ForgotPasswordDialog = ({ open, onOpenChange }: ForgotPasswordDialogProps) => {
-  const [email, setEmail] = useState("");
+  const [formData, setFormData] = useState({
+    businessId: "",
+    email: ""
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successAlertOpen, setSuccessAlertOpen] = useState(false);
+  
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
-    if (!email.trim()) {
+    if (!formData.businessId.trim()) {
+      toast.error("Please enter your Business ID");
+      return;
+    }
+    
+    if (!formData.email.trim()) {
       toast.error("Please enter your email");
       return;
     }
     
-    if (!validateEmail(email)) {
+    if (!validateEmail(formData.email)) {
       toast.error("Please enter a valid email address");
       return;
     }
@@ -55,7 +67,10 @@ const ForgotPasswordDialog = ({ open, onOpenChange }: ForgotPasswordDialogProps)
 
   const handleSuccessConfirm = () => {
     setSuccessAlertOpen(false);
-    setEmail("");
+    setFormData({
+      businessId: "",
+      email: ""
+    });
   };
   
   return (
@@ -66,11 +81,29 @@ const ForgotPasswordDialog = ({ open, onOpenChange }: ForgotPasswordDialogProps)
             <DialogHeader>
               <DialogTitle className="text-2xl text-white">Reset Password</DialogTitle>
               <DialogDescription className="text-gray-300">
-                Enter your email address and we'll send you instructions to reset your password
+                Enter your Business ID and email address, and we'll send you instructions to reset your password
               </DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-6 py-6">
+              <div className="grid gap-2">
+                <label htmlFor="businessId" className="text-sm font-medium text-white">
+                  Business ID
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Briefcase className="h-4 w-4 text-tellerpos/70" />
+                  </div>
+                  <Input
+                    id="businessId"
+                    placeholder="Enter your Business ID"
+                    value={formData.businessId}
+                    onChange={(e) => handleChange("businessId", e.target.value)}
+                    className="bg-tellerpos-bg/50 border-tellerpos/20 text-white pl-10"
+                  />
+                </div>
+              </div>
+              
               <div className="grid gap-2">
                 <label htmlFor="email" className="text-sm font-medium text-white">
                   Email
@@ -83,8 +116,8 @@ const ForgotPasswordDialog = ({ open, onOpenChange }: ForgotPasswordDialogProps)
                     id="email"
                     type="email"
                     placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={formData.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
                     className="bg-tellerpos-bg/50 border-tellerpos/20 text-white pl-10"
                   />
                 </div>
@@ -111,7 +144,7 @@ const ForgotPasswordDialog = ({ open, onOpenChange }: ForgotPasswordDialogProps)
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white text-xl">Check Your Email</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
-              We've sent password reset instructions to {email}. Please check your inbox and follow the link to reset your password.
+              We've sent password reset instructions to {formData.email}. Please check your inbox and follow the link to reset your password.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

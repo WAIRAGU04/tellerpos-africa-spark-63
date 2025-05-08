@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, AlertCircle } from "lucide-react";
+import { Mail, Lock, AlertCircle, Briefcase } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -24,6 +24,7 @@ interface SignInDialogProps {
 const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    businessId: "",
     email: "",
     password: ""
   });
@@ -39,6 +40,11 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
     e.preventDefault();
     
     // Validation
+    if (!formData.businessId.trim()) {
+      toast.error("Please enter your Business ID");
+      return;
+    }
+    
     if (!formData.email.trim()) {
       toast.error("Please enter your email");
       return;
@@ -69,6 +75,7 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
       
       // For demo purposes, we'll just close the dialog
       setFormData({
+        businessId: "",
         email: "",
         password: ""
       });
@@ -99,6 +106,24 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
               </DialogHeader>
               
               <div className="grid gap-6 py-6">
+                <div className="grid gap-2">
+                  <label htmlFor="businessId" className="text-sm font-medium text-white">
+                    Business ID
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Briefcase className="h-4 w-4 text-tellerpos/70" />
+                    </div>
+                    <Input
+                      id="businessId"
+                      placeholder="Enter your Business ID (e.g. TP-001)"
+                      value={formData.businessId}
+                      onChange={(e) => handleChange("businessId", e.target.value)}
+                      className="bg-tellerpos-bg/50 border-tellerpos/20 text-white pl-10"
+                    />
+                  </div>
+                </div>
+                
                 <div className="grid gap-2">
                   <label htmlFor="email" className="text-sm font-medium text-white">
                     Email

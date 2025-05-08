@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import SignInDialog from "./SignInDialog";
+import RegistrationSuccessDialog from "./RegistrationSuccessDialog";
 
 interface UserRegistrationDialogProps {
   open: boolean;
@@ -66,6 +67,7 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -116,20 +118,9 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
         description: `Welcome to TellerPOS, ${formData.firstName}! Your account has been created.`
       });
       setIsSubmitting(false);
-      onOpenChange(false);
       
-      // In a real app, this would redirect to the dashboard or onboarding
-      // navigate("/dashboard");
-      
-      // For demo purposes, we'll just close the dialog
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phoneNumber: countryCodes[businessData.country] || "",
-        password: "",
-        confirmPassword: ""
-      });
+      // Instead of just closing, show the success dialog with generated IDs
+      setSuccessDialogOpen(true);
     }, 1500);
   };
 
@@ -142,10 +133,30 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
     onOpenChange(false);
     setSignInDialogOpen(true);
   };
+
+  const handleSuccessDialogClose = (open: boolean) => {
+    setSuccessDialogOpen(open);
+    if (!open) {
+      // Reset and close registration form when success dialog is closed
+      onOpenChange(false);
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phoneNumber: countryCodes[businessData.country] || "",
+        password: "",
+        confirmPassword: ""
+      });
+    }
+  };
   
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open && !successDialogOpen} onOpenChange={(isOpen) => {
+        if (!isOpen && !successDialogOpen) {
+          onOpenChange(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px] bg-tellerpos-dark-accent border-tellerpos/30">
           <ScrollArea className="max-h-[80vh]">
             <form onSubmit={handleSubmit}>
@@ -313,6 +324,17 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
           </ScrollArea>
         </DialogContent>
       </Dialog>
+      
+      <RegistrationSuccessDialog
+        open={successDialogOpen}
+        onOpenChange={handleSuccessDialogClose}
+        businessData={businessData}
+        userData={{
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email
+        }}
+      />
       
       <SignInDialog
         open={signInDialogOpen}

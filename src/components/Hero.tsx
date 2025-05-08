@@ -1,8 +1,11 @@
+
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BusinessRegistrationDialog from "./business-registration/BusinessRegistrationDialog";
 
 const Hero = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const navigate = useNavigate();
   
   return (
     <section className="min-h-screen flex items-center pt-16 bg-gradient-to-b from-tellerpos-bg to-tellerpos-dark-accent">
@@ -25,7 +28,7 @@ const Hero = () => {
                 className="btn-primary text-center"
                 onClick={(e) => {
                   e.preventDefault();
-                  setDialogOpen(true);
+                  navigate("/signup");
                 }}
               >
                 Start Free Trial
@@ -48,11 +51,6 @@ const Hero = () => {
           </div>
         </div>
       </div>
-      
-      <BusinessRegistrationDialog 
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
     </section>
   );
 };

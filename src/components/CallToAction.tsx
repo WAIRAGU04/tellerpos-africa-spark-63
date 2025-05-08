@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import BusinessRegistrationDialog from './business-registration/BusinessRegistrationDialog';
+import { useNavigate } from 'react-router-dom';
 
 const CallToAction = () => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const navigate = useNavigate();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setDialogOpen(true);
+    navigate('/signup');
   };
   
   return (
@@ -117,11 +117,6 @@ const CallToAction = () => {
           </div>
         </div>
       </div>
-      
-      <BusinessRegistrationDialog 
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
     </section>
   );
 };

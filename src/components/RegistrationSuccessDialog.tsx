@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
-import { CheckCircle, Copy, ArrowRight } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 interface RegistrationSuccessDialogProps {
   open: boolean;
@@ -27,127 +28,113 @@ interface RegistrationSuccessDialogProps {
   };
 }
 
-// Function to generate business ID (TP-XXX format)
-const generateBusinessId = () => {
-  // In a real app, this would come from a database with the latest ID
-  // For now, we'll simulate with a random 3-digit number
-  const randomNum = Math.floor(Math.random() * 900) + 100;
-  return `TP-${randomNum}`;
-};
-
-// Function to generate agent code (6 character alphanumeric)
-const generateAgentCode = () => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-};
-
-const RegistrationSuccessDialog = ({ 
-  open, 
-  onOpenChange, 
-  businessData, 
-  userData 
+const RegistrationSuccessDialog = ({
+  open,
+  onOpenChange,
+  businessData,
+  userData,
 }: RegistrationSuccessDialogProps) => {
-  const [businessId, setBusinessId] = useState("");
-  const [agentCode, setAgentCode] = useState("");
   const navigate = useNavigate();
   
-  useEffect(() => {
-    if (open) {
-      // Generate IDs when dialog opens
-      setBusinessId(generateBusinessId());
-      setAgentCode(generateAgentCode());
-    }
-  }, [open]);
+  // Generate business ID and agent code - in real app, these would come from backend
+  const businessId = `BUS-${Math.floor(100000 + Math.random() * 900000)}`;
+  const agentCode = `AG-${Math.floor(1000 + Math.random() * 9000)}`;
   
-  const handleCopyBusinessId = () => {
+  const registrationDate = new Date().toISOString();
+
+  // Store registration data in localStorage for settings page
+  React.useEffect(() => {
+    if (open) {
+      // Save business data
+      localStorage.setItem("businessId", businessId);
+      localStorage.setItem("businessName", businessData.businessName);
+      localStorage.setItem("businessCategory", businessData.businessCategory);
+      localStorage.setItem("businessCountry", businessData.country);
+      localStorage.setItem("registrationDate", registrationDate);
+      
+      // Save user data
+      localStorage.setItem("firstName", userData.firstName);
+      localStorage.setItem("lastName", userData.lastName);
+      localStorage.setItem("email", userData.email);
+      localStorage.setItem("userRole", "Admin"); // Default role for registrant
+      localStorage.setItem("agentCode", agentCode);
+    }
+  }, [open, businessId, agentCode, businessData, userData, registrationDate]);
+
+  const handleCopyId = () => {
     navigator.clipboard.writeText(businessId);
     toast.success("Business ID copied to clipboard");
   };
-  
-  const handleCopyAgentCode = () => {
-    navigator.clipboard.writeText(agentCode);
-    toast.success("Agent code copied to clipboard");
-  };
-  
-  const handleClose = () => {
+
+  const handleContinue = () => {
     onOpenChange(false);
-    // Redirect to dashboard
-    navigate("/dashboard");
+    navigate("/dashboard"); // Navigate to dashboard
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-tellerpos-dark-accent border-tellerpos/30">
-        <DialogHeader>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-tellerpos/20 mb-4">
-            <CheckCircle className="h-8 w-8 text-tellerpos" />
-          </div>
-          <DialogTitle className="text-2xl text-center text-white">Registration Successful!</DialogTitle>
-          <DialogDescription className="text-center text-gray-300">
-            Welcome {userData.firstName} {userData.lastName} to TellerPOS. Your business account for {businessData.businessName} has been created.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-6 space-y-6">
-          <div className="bg-tellerpos-bg rounded-lg p-4">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-400">Your Business ID</p>
-              <button 
-                onClick={handleCopyBusinessId} 
-                className="text-tellerpos hover:text-tellerpos/80"
-              >
-                <Copy className="h-4 w-4" />
-              </button>
+      <DialogContent className="sm:max-w-[425px] bg-tellerpos-dark-accent border-tellerpos/30">
+        <ScrollArea>
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-white">
+              Registration Successful!
+            </DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Your TellerPOS account has been successfully created.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-white">
+                Your Business ID:
+              </h4>
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  value={businessId}
+                  readOnly
+                  className="bg-tellerpos-bg/50 border-tellerpos/20 text-white rounded-md px-3 py-2 w-full cursor-default"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-2 h-9"
+                  onClick={handleCopyId}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </Button>
+              </div>
+              <p className="text-xs text-gray-400">
+                Keep this ID safe. You'll need it to sign in.
+              </p>
             </div>
-            <p className="text-xl font-bold text-white tracking-wider">{businessId}</p>
-            <p className="text-xs text-gray-400 mt-1">Required for login to your business account</p>
-          </div>
-          
-          <div className="bg-tellerpos-bg rounded-lg p-4">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-400">Your Agent Code</p>
-              <button 
-                onClick={handleCopyAgentCode} 
-                className="text-tellerpos hover:text-tellerpos/80"
-              >
-                <Copy className="h-4 w-4" />
-              </button>
+
+            <div className="flex items-center space-x-2 text-white/80">
+              <div className="w-5 h-5 rounded-full border border-white/80 flex items-center justify-center">
+                <Check className="w-3 h-3" />
+              </div>
+              <span className="text-sm">Secure Account</span>
             </div>
-            <p className="text-xl font-bold text-white tracking-wider">{agentCode}</p>
-            <p className="text-xs text-gray-400 mt-1">Your unique identification code as the business admin</p>
+
+            <div className="flex items-center space-x-2 text-white/80">
+              <div className="w-5 h-5 rounded-full border border-white/80 flex items-center justify-center">
+                <Check className="w-3 h-3" />
+              </div>
+              <span className="text-sm">Start Using Immediately</span>
+            </div>
           </div>
-          
-          <div className="bg-tellerpos/10 border border-tellerpos/20 rounded-lg p-4">
-            <p className="text-sm text-white">Important Information:</p>
-            <ul className="text-sm text-gray-300 mt-2 space-y-2">
-              <li className="flex items-start">
-                <span className="text-tellerpos mr-2">•</span>
-                <span>Keep your Business ID and Agent Code secure.</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-tellerpos mr-2">•</span>
-                <span>The Business ID will be shared with all users you create for your business.</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-tellerpos mr-2">•</span>
-                <span>Each user will have a unique Agent Code.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button 
-            onClick={handleClose}
-            className="w-full bg-tellerpos hover:bg-tellerpos/90 text-white font-bold py-3 text-base"
-          >
-            Continue to Dashboard <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </DialogFooter>
+
+          <DialogFooter>
+            <Button
+              className="w-full bg-tellerpos hover:bg-tellerpos/90 text-white font-bold py-3 text-base"
+              onClick={handleContinue}
+            >
+              Continue to Dashboard
+            </Button>
+          </DialogFooter>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

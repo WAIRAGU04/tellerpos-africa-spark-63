@@ -124,7 +124,7 @@ const POSCart: React.FC<POSCartProps> = ({
           </span>
         </div>
         
-        <Button size="lg" disabled={cart.length === 0} onClick={onCheckout} className="w-full text-white text-xl font-extrabold">
+        <Button size="lg" disabled={cart.length === 0} onClick={onCheckout} className="w-full text-xl font-extrabold text-pink-950">
           Proceed to Checkout <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>

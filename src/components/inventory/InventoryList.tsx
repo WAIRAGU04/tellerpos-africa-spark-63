@@ -68,7 +68,7 @@ const InventoryList = ({ items, onAddToCart }: InventoryListProps) => {
       if (product.quantity <= 0) {
         return <Badge variant="destructive">Out of Stock</Badge>;
       } else if (product.quantity <= product.reorderLevel) {
-        return <Badge variant="warning" className="bg-yellow-500">Low Stock</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-500">Low Stock</Badge>;
       } else {
         return <Badge variant="outline">{product.quantity} {product.unitOfMeasurement}</Badge>;
       }

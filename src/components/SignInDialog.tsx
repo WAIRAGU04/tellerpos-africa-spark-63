@@ -70,15 +70,15 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
       setIsSubmitting(false);
       onOpenChange(false);
       
-      // In a real app, this would redirect to the dashboard
-      // navigate("/dashboard");
-      
-      // For demo purposes, we'll just close the dialog
+      // Reset the form data
       setFormData({
         businessId: "",
         email: "",
         password: ""
       });
+
+      // Navigate to dashboard after successful login
+      navigate("/dashboard");
     }, 1500);
   };
 

@@ -305,7 +305,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       
       {/* Payment action */}
       <div className="border-t border-gray-200 dark:border-gray-700 p-4 mt-auto">
-        <Button size="lg" onClick={handlePaymentSubmit} className="w-full font-extrabold text-3xl bg-green-600 hover:bg-green-500 text-zinc-950">
+        <Button size="lg" onClick={handlePaymentSubmit} className="w-full font-extrabold text-3xl bg-green-600 hover:bg-green-500 text-rose-950">
           Complete Payment
         </Button>
       </div>

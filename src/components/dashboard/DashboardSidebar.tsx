@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useSidebar } from "@/components/ui/sidebar";
 
 interface DashboardSidebarProps {
   userData: UserData;
@@ -35,9 +34,6 @@ const DashboardSidebar = ({
   setActiveModule,
   menuItems
 }: DashboardSidebarProps) => {
-  const { state } = useSidebar();
-  const isCollapsed = state === "collapsed";
-  
   // Get initials for avatar
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -51,10 +47,10 @@ const DashboardSidebar = ({
     <Sidebar variant="inset">
       <SidebarHeader className="border-b border-tellerpos-dark-accent/30">
         <div className="flex items-center gap-2 px-2 py-4">
-          <Avatar className="h-10 w-10 bg-tellerpos text-white shrink-0">
+          <Avatar className="h-10 w-10 bg-tellerpos text-white">
             <AvatarFallback>{getInitials(userData.firstName, userData.lastName)}</AvatarFallback>
           </Avatar>
-          <div className={`flex flex-col overflow-hidden transition-opacity duration-200 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>
+          <div className="flex flex-col overflow-hidden">
             <span className="font-bold text-white truncate">
               {userData.firstName.toUpperCase()} {userData.lastName.toUpperCase()}
             </span>

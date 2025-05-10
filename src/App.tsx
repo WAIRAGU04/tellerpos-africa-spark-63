@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import SignupPage from "./pages/SignupPage";
 import Dashboard from "./pages/Dashboard";
 import ShiftPage from "./pages/ShiftPage";
+import PlaceholderModulePage from "./pages/PlaceholderModulePage";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,14 @@ const App = () => {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/shift" element={<ShiftPage />} />
+            <Route path="/dashboard/sell" element={<PlaceholderModulePage />} />
+            <Route path="/dashboard/sales" element={<PlaceholderModulePage />} />
+            <Route path="/dashboard/stock" element={<PlaceholderModulePage />} />
+            <Route path="/dashboard/accounts" element={<PlaceholderModulePage />} />
+            <Route path="/dashboard/analytics" element={<PlaceholderModulePage />} />
+            <Route path="/dashboard/users" element={<PlaceholderModulePage />} />
+            <Route path="/dashboard/settings" element={<PlaceholderModulePage />} />
+            <Route path="/dashboard/backoffice" element={<PlaceholderModulePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

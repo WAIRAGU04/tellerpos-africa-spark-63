@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Shift, Expense, ShiftFormValues } from "@/types/shift";
 import { Button } from "@/components/ui/button";
@@ -8,8 +7,9 @@ import ShiftHistory from "@/components/shift/ShiftHistory";
 import ExpenseForm from "@/components/shift/ExpenseForm";
 import CloseShiftDialog from "@/components/shift/CloseShiftDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { nanoid } from "nanoid";
 
 // Mock data for initial state
 const mockShiftHistory: Shift[] = [
@@ -105,7 +105,7 @@ const ShiftPage = () => {
   const startShift = (values: ShiftFormValues) => {
     const now = new Date();
     const newShift: Shift = {
-      id: uuidv4(),
+      id: nanoid(),
       openingBalance: values.openingBalance,
       status: "active",
       paymentTotals: {
@@ -161,7 +161,7 @@ const ShiftPage = () => {
 
     const newExpense: Expense = {
       ...expenseData,
-      id: uuidv4(),
+      id: nanoid(),
       timestamp: new Date().toISOString()
     };
 
@@ -218,107 +218,115 @@ const ShiftPage = () => {
     });
   };
 
-  if (isLoading) {
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tellerpos mx-auto"></div>
+            <p className="mt-2 text-tellerpos-gray-light">Loading shift data...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tellerpos mx-auto"></div>
-          <p className="mt-2 text-tellerpos-gray-light">Loading shift data...</p>
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-white">Shift Management</h1>
+            {activeShift && (
+              <div className="space-x-2">
+                <Button variant="outline" onClick={simulateSale}>
+                  Simulate Sale (Demo)
+                </Button>
+                <Button variant="destructive" onClick={() => setIsCloseDialogOpen(true)}>
+                  Close Shift
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          {activeShift ? (
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="details">Shift Details</TabsTrigger>
+                <TabsTrigger value="expenses">Record Expenses</TabsTrigger>
+                <TabsTrigger value="history">Shift History</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details" className="space-y-6">
+                <ActiveShiftDetails shift={activeShift} />
+              </TabsContent>
+              
+              <TabsContent value="expenses">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ExpenseForm onAddExpense={addExpense} />
+                  
+                  <div>
+                    <h2 className="text-xl font-medium mb-4">Recent Expenses</h2>
+                    {activeShift.expenses.length === 0 ? (
+                      <p className="text-muted-foreground">No expenses recorded for this shift</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {activeShift.expenses.map(expense => (
+                          <li key={expense.id} className="bg-tellerpos-dark-accent/20 p-3 rounded-md">
+                            <div className="flex justify-between">
+                              <div>
+                                <p className="font-medium">{expense.description}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(expense.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                              <p className="font-medium">
+                                KES {expense.amount.toLocaleString()}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="history">
+                <ShiftHistory shifts={shiftHistory} />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-lg mb-4 text-tellerpos-gray-light">
+                  There is no active shift. Start a new shift to begin sales and record expenses.
+                </p>
+                <StartShiftForm onStartShift={startShift} />
+              </div>
+              
+              <div>
+                <h2 className="text-xl font-medium mb-4">Previous Shifts</h2>
+                <ShiftHistory shifts={shiftHistory} />
+              </div>
+            </div>
+          )}
+          
+          {activeShift && (
+            <CloseShiftDialog
+              shift={activeShift}
+              open={isCloseDialogOpen}
+              onOpenChange={setIsCloseDialogOpen}
+              onCloseShift={closeShift}
+            />
+          )}
         </div>
       </div>
     );
-  }
+  };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-white">Shift Management</h1>
-          {activeShift && (
-            <div className="space-x-2">
-              <Button variant="outline" onClick={simulateSale}>
-                Simulate Sale (Demo)
-              </Button>
-              <Button variant="destructive" onClick={() => setIsCloseDialogOpen(true)}>
-                Close Shift
-              </Button>
-            </div>
-          )}
-        </div>
-        
-        {activeShift ? (
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="details">Shift Details</TabsTrigger>
-              <TabsTrigger value="expenses">Record Expenses</TabsTrigger>
-              <TabsTrigger value="history">Shift History</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="details" className="space-y-6">
-              <ActiveShiftDetails shift={activeShift} />
-            </TabsContent>
-            
-            <TabsContent value="expenses">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ExpenseForm onAddExpense={addExpense} />
-                
-                <div>
-                  <h2 className="text-xl font-medium mb-4">Recent Expenses</h2>
-                  {activeShift.expenses.length === 0 ? (
-                    <p className="text-muted-foreground">No expenses recorded for this shift</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {activeShift.expenses.map(expense => (
-                        <li key={expense.id} className="bg-tellerpos-dark-accent/20 p-3 rounded-md">
-                          <div className="flex justify-between">
-                            <div>
-                              <p className="font-medium">{expense.description}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(expense.timestamp).toLocaleString()}
-                              </p>
-                            </div>
-                            <p className="font-medium">
-                              KES {expense.amount.toLocaleString()}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="history">
-              <ShiftHistory shifts={shiftHistory} />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-lg mb-4 text-tellerpos-gray-light">
-                There is no active shift. Start a new shift to begin sales and record expenses.
-              </p>
-              <StartShiftForm onStartShift={startShift} />
-            </div>
-            
-            <div>
-              <h2 className="text-xl font-medium mb-4">Previous Shifts</h2>
-              <ShiftHistory shifts={shiftHistory} />
-            </div>
-          </div>
-        )}
-        
-        {activeShift && (
-          <CloseShiftDialog
-            shift={activeShift}
-            open={isCloseDialogOpen}
-            onOpenChange={setIsCloseDialogOpen}
-            onCloseShift={closeShift}
-          />
-        )}
-      </div>
-    </div>
+    <DashboardLayout>
+      {renderContent()}
+    </DashboardLayout>
   );
 };
 

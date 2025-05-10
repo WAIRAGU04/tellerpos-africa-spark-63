@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SignupPage from "./pages/SignupPage";
 import Dashboard from "./pages/Dashboard";
+import ShiftPage from "./pages/ShiftPage";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +30,8 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/dashboard/*" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/shift" element={<ShiftPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

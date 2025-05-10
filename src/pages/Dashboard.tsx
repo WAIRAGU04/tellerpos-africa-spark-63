@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, 
@@ -92,14 +93,56 @@ const Dashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeModule, setActiveModule] = useState("/dashboard");
   const [greeting, setGreeting] = useState("");
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const navigate = useNavigate();
 
-  // In a real application, this would come from an authentication system
-  // For now, we'll use mock data
-  const userData: UserData = {
-    firstName: "Christopher",
-    lastName: "Njeru",
-    businessName: "AMAZING SHOP"
+  // Get user data from localStorage instead of hardcoded values
+  const [userData, setUserData] = useState<UserData>({
+    firstName: "",
+    lastName: "",
+    businessName: ""
+  });
+
+  // Load user data from localStorage on component mount
+  useEffect(() => {
+    const storedUserData = localStorage.getItem('userData');
+    const storedBusinessData = localStorage.getItem('businessData');
+    
+    if (storedUserData) {
+      const parsedUserData = JSON.parse(storedUserData);
+      setUserData(prev => ({
+        ...prev,
+        firstName: parsedUserData.firstName || "",
+        lastName: parsedUserData.lastName || ""
+      }));
+    }
+    
+    if (storedBusinessData) {
+      const parsedBusinessData = JSON.parse(storedBusinessData);
+      setUserData(prev => ({
+        ...prev,
+        businessName: parsedBusinessData.businessName || ""
+      }));
+    }
+    
+    // Fallback if no data is found
+    if (!storedUserData && !storedBusinessData) {
+      console.log("No user data found, using default values");
+      setUserData({
+        firstName: "User",
+        lastName: "",
+        businessName: "Your Business"
+      });
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
   };
 
   const toggleSidebar = () => {
@@ -319,8 +362,11 @@ const Dashboard = () => {
             <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50">
               <Bell size={20} />
             </button>
-            <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50">
-              <Moon size={20} />
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
           </div>
         </header>

@@ -106,7 +106,7 @@ const ActiveShiftDetails = ({
             </div>
             <div className="flex justify-between pt-2 border-t">
               <span className="text-green-500 font-bold text-lg">Expected Cash</span>
-              <span className="font-medium">{formatCurrency(shift.openingBalance + shift.paymentTotals.cash - totalExpenses)}</span>
+              <span className="text-green-500 font-bold text-xl">{formatCurrency(shift.openingBalance + shift.paymentTotals.cash - totalExpenses)}</span>
             </div>
           </div>
         </CardContent>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { CartItem, PaymentMethod, PaymentType, Transaction } from '@/types/pos';
+import { CartItem, PaymentMethod, PaymentType, Transaction, POSCheckoutProps } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,18 +15,12 @@ import POSInvoiceGenerator from './POSInvoiceGenerator';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency } from '@/lib/utils';
 
-interface POSCheckoutProps {
-  cart: CartItem[];
-  cartTotal: number;
-  onBackToCart: () => void;
-  clearCart: () => void; // Added clearCart prop to clear the cart after payment
-}
-
 const POSCheckout: React.FC<POSCheckoutProps> = ({
   cart,
   cartTotal,
   onBackToCart,
-  clearCart
+  clearCart,
+  onPaymentComplete
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -203,6 +197,17 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
     // Clear cart from localStorage immediately after payment
     localStorage.removeItem('posCart');
     clearCart(); // Clear the cart in the parent component state
+
+    // Call onPaymentComplete if provided
+    if (onPaymentComplete) {
+      // For split payments, call with the first payment method and total amount
+      // This is a simplification - in a real app you might want to handle split payments differently
+      if (paymentType === 'split' && splitAmounts.length > 0) {
+        onPaymentComplete(splitAmounts[0].method, cartTotal);
+      } else {
+        onPaymentComplete(paymentMethod, cartTotal);
+      }
+    }
 
     // Show post-payment options dialog
     setShowPostPaymentDialog(true);

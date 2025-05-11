@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -19,6 +19,7 @@ import { ReportFilter } from '@/types/accounts';
 import { Separator } from '@/components/ui/separator';
 import { Transaction } from '@/types/pos';
 import { Shift } from '@/types/shift';
+import { getTransactions } from '@/services/accountsService';
 
 const AccountsReports: React.FC = () => {
   // Get the current date and 30 days ago date for default range
@@ -47,18 +48,25 @@ const AccountsReports: React.FC = () => {
     { id: '3', name: 'Jane Smith' },
   ]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [accountTransactions, setAccountTransactions] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>('1');
   const [selectedShift, setSelectedShift] = useState<string>('all');
   const [reportData, setReportData] = useState<any>(null);
 
   // Load transactions and shifts from localStorage
-  React.useEffect(() => {
+  useEffect(() => {
+    // Load POS transactions
     const storedTransactions = localStorage.getItem('transactions');
     if (storedTransactions) {
       setTransactions(JSON.parse(storedTransactions));
     }
     
+    // Load account transactions
+    const accountTxs = getTransactions();
+    setAccountTransactions(accountTxs);
+    
+    // Load shifts
     const storedShifts = localStorage.getItem('shifts');
     if (storedShifts) {
       setShifts(JSON.parse(storedShifts));
@@ -96,7 +104,7 @@ const AccountsReports: React.FC = () => {
 
   const generateReport = () => {
     // Filter transactions based on user criteria
-    const filteredTransactions = transactions.filter(transaction => {
+    const filteredAccountTransactions = accountTransactions.filter(transaction => {
       const transactionDate = new Date(transaction.timestamp);
       
       // Filter by date range
@@ -107,13 +115,14 @@ const AccountsReports: React.FC = () => {
       }
       
       // Filter by user if selected
-      if (filter.userId && transaction.customerId !== filter.userId) {
+      if (filter.userId && transaction.userId !== filter.userId) {
         return false;
       }
       
       // Filter by shift if selected
-      // Note: In a real app, transactions would have a shiftId property
-      // This is a placeholder implementation
+      if (filter.shiftId && transaction.shiftId !== filter.shiftId) {
+        return false;
+      }
       
       return true;
     });
@@ -123,36 +132,48 @@ const AccountsReports: React.FC = () => {
     
     if (selectedReport === 'sales') {
       // Calculate sales summary
-      const totalSales = filteredTransactions.reduce((sum, t) => sum + t.total, 0);
+      const salesTransactions = filteredAccountTransactions.filter(t => t.type === 'sale');
+      const refundTransactions = filteredAccountTransactions.filter(t => t.type === 'refund');
+      
+      const totalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const totalRefunds = refundTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const netSales = totalSales - totalRefunds;
+      
+      // Group sales by payment method
       const salesByMethod: Record<string, number> = {};
       
-      filteredTransactions.forEach(t => {
-        t.payments.forEach(p => {
-          if (!salesByMethod[p.method]) {
-            salesByMethod[p.method] = 0;
+      filteredAccountTransactions.forEach(t => {
+        if (t.type === 'sale') {
+          // Find the account to determine payment method
+          const accountId = t.accountId;
+          // In a real app, you'd lookup the account type from the accountId
+          // For now, we'll use a simplified approach
+          if (!salesByMethod[accountId]) {
+            salesByMethod[accountId] = 0;
           }
-          salesByMethod[p.method] += p.amount;
-        });
+          salesByMethod[accountId] += t.amount;
+        }
       });
       
       reportSummary = {
         title: 'Sales Report',
-        totalTransactions: filteredTransactions.length,
+        totalTransactions: salesTransactions.length,
         totalSales,
+        totalRefunds,
+        netSales,
         salesByMethod,
-        transactions: filteredTransactions,
+        transactions: salesTransactions,
       };
     } else if (selectedReport === 'accounts') {
       // Calculate accounts summary
-      // In a real app, this would include balance changes, etc.
       reportSummary = {
         title: 'Accounts Report',
-        transactions: filteredTransactions,
+        transactions: filteredAccountTransactions,
       };
     } else {
       reportSummary = {
         title: 'Custom Report',
-        transactions: filteredTransactions,
+        transactions: filteredAccountTransactions,
       };
     }
     
@@ -325,11 +346,9 @@ const AccountsReports: React.FC = () => {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-2xl font-bold">
-                    {formatCurrency(
-                      reportData.transactions?.filter((t: Transaction) => t.status === 'completed').length || 0
-                    )}
+                    {formatCurrency(reportData.netSales || 0)}
                   </div>
-                  <p className="text-xs text-muted-foreground">Completed Sales</p>
+                  <p className="text-xs text-muted-foreground">Net Sales</p>
                 </CardContent>
               </Card>
             </div>

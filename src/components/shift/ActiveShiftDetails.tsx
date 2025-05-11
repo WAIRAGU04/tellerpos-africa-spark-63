@@ -67,7 +67,7 @@ const ActiveShiftDetails = ({
 
         <Card>
           <CardHeader className="bg-tellerpos-dark-accent/20 pb-2">
-            <CardTitle className="text-lg font-medium">Expenses</CardTitle>
+            <CardTitle className="text-2xl text-green-500 font-bold">Expenses</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             {shift.expenses.length === 0 ? <p className="text-sm text-muted-foreground">No expenses recorded</p> : <div>

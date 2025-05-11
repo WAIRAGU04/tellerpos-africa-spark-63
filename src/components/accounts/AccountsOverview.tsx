@@ -58,7 +58,7 @@ const AccountsOverview: React.FC = () => {
     setLastSyncTime(newSyncTime);
   };
   
-  // Add the missing handleManualSync function
+  // Handle manual sync function
   const handleManualSync = async () => {
     if (!isOnline) return;
     

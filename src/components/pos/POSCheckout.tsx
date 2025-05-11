@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem, PaymentMethod, PaymentType, Transaction } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, CreditCard, Check, X, Phone, CircleDollarSign, Receipt, Split, Banknote, Loader } from 'lucide-react';
+import { ArrowLeft, CreditCard, Check, X, Phone, CircleDollarSign, Receipt, Split, Banknote, Loader, Printer, Share2 } from 'lucide-react';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -20,12 +19,14 @@ interface POSCheckoutProps {
   cart: CartItem[];
   cartTotal: number;
   onBackToCart: () => void;
+  clearCart: () => void; // Added clearCart prop to clear the cart after payment
 }
 
 const POSCheckout: React.FC<POSCheckoutProps> = ({
   cart,
   cartTotal,
-  onBackToCart
+  onBackToCart,
+  clearCart
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -47,9 +48,9 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
-  // New state for M-Pesa STK dialog
   const [showMpesaSTKDialog, setShowMpesaSTKDialog] = useState(false);
   const [mpesaAmount, setMpesaAmount] = useState('');
+  const [showPostPaymentDialog, setShowPostPaymentDialog] = useState(false);
 
   // Generate receipt number
   React.useEffect(() => {
@@ -199,27 +200,76 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
     
     localStorage.setItem('transactions', JSON.stringify([...existingTransactions, transaction]));
 
-    // Show receipt or invoice
-    if (isCredit) {
-      setShowInvoiceDialog(true);
-    } else {
-      setShowReceiptDialog(true);
-    }
-
-    // Clear cart from localStorage
+    // Clear cart from localStorage immediately after payment
     localStorage.removeItem('posCart');
+    clearCart(); // Clear the cart in the parent component state
+
+    // Show post-payment options dialog
+    setShowPostPaymentDialog(true);
   };
 
   const handleTransactionComplete = () => {
-    // Close the receipt/invoice dialog and go back to cart
+    // Close all dialogs
     setShowReceiptDialog(false);
     setShowInvoiceDialog(false);
+    setShowPostPaymentDialog(false);
+    
+    // Return to POS
     onBackToCart();
     
     toast({
       title: currentTransaction?.isInvoice ? "Invoice created" : "Receipt created",
       description: `${currentTransaction?.isInvoice ? 'Invoice' : 'Receipt'} #${currentTransaction?.receiptNumber} created successfully.`,
       variant: "default"
+    });
+  };
+
+  const handlePrintReceipt = () => {
+    if (currentTransaction) {
+      // Close the post-payment dialog
+      setShowPostPaymentDialog(false);
+      
+      // Show the appropriate receipt or invoice dialog
+      if (currentTransaction.isInvoice) {
+        setShowInvoiceDialog(true);
+      } else {
+        setShowReceiptDialog(true);
+      }
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!currentTransaction) return;
+    
+    // For WhatsApp sharing, we'll create a message with receipt details
+    const businessName = localStorage.getItem('businessData') 
+      ? JSON.parse(localStorage.getItem('businessData') || '{}').businessName 
+      : 'Our Business';
+      
+    const receiptDate = new Date(currentTransaction.timestamp).toLocaleString();
+    
+    let message = `*${currentTransaction.isInvoice ? 'INVOICE' : 'RECEIPT'} from ${businessName}*\n`;
+    message += `${currentTransaction.isInvoice ? 'Invoice' : 'Receipt'} #: ${currentTransaction.receiptNumber}\n`;
+    message += `Date: ${receiptDate}\n\n`;
+    message += `*ITEMS*\n`;
+    
+    currentTransaction.items.forEach(item => {
+      message += `${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}\n`;
+    });
+    
+    message += `\n*TOTAL*: ${formatCurrency(currentTransaction.total)}\n\n`;
+    message += `Thank you for your business!`;
+    
+    // Encode the message for WhatsApp
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    
+    // Open WhatsApp in a new window
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "Shared via WhatsApp",
+      description: `${currentTransaction.isInvoice ? 'Invoice' : 'Receipt'} details shared via WhatsApp.`,
     });
   };
 
@@ -485,6 +535,47 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Post-Payment Options Dialog */}
+      <Dialog open={showPostPaymentDialog} onOpenChange={setShowPostPaymentDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Payment Successful</DialogTitle>
+            <DialogDescription>
+              {currentTransaction?.isInvoice 
+                ? `Invoice #${currentTransaction?.receiptNumber} has been created.` 
+                : `Receipt #${currentTransaction?.receiptNumber} has been created.`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <Button 
+              onClick={handlePrintReceipt} 
+              className="w-full flex items-center justify-center"
+              variant="outline"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Print {currentTransaction?.isInvoice ? 'Invoice' : 'Receipt'}
+            </Button>
+            
+            <Button 
+              onClick={handleWhatsAppShare}
+              className="w-full flex items-center justify-center"
+              variant="outline"
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share via WhatsApp
+            </Button>
+            
+            <Button 
+              onClick={handleTransactionComplete}
+              className="w-full flex items-center justify-center"
+            >
+              Return to POS
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Receipt Dialog */}
       <AlertDialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>

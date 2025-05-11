@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { InventoryItem, Product, Service } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
@@ -7,12 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Package2, FileText, Search } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-
 interface POSInventoryViewProps {
   inventory: InventoryItem[];
   addToCart: (item: InventoryItem) => void;
 }
-
 const POSInventoryView: React.FC<POSInventoryViewProps> = ({
   inventory,
   addToCart
@@ -73,7 +70,6 @@ const POSInventoryView: React.FC<POSInventoryViewProps> = ({
       return (item as Service).isAvailable;
     }
   };
-
   return <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-grow">
@@ -83,7 +79,7 @@ const POSInventoryView: React.FC<POSInventoryViewProps> = ({
       </div>
       
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-4 bg-green-400">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
@@ -126,5 +122,4 @@ const POSInventoryView: React.FC<POSInventoryViewProps> = ({
       </Tabs>
     </div>;
 };
-
 export default POSInventoryView;

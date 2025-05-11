@@ -151,7 +151,7 @@ const StockPage = () => {
         <div className="flex flex-col space-y-6">
           {/* Header with actions */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <h1 className="font-bold text-[tellerpos-gray-dark] text-tellerpos-dark">Inventory Management</h1>
+            <h1 className="font-bold text-tellerpos-dark text-2xl">Inventory Management</h1>
             
             <div className="flex flex-wrap gap-2">
               <Dialog open={addProductOpen} onOpenChange={setAddProductOpen}>

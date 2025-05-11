@@ -9,10 +9,12 @@ import SalesOrdersTab from '@/components/accounts/SalesOrdersTab';
 import QuotationsTab from '@/components/accounts/QuotationsTab';
 import { getTransactions } from '@/services/accountsService';
 import { formatCurrency } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AccountsPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [totalSales, setTotalSales] = useState(0);
+  const isMobile = useIsMobile();
 
   // Calculate total sales on component mount
   useEffect(() => {
@@ -26,10 +28,10 @@ const AccountsPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Accounts</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">Accounts</h1>
             <p className="text-muted-foreground">
               Total Sales: {formatCurrency(totalSales)}
             </p>
@@ -37,12 +39,12 @@ const AccountsPage = () => {
         </div>
 
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-8">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="transfers">Transfers</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="sales-orders">Sales Orders</TabsTrigger>
-            <TabsTrigger value="quotations">Quotations</TabsTrigger>
+          <TabsList className={`grid ${isMobile ? 'grid-cols-2 gap-2 overflow-x-auto' : 'md:grid-cols-5'} mb-6 md:mb-8`}>
+            <TabsTrigger value="overview" className={isMobile ? "text-sm py-1" : ""}>Overview</TabsTrigger>
+            <TabsTrigger value="transfers" className={isMobile ? "text-sm py-1" : ""}>Transfers</TabsTrigger>
+            <TabsTrigger value="reports" className={isMobile ? "text-sm py-1" : ""}>Reports</TabsTrigger>
+            <TabsTrigger value="sales-orders" className={isMobile ? "text-sm py-1" : ""}>Sales Orders</TabsTrigger>
+            <TabsTrigger value="quotations" className={isMobile ? "text-sm py-1" : ""}>Quotations</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="space-y-4">

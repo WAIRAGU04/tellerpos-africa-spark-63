@@ -3,10 +3,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Account, AccountSummary, AccountTransaction } from '@/types/accounts';
 import { PaymentMethod } from '@/types/pos';
 import { formatCurrency } from '@/lib/utils';
-import { CircleDollarSign, CreditCard, Wallet, Banknote, ArrowUpDown } from 'lucide-react';
+import { CircleDollarSign, CreditCard, Wallet, Banknote, ArrowUpDown, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { getAccounts, getTransactions } from '@/services/accountsService';
+import ReconcileAccountDialog from './ReconcileAccountDialog';
+import AccountTransactions from './AccountTransactions';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AccountsOverview: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -21,26 +24,30 @@ const AccountsOverview: React.FC = () => {
     netSales: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isReconcileDialogOpen, setIsReconcileDialogOpen] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [showTransactions, setShowTransactions] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
-    const loadAccountsData = () => {
-      // Get accounts
-      const loadedAccounts = getAccounts();
-      setAccounts(loadedAccounts);
-      
-      // Get transactions
-      const loadedTransactions = getTransactions();
-      setTransactions(loadedTransactions);
-      
-      // Calculate summary from transactions
-      const calculatedSummary = calculateSummary(loadedAccounts, loadedTransactions);
-      setSummary(calculatedSummary);
-      
-      setIsLoading(false);
-    };
-    
     loadAccountsData();
   }, []);
+  
+  const loadAccountsData = () => {
+    // Get accounts
+    const loadedAccounts = getAccounts();
+    setAccounts(loadedAccounts);
+    
+    // Get transactions
+    const loadedTransactions = getTransactions();
+    setTransactions(loadedTransactions);
+    
+    // Calculate summary from transactions
+    const calculatedSummary = calculateSummary(loadedAccounts, loadedTransactions);
+    setSummary(calculatedSummary);
+    
+    setIsLoading(false);
+  };
   
   // Calculate summary from accounts and transactions
   const calculateSummary = (accounts: Account[], transactions: AccountTransaction[]): AccountSummary => {
@@ -70,6 +77,11 @@ const AccountsOverview: React.FC = () => {
     return summary;
   };
 
+  const handleViewTransactions = (accountId: string) => {
+    setSelectedAccountId(accountId);
+    setShowTransactions(true);
+  };
+
   const getAccountIcon = (type: PaymentMethod) => {
     switch (type) {
       case 'cash':
@@ -91,6 +103,22 @@ const AccountsOverview: React.FC = () => {
     return <div className="flex justify-center items-center h-48">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
     </div>;
+  }
+
+  if (showTransactions && selectedAccountId) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">
+            {accounts.find(a => a.id === selectedAccountId)?.name || 'Account'} Transactions
+          </h2>
+          <Button variant="outline" onClick={() => setShowTransactions(false)}>
+            Back to Overview
+          </Button>
+        </div>
+        <AccountTransactions accountId={selectedAccountId} />
+      </div>
+    );
   }
 
   return (
@@ -150,7 +178,7 @@ const AccountsOverview: React.FC = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">Accounts</h2>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setIsReconcileDialogOpen(true)}>
             <ArrowUpDown className="mr-2 h-4 w-4" />
             Reconcile
           </Button>
@@ -174,12 +202,34 @@ const AccountsOverview: React.FC = () => {
                 </p>
               </CardContent>
               <CardFooter className="pt-0">
-                <Button variant="outline" className="w-full" size="sm">View Transactions</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  size="sm"
+                  onClick={() => handleViewTransactions(account.id)}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Transactions
+                </Button>
               </CardFooter>
             </Card>
           ))}
         </div>
       </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">All Transactions</h2>
+        <AccountTransactions />
+      </div>
+
+      <ReconcileAccountDialog 
+        open={isReconcileDialogOpen}
+        onClose={() => setIsReconcileDialogOpen(false)}
+        accounts={accounts}
+        onReconcile={loadAccountsData}
+      />
     </div>
   );
 };

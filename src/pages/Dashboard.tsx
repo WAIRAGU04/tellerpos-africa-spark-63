@@ -298,7 +298,7 @@ const Dashboard = () => {
           {/* Recent Sales Section */}
           <div className="bg-white dark:bg-tellerpos-dark-accent rounded-lg shadow mb-6">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-              <h2 className="text-lg font-semibold">Recent Sales</h2>
+              <h2 className="text-lg font-semibold text-green-500">Recent Sales</h2>
               <button className="text-tellerpos text-sm">View all</button>
             </div>
             <div className="overflow-x-auto">

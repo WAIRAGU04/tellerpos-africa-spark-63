@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
@@ -31,7 +30,6 @@ const POSLayout: React.FC<POSLayoutProps> = ({
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const isMobile = useIsMobile();
   const [showMobileCart, setShowMobileCart] = useState(false);
-  const { updateShiftWithSale } = useShift();
   
   // Calculate cart total
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -50,9 +48,6 @@ const POSLayout: React.FC<POSLayoutProps> = ({
 
   // Handle successful payment/checkout
   const handlePaymentComplete = (paymentMethod: string, amount: number) => {
-    // Update the shift with the new sale
-    updateShiftWithSale(cart, paymentMethod as any, amount);
-    
     // Clear the cart after successful payment
     clearCart();
     

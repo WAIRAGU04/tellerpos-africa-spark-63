@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Shift, PaymentMethodTotals } from '@/types/shift';
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +10,7 @@ type ShiftContextType = {
   closeShift: () => void;
   addExpense: (description: string, amount: number) => void;
   updateShiftWithSale: (items: CartItem[], paymentMethod: PaymentMethod, amount: number) => void;
+  updateShiftWithSplitSale: (items: CartItem[], payments: Array<{method: PaymentMethod, amount: number}>) => void;
 };
 
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
@@ -198,6 +198,41 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("activeShift", JSON.stringify(updatedShift));
   };
   
+  // Handle split payment sales
+  const updateShiftWithSplitSale = (
+    items: CartItem[],
+    payments: Array<{method: PaymentMethod, amount: number}>
+  ) => {
+    if (!activeShift) {
+      toast({
+        title: "No active shift",
+        description: "You must start a shift before making sales",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Calculate total sale amount from all payments
+    const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    
+    // Update each payment method in the shift totals
+    const updatedPaymentTotals = { ...activeShift.paymentTotals };
+    
+    payments.forEach(payment => {
+      const shiftPaymentMethod = mapPaymentMethod(payment.method);
+      updatedPaymentTotals[shiftPaymentMethod] += payment.amount;
+    });
+    
+    const updatedShift = {
+      ...activeShift,
+      paymentTotals: updatedPaymentTotals,
+      totalSales: activeShift.totalSales + totalAmount
+    };
+    
+    setActiveShift(updatedShift);
+    localStorage.setItem("activeShift", JSON.stringify(updatedShift));
+  };
+  
   // Helper to calculate expected cash
   const calculateExpectedCash = (shift: Shift) => {
     const totalExpenses = shift.expenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -210,7 +245,8 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     startShift,
     closeShift,
     addExpense,
-    updateShiftWithSale
+    updateShiftWithSale,
+    updateShiftWithSplitSale
   };
   
   return (

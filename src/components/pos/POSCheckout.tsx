@@ -14,6 +14,7 @@ import POSReceiptGenerator from './POSReceiptGenerator';
 import POSInvoiceGenerator from './POSInvoiceGenerator';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency } from '@/lib/utils';
+import { useShift } from '@/contexts/ShiftContext';
 
 const POSCheckout: React.FC<POSCheckoutProps> = ({
   cart,
@@ -24,6 +25,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { updateShiftWithSale, updateShiftWithSplitSale } = useShift();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paymentType, setPaymentType] = useState<PaymentType>('full');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -193,6 +195,15 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       : [];
     
     localStorage.setItem('transactions', JSON.stringify([...existingTransactions, transaction]));
+
+    // Update shift with payment information
+    if (paymentType === 'split') {
+      // For split payments, update each payment separately
+      updateShiftWithSplitSale(cart, splitAmounts);
+    } else {
+      // For single payments
+      updateShiftWithSale(cart, paymentMethod, cartTotal);
+    }
 
     // Clear cart from localStorage immediately after payment
     localStorage.removeItem('posCart');

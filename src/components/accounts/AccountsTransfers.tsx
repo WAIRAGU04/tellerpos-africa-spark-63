@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Account, AccountTransfer } from '@/types/accounts';
 import { formatCurrency } from '@/lib/utils';
@@ -26,6 +25,10 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import { useOffline } from '@/hooks/use-offline';
+import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
+import OfflineAlert from '@/components/ui/offline-alert';
+import { cacheData, getCachedData, CACHE_KEYS } from '@/services/offlineService';
 
 const AccountsTransfers: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -35,21 +38,41 @@ const AccountsTransfers: React.FC = () => {
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const { isOnline, setLastSyncTime } = useOffline();
 
-  useEffect(() => {
+  const loadTransfersData = () => {
     // Load accounts from localStorage
     const storedAccounts = localStorage.getItem('accounts');
     if (storedAccounts) {
       setAccounts(JSON.parse(storedAccounts));
+    } else {
+      // Try to load from cache
+      const cachedAccounts = getCachedData<Account[]>(CACHE_KEYS.ACCOUNTS);
+      if (cachedAccounts.data) {
+        setAccounts(cachedAccounts.data);
+      }
     }
 
     // Load transfers from localStorage
     const storedTransfers = localStorage.getItem('accountTransfers');
     if (storedTransfers) {
       setTransfers(JSON.parse(storedTransfers));
+      // Cache for offline use
+      cacheData('cached_transfers', JSON.parse(storedTransfers));
+    } else {
+      // Try to load from cache
+      const cachedTransfers = getCachedData<AccountTransfer[]>('cached_transfers');
+      if (cachedTransfers.data) {
+        setTransfers(cachedTransfers.data);
+      }
     }
 
     setIsLoading(false);
+    setLastSyncTime(new Date().toISOString());
+  };
+
+  useEffect(() => {
+    loadTransfersData();
   }, []);
 
   const handleTransfer = () => {
@@ -132,6 +155,14 @@ const AccountsTransfers: React.FC = () => {
       title: "Transfer successful",
       description: `${formatCurrency(amountValue)} transferred successfully`,
     });
+
+    // Update the last sync time
+    setLastSyncTime(new Date().toISOString());
+  };
+
+  const handleManualSync = async () => {
+    // In a real app, this would sync with a backend
+    loadTransfersData();
   };
 
   if (isLoading) {
@@ -142,6 +173,15 @@ const AccountsTransfers: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      <div className="flex justify-end mb-4">
+        <OfflineStatusIndicator 
+          showManualSync={true}
+          onManualSync={handleManualSync}
+        />
+      </div>
+
+      {!isOnline && <OfflineAlert />}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">

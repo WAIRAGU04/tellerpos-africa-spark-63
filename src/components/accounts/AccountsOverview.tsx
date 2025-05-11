@@ -6,10 +6,13 @@ import { formatCurrency } from '@/lib/utils';
 import { CircleDollarSign, CreditCard, Wallet, Banknote, ArrowUpDown, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { getAccounts, getTransactions } from '@/services/accountsService';
+import { getAccounts, getTransactions, syncAccountsData } from '@/services/accountsService';
 import ReconcileAccountDialog from './ReconcileAccountDialog';
 import AccountTransactions from './AccountTransactions';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useOffline } from '@/hooks/use-offline';
+import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
+import OfflineAlert from '@/components/ui/offline-alert';
 
 const AccountsOverview: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -27,13 +30,14 @@ const AccountsOverview: React.FC = () => {
   const [isReconcileDialogOpen, setIsReconcileDialogOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [showTransactions, setShowTransactions] = useState(false);
+  const { isOnline, setLastSyncTime } = useOffline();
   const isMobile = useIsMobile();
 
   useEffect(() => {
     loadAccountsData();
   }, []);
   
-  const loadAccountsData = () => {
+  const loadAccountsData = async () => {
     // Get accounts
     const loadedAccounts = getAccounts();
     setAccounts(loadedAccounts);
@@ -47,6 +51,10 @@ const AccountsOverview: React.FC = () => {
     setSummary(calculatedSummary);
     
     setIsLoading(false);
+    
+    // Update last sync time
+    const newSyncTime = new Date().toISOString();
+    setLastSyncTime(newSyncTime);
   };
   
   // Calculate summary from accounts and transactions
@@ -123,6 +131,15 @@ const AccountsOverview: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <OfflineStatusIndicator 
+          showManualSync={true}
+          onManualSync={handleManualSync}
+        />
+      </div>
+      
+      {!isOnline && <OfflineAlert />}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

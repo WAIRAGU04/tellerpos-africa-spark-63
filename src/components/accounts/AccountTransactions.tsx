@@ -26,11 +26,13 @@ import {
 } from "@/components/ui/card";
 import { AccountTransaction } from '@/types/accounts';
 import { formatCurrency } from '@/lib/utils';
-import { Search, FileText, Wifi, WifiOff } from 'lucide-react';
-import { getAccounts, getTransactions } from '@/services/accountsService';
+import { Search, FileText } from 'lucide-react';
+import { getAccounts, getTransactions, syncAccountsData } from '@/services/accountsService';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { useOffline } from '@/hooks/use-offline';
+import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
+import OfflineAlert from '@/components/ui/offline-alert';
 
 const AccountTransactions: React.FC<{ accountId?: string }> = ({ accountId }) => {
   const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
@@ -39,34 +41,12 @@ const AccountTransactions: React.FC<{ accountId?: string }> = ({ accountId }) =>
   const [searchTerm, setSearchTerm] = useState('');
   const [transactionType, setTransactionType] = useState('all');
   const [selectedAccountId, setSelectedAccountId] = useState(accountId || 'all');
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const { isOnline, lastSyncTime, setLastSyncTime } = useOffline();
   const isMobile = useIsMobile();
-
-  // Monitor online/offline status
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      // When coming back online, we'd typically sync with server
-      loadTransactions();
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   // Load transactions function that handles both online and offline scenarios
   const loadTransactions = () => {
-    // Get all transactions (this would come from IndexedDB in a real offline-first app)
+    // Get all transactions
     const allTransactions = getTransactions();
     setTransactions(allTransactions);
     
@@ -79,35 +59,25 @@ const AccountTransactions: React.FC<{ accountId?: string }> = ({ accountId }) =>
     setAccounts(accountsMap);
     
     // Update last sync time
-    setLastSyncTime(new Date().toISOString());
+    const newSyncTime = new Date().toISOString();
+    setLastSyncTime(newSyncTime);
+  };
+
+  // Manual sync handler
+  const handleManualSync = async () => {
+    if (!isOnline) return;
     
-    // Store data in localStorage for offline access
     try {
-      localStorage.setItem('cached_transactions', JSON.stringify(allTransactions));
-      localStorage.setItem('cached_accounts', JSON.stringify(accountsMap));
-      localStorage.setItem('cached_transactions_timestamp', new Date().toISOString());
+      await syncAccountsData();
+      loadTransactions();
     } catch (error) {
-      console.error('Error caching transactions data:', error);
+      console.error('Error syncing data:', error);
     }
   };
 
   // Load initial data and check for cached data
   useEffect(() => {
-    // Try to load cached data first for instant rendering
-    const cachedTransactions = localStorage.getItem('cached_transactions');
-    const cachedAccounts = localStorage.getItem('cached_accounts');
-    const cachedTimestamp = localStorage.getItem('cached_transactions_timestamp');
-    
-    if (cachedTransactions && cachedAccounts) {
-      setTransactions(JSON.parse(cachedTransactions));
-      setAccounts(JSON.parse(cachedAccounts));
-      setLastSyncTime(cachedTimestamp);
-    }
-    
-    // Then load fresh data if online
-    if (navigator.onLine) {
-      loadTransactions();
-    }
+    loadTransactions();
     
     // Set initial account selection if provided
     if (accountId) {
@@ -147,13 +117,6 @@ const AccountTransactions: React.FC<{ accountId?: string }> = ({ accountId }) =>
     return type.charAt(0).toUpperCase() + type.slice(1);
   };
   
-  // Manual sync button handler
-  const handleManualSync = () => {
-    if (navigator.onLine) {
-      loadTransactions();
-    }
-  };
-  
   return (
     <div className="space-y-4">
       <Card>
@@ -163,36 +126,16 @@ const AccountTransactions: React.FC<{ accountId?: string }> = ({ accountId }) =>
               <FileText className="mr-2 h-5 w-5" />
               Transactions
             </div>
-            <div className="flex items-center">
-              {isOnline ? (
-                <Badge variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
-                  <Wifi className="h-3 w-3" /> Online
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200">
-                  <WifiOff className="h-3 w-3" /> Offline
-                </Badge>
-              )}
-              {lastSyncTime && (
-                <span className="ml-2 text-xs text-muted-foreground hidden md:inline-block">
-                  Last synced: {new Date(lastSyncTime).toLocaleString()}
-                </span>
-              )}
-            </div>
+            <OfflineStatusIndicator 
+              showLastSync
+              showManualSync
+              onManualSync={handleManualSync}
+              compact={isMobile}
+            />
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {!isOnline && (
-            <Alert className="mb-4 bg-amber-50 text-amber-700 border-amber-200">
-              <AlertDescription className="flex items-center">
-                <WifiOff className="h-4 w-4 mr-2" />
-                You are currently offline. Viewing cached transaction data.
-                {lastSyncTime && (
-                  <span className="ml-2 text-xs">Last synced: {new Date(lastSyncTime).toLocaleString()}</span>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
+          {!isOnline && <OfflineAlert />}
           
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="flex-1 relative">
@@ -237,17 +180,6 @@ const AccountTransactions: React.FC<{ accountId?: string }> = ({ accountId }) =>
                 </Select>
               </div>
             )}
-            
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleManualSync} 
-              disabled={!isOnline}
-              title="Sync transactions"
-              className="hidden md:flex"
-            >
-              <Wifi className="h-4 w-4" />
-            </Button>
           </div>
           
           {filteredTransactions.length > 0 ? (

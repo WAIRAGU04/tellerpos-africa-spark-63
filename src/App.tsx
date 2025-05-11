@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ShiftProvider } from "@/contexts/ShiftContext";
 import { initializeAccounts } from '@/services/accountsService';
+import { cacheData, CACHE_KEYS } from '@/services/offlineService';
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SignupPage from "./pages/SignupPage";
@@ -21,9 +22,25 @@ import PlaceholderModulePage from "./pages/PlaceholderModulePage";
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Initialize accounts on app load
+  // Initialize accounts and offline functionality on app load
   useEffect(() => {
+    // Initialize accounts
     initializeAccounts();
+    
+    // Set initial sync time if not already set
+    if (!localStorage.getItem('last_global_sync_time')) {
+      const initialSyncTime = new Date().toISOString();
+      localStorage.setItem('last_global_sync_time', initialSyncTime);
+    }
+    
+    // Register service worker for offline functionality in a real PWA
+    // (This is just a placeholder - actual implementation would require more setup)
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      window.addEventListener('load', () => {
+        // navigator.serviceWorker.register('/service-worker.js')
+        console.log('Service worker would be registered here in a production PWA');
+      });
+    }
   }, []);
   
   return (

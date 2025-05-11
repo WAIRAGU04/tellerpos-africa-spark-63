@@ -7,45 +7,38 @@ import { Product, Service, InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
 import { useShift } from '@/contexts/ShiftContext';
 import { Button } from "@/components/ui/button";
-import { CalendarClock, Wifi, WifiOff } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
+import { useOffline } from '@/hooks/use-offline';
+import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
+import OfflineAlert from '@/components/ui/offline-alert';
+import { cacheData, getCachedData, CACHE_KEYS } from '@/services/offlineService';
 
 const POSPage = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const { isOnline, setLastSyncTime } = useOffline();
   const { toast } = useToast();
   const { activeShift, isLoading: isShiftLoading } = useShift();
   const navigate = useNavigate();
 
-  // Monitor online/offline status
-  useEffect(() => {
-    const handleStatusChange = () => {
-      setIsOnline(navigator.onLine);
-      toast({
-        title: navigator.onLine ? "You're back online" : "You're offline",
-        description: navigator.onLine 
-          ? "Your changes will now sync automatically." 
-          : "You can continue working. Changes will sync when you reconnect.",
-        variant: navigator.onLine ? "default" : "default", // Changed from "warning" to "default"
-      });
-    };
-
-    window.addEventListener('online', handleStatusChange);
-    window.addEventListener('offline', handleStatusChange);
-
-    return () => {
-      window.removeEventListener('online', handleStatusChange);
-      window.removeEventListener('offline', handleStatusChange);
-    };
-  }, [toast]);
-
-  // Load inventory from localStorage
-  useEffect(() => {
+  // Load inventory and sync data
+  const loadInventoryData = () => {
+    // Load inventory from localStorage
     const storedInventory = localStorage.getItem('inventory');
     if (storedInventory) {
-      setInventory(JSON.parse(storedInventory));
+      const parsedInventory = JSON.parse(storedInventory);
+      setInventory(parsedInventory);
+      
+      // Cache for offline use
+      cacheData(CACHE_KEYS.INVENTORY, parsedInventory);
+    } else {
+      // Try to load from offline cache
+      const cachedInventory = getCachedData<InventoryItem[]>(CACHE_KEYS.INVENTORY);
+      if (cachedInventory.data) {
+        setInventory(cachedInventory.data);
+      }
     }
     
     // Load cart from localStorage if exists
@@ -55,6 +48,12 @@ const POSPage = () => {
     }
     
     setIsLoading(false);
+    setLastSyncTime(new Date().toISOString());
+  };
+
+  // Initial data load
+  useEffect(() => {
+    loadInventoryData();
   }, []);
 
   // Save cart to localStorage whenever it changes
@@ -63,6 +62,11 @@ const POSPage = () => {
       localStorage.setItem('posCart', JSON.stringify(cart));
     }
   }, [cart, isLoading]);
+
+  const handleManualSync = async () => {
+    // In a real app, this would sync with a server
+    loadInventoryData();
+  };
 
   const addToCart = (item: InventoryItem) => {
     if (!activeShift) {
@@ -203,12 +207,15 @@ const POSPage = () => {
 
   return (
     <DashboardLayout>
-      {!isOnline && (
-        <div className="flex items-center justify-center bg-amber-500 text-white p-2">
-          <WifiOff className="h-4 w-4 mr-2" /> 
-          <span>You are currently offline. Limited functionality available.</span>
-        </div>
-      )}
+      <div className="p-4 flex justify-end">
+        <OfflineStatusIndicator 
+          showManualSync={true}
+          onManualSync={handleManualSync}
+        />
+      </div>
+      
+      {!isOnline && <OfflineAlert />}
+      
       <POSLayout 
         inventory={inventory}
         cart={cart}

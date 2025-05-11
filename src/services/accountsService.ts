@@ -1,8 +1,8 @@
-
 import { Account, AccountTransaction } from '@/types/accounts';
 import { PaymentMethod } from '@/types/pos';
 import { nanoid } from 'nanoid';
 import { toast } from '@/hooks/use-toast';
+import { cacheData, getCachedData, CACHE_KEYS } from './offlineService';
 
 // Default accounts that will be created if none exist
 const DEFAULT_ACCOUNTS: Account[] = [
@@ -64,6 +64,7 @@ export const initializeAccounts = (): void => {
   // If no accounts exist, create default ones
   if (accounts.length === 0) {
     localStorage.setItem('accounts', JSON.stringify(DEFAULT_ACCOUNTS));
+    cacheData(CACHE_KEYS.ACCOUNTS, DEFAULT_ACCOUNTS);
     console.log('Default accounts created');
   }
 };
@@ -71,7 +72,20 @@ export const initializeAccounts = (): void => {
 // Get all accounts
 export const getAccounts = (): Account[] => {
   const accountsData = localStorage.getItem('accounts');
-  return accountsData ? JSON.parse(accountsData) : [];
+  const accounts = accountsData ? JSON.parse(accountsData) : [];
+  
+  // Cache the accounts for offline use
+  if (accounts.length > 0) {
+    cacheData(CACHE_KEYS.ACCOUNTS, accounts);
+  } else {
+    // Try to load from cache if no accounts in localStorage
+    const cached = getCachedData<Account[]>(CACHE_KEYS.ACCOUNTS);
+    if (cached.data && cached.data.length > 0) {
+      return cached.data;
+    }
+  }
+  
+  return accounts;
 };
 
 // Get account by type
@@ -112,6 +126,7 @@ export const updateAccountBalance = (
   
   // Save updated accounts
   localStorage.setItem('accounts', JSON.stringify(accounts));
+  cacheData(CACHE_KEYS.ACCOUNTS, accounts);
   
   // Create transaction record
   const transaction: AccountTransaction = {
@@ -132,6 +147,7 @@ export const updateAccountBalance = (
   
   // Save transactions
   localStorage.setItem('accountTransactions', JSON.stringify(transactions));
+  cacheData(CACHE_KEYS.TRANSACTIONS, transactions);
   
   return true;
 };
@@ -139,7 +155,20 @@ export const updateAccountBalance = (
 // Get all transactions
 export const getTransactions = (): AccountTransaction[] => {
   const transactionsData = localStorage.getItem('accountTransactions');
-  return transactionsData ? JSON.parse(transactionsData) : [];
+  const transactions = transactionsData ? JSON.parse(transactionsData) : [];
+  
+  // Cache the transactions for offline use
+  if (transactions.length > 0) {
+    cacheData(CACHE_KEYS.TRANSACTIONS, transactions);
+  } else {
+    // Try to load from cache if no transactions in localStorage
+    const cached = getCachedData<AccountTransaction[]>(CACHE_KEYS.TRANSACTIONS);
+    if (cached.data && cached.data.length > 0) {
+      return cached.data;
+    }
+  }
+  
+  return transactions;
 };
 
 // Record a sale across multiple payment methods
@@ -177,3 +206,15 @@ export const recordSaleInAccounts = (
   return allSuccessful;
 };
 
+// A new function to synchronize data (simulated for now - in a real app this would connect to a server)
+export const syncAccountsData = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // In a real app, this would post changes to a server and fetch latest data
+      // For now, we just update the sync timestamp
+      const currentTime = new Date().toISOString();
+      localStorage.setItem('accounts_last_sync', currentTime);
+      resolve(true);
+    }, 500); // Simulate network delay
+  });
+};

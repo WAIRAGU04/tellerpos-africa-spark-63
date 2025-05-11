@@ -1,7 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Shift, PaymentMethodTotals } from '@/types/shift';
 import { useToast } from "@/hooks/use-toast";
 import { CartItem, PaymentMethod } from '@/types/pos';
+import { recordSaleInAccounts } from '@/services/accountsService';
 
 type ShiftContextType = {
   activeShift: Shift | null;
@@ -196,6 +198,13 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     
     setActiveShift(updatedShift);
     localStorage.setItem("activeShift", JSON.stringify(updatedShift));
+    
+    // Update accounts in real-time
+    recordSaleInAccounts(
+      [{ method: paymentMethod, amount }],
+      `sale-${Date.now()}`,
+      activeShift.id
+    );
   };
   
   // Handle split payment sales
@@ -231,6 +240,13 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     
     setActiveShift(updatedShift);
     localStorage.setItem("activeShift", JSON.stringify(updatedShift));
+    
+    // Update accounts in real-time
+    recordSaleInAccounts(
+      payments,
+      `split-sale-${Date.now()}`,
+      activeShift.id
+    );
   };
   
   // Helper to calculate expected cash

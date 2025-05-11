@@ -7,16 +7,39 @@ import { Product, Service, InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
 import { useShift } from '@/contexts/ShiftContext';
 import { Button } from "@/components/ui/button";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Wifi, WifiOff } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 
 const POSPage = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { toast } = useToast();
   const { activeShift, isLoading: isShiftLoading } = useShift();
   const navigate = useNavigate();
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleStatusChange = () => {
+      setIsOnline(navigator.onLine);
+      toast({
+        title: navigator.onLine ? "You're back online" : "You're offline",
+        description: navigator.onLine 
+          ? "Your changes will now sync automatically." 
+          : "You can continue working. Changes will sync when you reconnect.",
+        variant: navigator.onLine ? "default" : "warning",
+      });
+    };
+
+    window.addEventListener('online', handleStatusChange);
+    window.addEventListener('offline', handleStatusChange);
+
+    return () => {
+      window.removeEventListener('online', handleStatusChange);
+      window.removeEventListener('offline', handleStatusChange);
+    };
+  }, [toast]);
 
   // Load inventory from localStorage
   useEffect(() => {
@@ -180,6 +203,12 @@ const POSPage = () => {
 
   return (
     <DashboardLayout>
+      {!isOnline && (
+        <div className="flex items-center justify-center bg-amber-500 text-white p-2">
+          <WifiOff className="h-4 w-4 mr-2" /> 
+          <span>You are currently offline. Limited functionality available.</span>
+        </div>
+      )}
       <POSLayout 
         inventory={inventory}
         cart={cart}

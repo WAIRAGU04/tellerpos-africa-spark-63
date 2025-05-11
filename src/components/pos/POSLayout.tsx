@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,22 @@ const POSLayout: React.FC<POSLayoutProps> = ({
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const isMobile = useIsMobile();
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleStatusChange = () => {
+      setIsOnline(navigator.onLine);
+    };
+
+    window.addEventListener('online', handleStatusChange);
+    window.addEventListener('offline', handleStatusChange);
+
+    return () => {
+      window.removeEventListener('online', handleStatusChange);
+      window.removeEventListener('offline', handleStatusChange);
+    };
+  }, []);
   
   // Calculate cart total
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -57,6 +74,13 @@ const POSLayout: React.FC<POSLayoutProps> = ({
 
   return (
     <div className="h-full flex flex-col md:flex-row">
+      {/* Offline indicator */}
+      {!isOnline && (
+        <div className="bg-amber-500 text-white p-2 text-center text-sm">
+          You are currently offline. Some features may be limited.
+        </div>
+      )}
+      
       {/* Inventory section - always visible */}
       <div className={`flex-1 overflow-auto ${isCheckoutMode && !isMobile ? 'hidden md:block' : ''}`}>
         <POSInventoryView 

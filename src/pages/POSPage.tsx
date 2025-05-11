@@ -7,68 +7,16 @@ import { Product, Service, InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
 import { useShift } from '@/contexts/ShiftContext';
 import { Button } from "@/components/ui/button";
-import { CalendarClock, WifiOff } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
-import { initializeAccounts } from '@/services/accountsService';
-import { initializeSyncService, initializeOfflineStorage } from '@/services/syncService';
 
 const POSPage = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { toast } = useToast();
   const { activeShift, isLoading: isShiftLoading } = useShift();
   const navigate = useNavigate();
-
-  // Initialize offline functionality and sync
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast({
-        title: "You're back online",
-        description: "Syncing your offline transactions...",
-      });
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast({
-        title: "You're offline",
-        description: "You can continue working, and data will be synced when you're back online.",
-        variant: "warning"
-      });
-    };
-    
-    // Set up event listeners for online/offline status
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    // Initialize accounts if they don't exist
-    initializeAccounts();
-    
-    // Initialize offline storage
-    initializeOfflineStorage().then(() => {
-      // Initialize sync service after storage is ready
-      initializeSyncService();
-    });
-    
-    // Listen for sync completion
-    const handleSyncComplete = () => {
-      toast({
-        title: "Sync complete",
-        description: "Your offline transactions have been processed.",
-      });
-    };
-    
-    window.addEventListener('syncComplete', handleSyncComplete);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('syncComplete', handleSyncComplete);
-    };
-  }, [toast]);
 
   // Load inventory from localStorage
   useEffect(() => {
@@ -94,7 +42,7 @@ const POSPage = () => {
   }, [cart, isLoading]);
 
   const addToCart = (item: InventoryItem) => {
-    if (!activeShift && isOnline) {
+    if (!activeShift) {
       toast({
         title: "No active shift",
         description: "You must start a shift before making sales",
@@ -210,35 +158,8 @@ const POSPage = () => {
     );
   }
 
-  // No active shift but offline - allow continue with warning
-  if (!activeShift && !isOnline) {
-    return (
-      <DashboardLayout>
-        <div className="bg-yellow-50 p-4 mb-4">
-          <div className="flex items-center">
-            <WifiOff className="h-6 w-6 text-yellow-500 mr-3" />
-            <div>
-              <h3 className="font-bold">Offline Mode</h3>
-              <p>You're working offline without an active shift. Transactions will be processed when you're back online.</p>
-            </div>
-          </div>
-        </div>
-        
-        <POSLayout 
-          inventory={inventory}
-          cart={cart}
-          addToCart={addToCart}
-          updateCartItemQuantity={updateCartItemQuantity}
-          removeFromCart={removeFromCart}
-          clearCart={clearCart}
-          isOffline={true}
-        />
-      </DashboardLayout>
-    );
-  }
-
-  // No active shift and online - show message
-  if (!activeShift && isOnline) {
+  // No active shift - show a message and redirect button
+  if (!activeShift) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-full">
@@ -259,18 +180,6 @@ const POSPage = () => {
 
   return (
     <DashboardLayout>
-      {!isOnline && (
-        <div className="bg-yellow-50 p-4 mb-4">
-          <div className="flex items-center">
-            <WifiOff className="h-6 w-6 text-yellow-500 mr-3" />
-            <div>
-              <h3 className="font-bold">Offline Mode</h3>
-              <p>You're working offline. All transactions will be synced when you reconnect.</p>
-            </div>
-          </div>
-        </div>
-      )}
-      
       <POSLayout 
         inventory={inventory}
         cart={cart}
@@ -278,7 +187,6 @@ const POSPage = () => {
         updateCartItemQuantity={updateCartItemQuantity}
         removeFromCart={removeFromCart}
         clearCart={clearCart}
-        isOffline={!isOnline}
       />
     </DashboardLayout>
   );

@@ -11,12 +11,14 @@ interface POSInvoiceGeneratorProps {
   transaction: Transaction;
   customerName: string;
   onClose: () => void;
+  paidAmount?: number;
 }
 
 const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
   transaction,
   customerName,
-  onClose
+  onClose,
+  paidAmount = 0
 }) => {
   const handlePrint = () => {
     // Clone the receipt content for printing
@@ -83,7 +85,17 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
       message += `${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}\n`;
     });
     
-    message += `\n*TOTAL AMOUNT DUE*: ${formatCurrency(transaction.total)}\n\n`;
+    // Add paid amount and balance due for partial payments
+    const isPartialPayment = paidAmount > 0;
+    if (isPartialPayment) {
+      const totalBill = transaction.total + paidAmount;
+      message += `\n*TOTAL BILL*: ${formatCurrency(totalBill)}\n`;
+      message += `*PAID AMOUNT*: ${formatCurrency(paidAmount)}\n`;
+      message += `*BALANCE DUE*: ${formatCurrency(transaction.total)}\n\n`;
+    } else {
+      message += `\n*TOTAL AMOUNT DUE*: ${formatCurrency(transaction.total)}\n\n`;
+    }
+    
     message += `Thank you for your business! This is a credit sale, payment is due within 30 days.`;
     
     // Encode the message for WhatsApp
@@ -103,6 +115,10 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
   const invoiceDueDate = dueDate.toLocaleDateString();
+
+  // Calculate total bill for partial payments
+  const isPartialPayment = paidAmount > 0;
+  const totalBill = isPartialPayment ? transaction.total + paidAmount : transaction.total;
 
   return (
     <>
@@ -153,15 +169,35 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
         
         <div className="flex justify-end">
           <div className="w-1/2">
-            <div className="flex justify-between py-2">
-              <span className="font-medium">Subtotal:</span>
-              <span>{formatCurrency(transaction.total)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between py-2 font-bold">
-              <span>TOTAL DUE:</span>
-              <span>{formatCurrency(transaction.total)}</span>
-            </div>
+            {isPartialPayment ? (
+              <>
+                <div className="flex justify-between py-2">
+                  <span className="font-medium">Total Bill:</span>
+                  <span>{formatCurrency(totalBill)}</span>
+                </div>
+                <div className="flex justify-between py-2 text-green-600">
+                  <span className="font-medium">Amount Paid:</span>
+                  <span>{formatCurrency(paidAmount)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between py-2 font-bold">
+                  <span>BALANCE DUE:</span>
+                  <span>{formatCurrency(transaction.total)}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between py-2">
+                  <span className="font-medium">Subtotal:</span>
+                  <span>{formatCurrency(transaction.total)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between py-2 font-bold">
+                  <span>TOTAL DUE:</span>
+                  <span>{formatCurrency(transaction.total)}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
         
@@ -170,6 +206,9 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
           <p className="text-xs">Payment due by: {invoiceDueDate}</p>
           <p className="text-xs">Payment Method: Credit</p>
           <p className="text-xs">Payment Status: Pending</p>
+          {isPartialPayment && (
+            <p className="text-xs mt-1 text-amber-600">Note: This is a partial invoice. A separate receipt has been generated for the paid amount.</p>
+          )}
         </div>
         
         <div className="mt-6 text-center text-xs">

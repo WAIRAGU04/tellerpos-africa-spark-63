@@ -45,6 +45,7 @@ export interface Transaction {
   receiptNumber: string;
   status: 'completed' | 'pending' | 'cancelled';
   isInvoice?: boolean;
+  paidAmount?: number; // Add this field to track paid amount for partial invoices
 }
 
 export interface POSCheckoutProps {

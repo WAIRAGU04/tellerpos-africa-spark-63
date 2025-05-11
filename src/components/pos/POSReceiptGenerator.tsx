@@ -3,18 +3,22 @@ import React from 'react';
 import { Transaction } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog";
-import { Printer, Share2, X } from 'lucide-react';
+import { Printer, Share2, X, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
 interface POSReceiptGeneratorProps {
   transaction: Transaction;
   onClose: () => void;
+  showCreditButton?: boolean;
+  onViewCredit?: () => void;
 }
 
 const POSReceiptGenerator: React.FC<POSReceiptGeneratorProps> = ({
   transaction,
-  onClose
+  onClose,
+  showCreditButton = false,
+  onViewCredit
 }) => {
   const handlePrint = () => {
     // Clone the receipt content for printing
@@ -159,9 +163,16 @@ const POSReceiptGenerator: React.FC<POSReceiptGeneratorProps> = ({
         <Button variant="outline" className="flex-1" onClick={handleShare}>
           <Share2 className="mr-2 h-4 w-4" /> Share via WhatsApp
         </Button>
-        <Button variant="default" className="flex-1" onClick={onClose}>
-          <X className="mr-2 h-4 w-4" /> Close
-        </Button>
+        {showCreditButton && onViewCredit && (
+          <Button variant="default" className="flex-1" onClick={onViewCredit}>
+            <FileText className="mr-2 h-4 w-4" /> View Invoice
+          </Button>
+        )}
+        {!showCreditButton && (
+          <Button variant="default" className="flex-1" onClick={onClose}>
+            <X className="mr-2 h-4 w-4" /> Close
+          </Button>
+        )}
       </AlertDialogFooter>
     </>
   );

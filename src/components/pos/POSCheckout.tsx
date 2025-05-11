@@ -47,6 +47,9 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
   const [showMpesaSTKDialog, setShowMpesaSTKDialog] = useState(false);
   const [mpesaAmount, setMpesaAmount] = useState('');
   const [showPostPaymentDialog, setShowPostPaymentDialog] = useState(false);
+  const [showCreditInvoiceDialog, setShowCreditInvoiceDialog] = useState(false);
+  const [creditTransaction, setCreditTransaction] = useState<Transaction | null>(null);
+  const [paidTransaction, setPaidTransaction] = useState<Transaction | null>(null);
 
   // Generate receipt number
   React.useEffect(() => {
@@ -162,47 +165,122 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
   };
 
   const completeTransaction = (isCredit = false) => {
-    // Create transaction object
-    const transaction: Transaction = {
-      id: `TRX-${Date.now()}`,
-      items: [...cart],
-      payments: paymentType === 'split' 
-        ? splitAmounts.map(split => ({
-            id: `PAY-${Date.now()}-${split.method}`,
-            method: split.method,
-            amount: split.amount,
-            reference: split.method === 'mpesa-stk' ? `MPESA-${Date.now().toString().substring(8)}` : undefined
-          }))
-        : [{
-            id: `PAY-${Date.now()}`,
-            method: paymentMethod,
-            amount: cartTotal,
-            reference: paymentMethod === 'mpesa-stk' ? `MPESA-${Date.now().toString().substring(8)}` : undefined
-          }],
-      total: cartTotal,
-      customerId: selectedCustomerId || undefined,
-      timestamp: new Date().toISOString(),
-      receiptNumber: isCredit ? `INV-${Date.now().toString().substring(6)}` : receiptNumber,
-      status: 'completed',
-      isInvoice: isCredit
-    };
-
-    setCurrentTransaction(transaction);
-
-    // Save transaction to localStorage
-    const existingTransactions = localStorage.getItem('transactions') 
-      ? JSON.parse(localStorage.getItem('transactions') || '[]') 
-      : [];
+    // Check for split payment with credit component
+    const hasCreditComponent = paymentType === 'split' && 
+      splitAmounts.some(payment => payment.method === 'credit');
     
-    localStorage.setItem('transactions', JSON.stringify([...existingTransactions, transaction]));
+    // Calculate total paid amount (excluding credit in split payments)
+    const paidAmount = paymentType === 'split'
+      ? splitAmounts.reduce((sum, payment) => 
+          payment.method === 'credit' ? sum : sum + payment.amount, 0)
+      : isCredit ? 0 : cartTotal;
+    
+    // Calculate credit amount
+    const creditAmount = paymentType === 'split'
+      ? splitAmounts.find(payment => payment.method === 'credit')?.amount || 0
+      : isCredit ? cartTotal : 0;
 
-    // Update shift with payment information
-    if (paymentType === 'split') {
-      // For split payments, update each payment separately
+    // If we have both paid amount and credit amount in a split payment
+    if (hasCreditComponent && paidAmount > 0) {
+      // Create paid transaction (receipt)
+      const paidTransactionObj: Transaction = {
+        id: `TRX-PAID-${Date.now()}`,
+        items: [...cart],
+        payments: splitAmounts.filter(p => p.method !== 'credit').map(split => ({
+          id: `PAY-${Date.now()}-${split.method}`,
+          method: split.method,
+          amount: split.amount,
+          reference: split.method === 'mpesa-stk' ? `MPESA-${Date.now().toString().substring(8)}` : undefined
+        })),
+        total: paidAmount,
+        timestamp: new Date().toISOString(),
+        receiptNumber: receiptNumber,
+        status: 'completed',
+        isInvoice: false
+      };
+      
+      // Create credit transaction (invoice)
+      const creditTransactionObj: Transaction = {
+        id: `TRX-CREDIT-${Date.now()}`,
+        items: [...cart],
+        payments: [{
+          id: `PAY-CREDIT-${Date.now()}`,
+          method: 'credit',
+          amount: creditAmount,
+          reference: undefined
+        }],
+        total: creditAmount,
+        customerId: selectedCustomerId || undefined,
+        timestamp: new Date().toISOString(),
+        receiptNumber: `INV-${Date.now().toString().substring(6)}`,
+        status: 'completed',
+        isInvoice: true,
+        paidAmount: paidAmount // Add paid amount for reference
+      };
+      
+      // Save both transactions
+      const existingTransactions = localStorage.getItem('transactions') 
+        ? JSON.parse(localStorage.getItem('transactions') || '[]') 
+        : [];
+      
+      localStorage.setItem('transactions', JSON.stringify([
+        ...existingTransactions, 
+        paidTransactionObj, 
+        creditTransactionObj
+      ]));
+      
+      // Set both transactions for UI display
+      setPaidTransaction(paidTransactionObj);
+      setCreditTransaction(creditTransactionObj);
+      
+      // Update shift with the split payment
       updateShiftWithSplitSale(cart, splitAmounts);
+      
+      // Set current transaction to the paid one for initial display
+      setCurrentTransaction(paidTransactionObj);
     } else {
-      // For single payments
-      updateShiftWithSale(cart, paymentMethod, cartTotal);
+      // Standard transaction handling (single payment method or full credit)
+      const transaction: Transaction = {
+        id: `TRX-${Date.now()}`,
+        items: [...cart],
+        payments: paymentType === 'split' 
+          ? splitAmounts.map(split => ({
+              id: `PAY-${Date.now()}-${split.method}`,
+              method: split.method,
+              amount: split.amount,
+              reference: split.method === 'mpesa-stk' ? `MPESA-${Date.now().toString().substring(8)}` : undefined
+            }))
+          : [{
+              id: `PAY-${Date.now()}`,
+              method: paymentMethod,
+              amount: cartTotal,
+              reference: paymentMethod === 'mpesa-stk' ? `MPESA-${Date.now().toString().substring(8)}` : undefined
+            }],
+        total: cartTotal,
+        customerId: selectedCustomerId || undefined,
+        timestamp: new Date().toISOString(),
+        receiptNumber: isCredit ? `INV-${Date.now().toString().substring(6)}` : receiptNumber,
+        status: 'completed',
+        isInvoice: isCredit
+      };
+
+      setCurrentTransaction(transaction);
+
+      // Save transaction to localStorage
+      const existingTransactions = localStorage.getItem('transactions') 
+        ? JSON.parse(localStorage.getItem('transactions') || '[]') 
+        : [];
+      
+      localStorage.setItem('transactions', JSON.stringify([...existingTransactions, transaction]));
+
+      // Update shift with payment information
+      if (paymentType === 'split') {
+        // For split payments, update each payment separately
+        updateShiftWithSplitSale(cart, splitAmounts);
+      } else {
+        // For single payments
+        updateShiftWithSale(cart, paymentMethod, cartTotal);
+      }
     }
 
     // Clear cart from localStorage immediately after payment
@@ -229,19 +307,36 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
     setShowReceiptDialog(false);
     setShowInvoiceDialog(false);
     setShowPostPaymentDialog(false);
+    setShowCreditInvoiceDialog(false);
     
     // Return to POS
     onBackToCart();
     
-    toast({
-      title: currentTransaction?.isInvoice ? "Invoice created" : "Receipt created",
-      description: `${currentTransaction?.isInvoice ? 'Invoice' : 'Receipt'} #${currentTransaction?.receiptNumber} created successfully.`,
-      variant: "default"
-    });
+    // Show appropriate toast message based on transaction type
+    if (creditTransaction && paidTransaction) {
+      toast({
+        title: "Transactions completed",
+        description: `Receipt #${paidTransaction.receiptNumber} and Invoice #${creditTransaction.receiptNumber} created successfully.`,
+        variant: "default"
+      });
+    } else if (currentTransaction) {
+      toast({
+        title: currentTransaction.isInvoice ? "Invoice created" : "Receipt created",
+        description: `${currentTransaction.isInvoice ? 'Invoice' : 'Receipt'} #${currentTransaction.receiptNumber} created successfully.`,
+        variant: "default"
+      });
+    }
   };
 
   const handlePrintReceipt = () => {
-    if (currentTransaction) {
+    // If we have split payment with credit
+    if (creditTransaction && paidTransaction) {
+      // Show receipt first
+      setPaidTransaction(paidTransaction);
+      setCurrentTransaction(paidTransaction);
+      setShowPostPaymentDialog(false);
+      setShowReceiptDialog(true);
+    } else if (currentTransaction) {
       // Close the post-payment dialog
       setShowPostPaymentDialog(false);
       
@@ -251,6 +346,15 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       } else {
         setShowReceiptDialog(true);
       }
+    }
+  };
+
+  const handleViewCreditInvoice = () => {
+    // For viewing the credit invoice after viewing the receipt
+    if (creditTransaction) {
+      setShowReceiptDialog(false);
+      setCurrentTransaction(creditTransaction);
+      setShowInvoiceDialog(true);
     }
   };
 
@@ -599,7 +703,12 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
           {currentTransaction && (
             <POSReceiptGenerator 
               transaction={currentTransaction} 
-              onClose={() => handleTransactionComplete()} 
+              onClose={() => creditTransaction && paidTransaction 
+                ? handleViewCreditInvoice() 
+                : handleTransactionComplete()
+              } 
+              showCreditButton={Boolean(creditTransaction && paidTransaction)}
+              onViewCredit={handleViewCreditInvoice}
             />
           )}
         </AlertDialogContent>
@@ -613,6 +722,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
               transaction={currentTransaction} 
               customerName={customerName}
               onClose={() => handleTransactionComplete()} 
+              paidAmount={currentTransaction.paidAmount}
             />
           )}
         </AlertDialogContent>

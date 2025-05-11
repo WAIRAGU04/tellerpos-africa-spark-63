@@ -46,3 +46,11 @@ export interface Transaction {
   status: 'completed' | 'pending' | 'cancelled';
   isInvoice?: boolean;
 }
+
+export interface POSCheckoutProps {
+  cart: CartItem[];
+  cartTotal: number;
+  onBackToCart: () => void;
+  clearCart: () => void;
+  onPaymentComplete?: (paymentMethod: PaymentMethod, amount: number) => void;
+}

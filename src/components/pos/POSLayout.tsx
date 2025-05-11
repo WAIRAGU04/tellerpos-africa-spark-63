@@ -9,6 +9,7 @@ import POSCheckout from './POSCheckout';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ShoppingCart } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useShift } from '@/contexts/ShiftContext';
 
 interface POSLayoutProps {
   inventory: InventoryItem[];
@@ -30,6 +31,7 @@ const POSLayout: React.FC<POSLayoutProps> = ({
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const isMobile = useIsMobile();
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const { updateShiftWithSale } = useShift();
   
   // Calculate cart total
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -43,6 +45,18 @@ const POSLayout: React.FC<POSLayoutProps> = ({
   };
 
   const handleBackToCart = () => {
+    setIsCheckoutMode(false);
+  };
+
+  // Handle successful payment/checkout
+  const handlePaymentComplete = (paymentMethod: string, amount: number) => {
+    // Update the shift with the new sale
+    updateShiftWithSale(cart, paymentMethod as any, amount);
+    
+    // Clear the cart after successful payment
+    clearCart();
+    
+    // Return to inventory view
     setIsCheckoutMode(false);
   };
 
@@ -99,6 +113,7 @@ const POSLayout: React.FC<POSLayoutProps> = ({
                 cartTotal={cartTotal} 
                 onBackToCart={handleBackToCart}
                 clearCart={clearCart}
+                onPaymentComplete={handlePaymentComplete}
               />
             </div>
           )}
@@ -112,6 +127,7 @@ const POSLayout: React.FC<POSLayoutProps> = ({
               cartTotal={cartTotal} 
               onBackToCart={handleBackToCart}
               clearCart={clearCart}
+              onPaymentComplete={handlePaymentComplete}
             />
           ) : (
             <POSCart 

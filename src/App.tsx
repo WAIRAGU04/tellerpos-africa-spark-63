@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
+import { ShiftProvider } from "@/contexts/ShiftContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SignupPage from "./pages/SignupPage";
@@ -28,26 +29,28 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/shift" element={<ShiftPage />} />
-            <Route path="/dashboard/pos" element={<POSPage />} />
-            <Route path="/dashboard/sales" element={<SalesPage />} />
-            <Route path="/dashboard/stock" element={<StockPage />} />
-            <Route path="/dashboard/accounts" element={<PlaceholderModulePage />} />
-            <Route path="/dashboard/analytics" element={<PlaceholderModulePage />} />
-            <Route path="/dashboard/users" element={<PlaceholderModulePage />} />
-            <Route path="/dashboard/settings" element={<PlaceholderModulePage />} />
-            <Route path="/dashboard/backoffice" element={<PlaceholderModulePage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <ShiftProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/shift" element={<ShiftPage />} />
+              <Route path="/dashboard/pos" element={<POSPage />} />
+              <Route path="/dashboard/sales" element={<SalesPage />} />
+              <Route path="/dashboard/stock" element={<StockPage />} />
+              <Route path="/dashboard/accounts" element={<PlaceholderModulePage />} />
+              <Route path="/dashboard/analytics" element={<PlaceholderModulePage />} />
+              <Route path="/dashboard/users" element={<PlaceholderModulePage />} />
+              <Route path="/dashboard/settings" element={<PlaceholderModulePage />} />
+              <Route path="/dashboard/backoffice" element={<PlaceholderModulePage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ShiftProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

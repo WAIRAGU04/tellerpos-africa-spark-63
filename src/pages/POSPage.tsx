@@ -5,12 +5,18 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import POSLayout from "@/components/pos/POSLayout";
 import { Product, Service, InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
+import { useShift } from '@/contexts/ShiftContext';
+import { Button } from "@/components/ui/button";
+import { CalendarClock } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
 const POSPage = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { activeShift, isLoading: isShiftLoading } = useShift();
+  const navigate = useNavigate();
 
   // Load inventory from localStorage
   useEffect(() => {
@@ -36,6 +42,15 @@ const POSPage = () => {
   }, [cart, isLoading]);
 
   const addToCart = (item: InventoryItem) => {
+    if (!activeShift) {
+      toast({
+        title: "No active shift",
+        description: "You must start a shift before making sales",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if the item is already in the cart
     const existingItemIndex = cart.findIndex(cartItem => cartItem.id === item.id);
     
@@ -133,11 +148,31 @@ const POSPage = () => {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || isShiftLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-full">
           <div className="w-16 h-16 border-t-4 border-b-4 border-tellerpos rounded-full animate-spin"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // No active shift - show a message and redirect button
+  if (!activeShift) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center max-w-md p-8 bg-tellerpos-dark-accent/20 rounded-lg">
+            <CalendarClock className="h-16 w-16 mx-auto mb-4 text-tellerpos" />
+            <h2 className="text-2xl font-bold mb-2">No Active Shift</h2>
+            <p className="mb-6 text-tellerpos-gray-light">
+              You need to start a shift before you can make sales. Please go to the Shift Management page to start a new shift.
+            </p>
+            <Button onClick={() => navigate('/dashboard/shift')}>
+              Go to Shift Management
+            </Button>
+          </div>
         </div>
       </DashboardLayout>
     );

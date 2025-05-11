@@ -242,7 +242,7 @@ const Dashboard = () => {
           </button>
           
           <div className="flex-1 md:ml-4">
-            <h1 className="text-green-500 font-extrabold text-4xl">{sidebarItems.find(item => item.path === activeModule)?.label || "Dashboard"}</h1>
+            <h1 className="text-green-500 font-extrabold text-2xl">{sidebarItems.find(item => item.path === activeModule)?.label || "Dashboard"}</h1>
           </div>
           
           <div className="flex items-center space-x-3">

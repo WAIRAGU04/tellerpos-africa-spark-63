@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, CreditCard, Check, X, Phone, CircleDollarSign, Receipt, Split, Banknote, Loader } from 'lucide-react';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import POSSplitPayment from './POSSplitPayment';
 import POSCustomerSelect from './POSCustomerSelect';
 import POSReceiptGenerator from './POSReceiptGenerator';
@@ -46,6 +47,9 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
+  // New state for M-Pesa STK dialog
+  const [showMpesaSTKDialog, setShowMpesaSTKDialog] = useState(false);
+  const [mpesaAmount, setMpesaAmount] = useState('');
 
   // Generate receipt number
   React.useEffect(() => {
@@ -55,16 +59,6 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
   }, []);
 
   const handlePaymentSubmit = () => {
-    // Validate mobile number for MPESA
-    if (paymentMethod === 'mpesa-stk' && (!mobileNumber || mobileNumber.length !== 10)) {
-      toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid 10-digit mobile number",
-        variant: "destructive"
-      });
-      return;
-    }
-
     // Validate credit payment requires a customer
     if (paymentMethod === 'credit' && !selectedCustomerId) {
       setShowCustomerSelect(true);
@@ -94,9 +88,14 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       }
 
       // Check if there's MPesa payment in the split
-      const hasMpesaStkSplit = splitAmounts.some(split => split.method === 'mpesa-stk');
-      if (hasMpesaStkSplit) {
-        handleMpesaSTKPush();
+      const hasMpesaSTKSplit = splitAmounts.some(split => split.method === 'mpesa-stk');
+      if (hasMpesaSTKSplit) {
+        // Get the M-Pesa amount from split payments
+        const mpesaSplit = splitAmounts.find(split => split.method === 'mpesa-stk');
+        if (mpesaSplit) {
+          setMpesaAmount(mpesaSplit.amount.toString());
+          setShowMpesaSTKDialog(true);
+        }
         return;
       }
     }
@@ -107,9 +106,10 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       return;
     }
 
-    // For MPESA STK, simulate STK push
+    // For MPESA STK, show the M-Pesa dialog
     if (paymentMethod === 'mpesa-stk') {
-      handleMpesaSTKPush();
+      setMpesaAmount(cartTotal.toString());
+      setShowMpesaSTKDialog(true);
       return;
     }
 
@@ -120,15 +120,26 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
   };
 
   const handleMpesaSTKPush = () => {
+    // Validate mobile number
+    if (!mobileNumber || mobileNumber.length !== 10) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit mobile number",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsProcessingPayment(true);
     toast({
       title: "STK Push initiated",
       description: `STK Push sent to ${mobileNumber}. Customer to enter PIN.`
     });
 
-    // Simulate STK completion after 3 seconds
+    // Simulate STK completion after 5 seconds
     setTimeout(() => {
       setIsProcessingPayment(false);
+      setShowMpesaSTKDialog(false);
       
       // Simulate random success (80% chance)
       if (Math.random() < 0.8) {
@@ -341,12 +352,6 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
             </RadioGroup>
             
             {/* Additional fields based on payment method */}
-            {paymentMethod === 'mpesa-stk' && <div className="mt-4 p-4 border rounded-md">
-                <Label htmlFor="phone" className="block mb-2">Mobile Number</Label>
-                <Input id="phone" type="tel" placeholder="0712345678" value={mobileNumber} onChange={e => setMobileNumber(e.target.value)} />
-                <p className="text-xs text-muted-foreground mt-1">Enter the customer's M-PESA number</p>
-              </div>}
-            
             {paymentMethod === 'cash' && <div className="mt-4 p-4 border rounded-md">
                 <Label htmlFor="tendered" className="block mb-2">Amount Tendered</Label>
                 <Input id="tendered" type="number" value={amountTendered} onChange={e => setAmountTendered(e.target.value)} />
@@ -384,13 +389,78 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
           disabled={isProcessingPayment}
         >
           {isProcessingPayment ? (
-            <span className="flex items-center">
+            <span className="flex items-center justify-center">
               <Loader className="animate-spin mr-2" />
               Processing...
             </span>
           ) : "Complete Payment"}
         </Button>
       </div>
+      
+      {/* M-Pesa STK Push Dialog */}
+      <Dialog open={showMpesaSTKDialog} onOpenChange={setShowMpesaSTKDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>M-PESA STK Push</DialogTitle>
+            <DialogDescription>
+              Enter the mobile number to receive the M-PESA payment request
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="mpesa-phone">Mobile Number</Label>
+              <Input
+                id="mpesa-phone"
+                placeholder="0712345678"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                maxLength={10}
+                disabled={isProcessingPayment}
+              />
+              <p className="text-xs text-muted-foreground">Enter a valid M-PESA registered number</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="mpesa-amount">Amount (KES)</Label>
+              <Input
+                id="mpesa-amount"
+                type="number"
+                value={mpesaAmount}
+                onChange={(e) => setMpesaAmount(e.target.value)}
+                disabled={true}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowMpesaSTKDialog(false)}
+              disabled={isProcessingPayment}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMpesaSTKPush}
+              className="bg-green-600 hover:bg-green-500"
+              disabled={isProcessingPayment}
+            >
+              {isProcessingPayment ? (
+                <span className="flex items-center">
+                  <Loader className="animate-spin mr-2 h-4 w-4" />
+                  Processing...
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <Phone className="mr-2 h-4 w-4" />
+                  Send STK Push
+                </span>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Confirmation Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>

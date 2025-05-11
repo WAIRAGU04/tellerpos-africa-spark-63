@@ -88,7 +88,7 @@ const ShiftPage = () => {
     return <div className="p-6 max-w-7xl mx-auto">
         <div className="flex flex-col space-y-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-white">Shift Management</h1>
+            <h1 className="text-3xl text-green-500 font-extrabold">Shift Management</h1>
             {activeShift && <div className="space-x-2">
                 <Button variant="outline" onClick={simulateSale}>
                   Simulate Sale (Demo)

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
@@ -17,6 +18,7 @@ interface POSLayoutProps {
   updateCartItemQuantity: (id: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
+  isOffline?: boolean;
 }
 
 const POSLayout: React.FC<POSLayoutProps> = ({
@@ -25,7 +27,8 @@ const POSLayout: React.FC<POSLayoutProps> = ({
   addToCart,
   updateCartItemQuantity,
   removeFromCart,
-  clearCart
+  clearCart,
+  isOffline = false
 }) => {
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const isMobile = useIsMobile();
@@ -62,6 +65,7 @@ const POSLayout: React.FC<POSLayoutProps> = ({
         <POSInventoryView 
           inventory={inventory}
           addToCart={addToCart}
+          isOffline={isOffline}
         />
       </div>
       
@@ -94,6 +98,7 @@ const POSLayout: React.FC<POSLayoutProps> = ({
                     cartTotal={cartTotal}
                     itemCount={itemCount}
                     onCheckout={handleCheckout}
+                    isOffline={isOffline}
                   />
                 </div>
               </SheetContent>
@@ -133,6 +138,7 @@ const POSLayout: React.FC<POSLayoutProps> = ({
               cartTotal={cartTotal}
               itemCount={itemCount}
               onCheckout={handleCheckout}
+              isOffline={isOffline}
             />
           )}
         </div>

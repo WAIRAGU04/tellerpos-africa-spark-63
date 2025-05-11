@@ -1,736 +1,381 @@
-import React, { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { CartItem, PaymentMethod, PaymentType, Transaction, POSCheckoutProps } from '@/types/pos';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ArrowLeft, CreditCard, Check, X, Phone, CircleDollarSign, Receipt, Split, Banknote, Loader, Printer, Share2 } from 'lucide-react';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import POSSplitPayment from './POSSplitPayment';
-import POSCustomerSelect from './POSCustomerSelect';
-import POSReceiptGenerator from './POSReceiptGenerator';
-import POSInvoiceGenerator from './POSInvoiceGenerator';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { formatCurrency } from '@/lib/utils';
-import { useShift } from '@/contexts/ShiftContext';
 
-const POSCheckout: React.FC<POSCheckoutProps> = ({
-  cart,
-  cartTotal,
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { 
+  ArrowLeft,
+  Receipt,
+  CreditCard,
+  Banknote,
+  Smartphone,
+  Building,
+  FileText
+} from 'lucide-react';
+import { CartItem, PaymentMethod, POSCheckoutProps } from '@/types/pos';
+import POSSplitPayment from './POSSplitPayment';
+import { useToast } from '@/hooks/use-toast';
+import { nanoid } from 'nanoid';
+import { useShift } from '@/contexts/ShiftContext';
+import { updateAccountBalance } from '@/services/accountsService';
+
+const POSCheckout: React.FC<POSCheckoutProps> = ({ 
+  cart, 
+  cartTotal, 
   onBackToCart,
   clearCart,
   onPaymentComplete
 }) => {
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
-  const { updateShiftWithSale, updateShiftWithSplitSale } = useShift();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [paymentType, setPaymentType] = useState<PaymentType>('full');
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [paymentAmount, setPaymentAmount] = useState(cartTotal.toString());
-  const [showCustomerSelect, setShowCustomerSelect] = useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [customerName, setCustomerName] = useState('');
-  const [receiptNumber, setReceiptNumber] = useState('');
-  const [amountTendered, setAmountTendered] = useState(cartTotal.toString());
-  const [splitAmounts, setSplitAmounts] = useState<Array<{
-    method: PaymentMethod;
-    amount: number;
-  }>>([]);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
-  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
-  const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
-  const [showMpesaSTKDialog, setShowMpesaSTKDialog] = useState(false);
-  const [mpesaAmount, setMpesaAmount] = useState('');
-  const [showPostPaymentDialog, setShowPostPaymentDialog] = useState(false);
-  const [showCreditInvoiceDialog, setShowCreditInvoiceDialog] = useState(false);
-  const [creditTransaction, setCreditTransaction] = useState<Transaction | null>(null);
-  const [paidTransaction, setPaidTransaction] = useState<Transaction | null>(null);
-
-  // Generate receipt number
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSplitPayment, setIsSplitPayment] = useState(false);
+  const { toast } = useToast();
+  const { activeShift, updateShift } = useShift();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Listen for online/offline events
   React.useEffect(() => {
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    setReceiptNumber(`R-${timestamp}-${random}`);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
-  const handlePaymentSubmit = () => {
-    // Validate credit payment requires a customer
-    if (paymentMethod === 'credit' && !selectedCustomerId) {
-      setShowCustomerSelect(true);
-      return;
-    }
-
-    // For split payment - handle differently
-    if (paymentType === 'split') {
-      // Calculate total of split amounts
-      const totalSplit = splitAmounts.reduce((sum, item) => sum + item.amount, 0);
-
-      // Check if split payments add up to the cart total
-      if (Math.abs(totalSplit - cartTotal) > 0.01) {
-        toast({
-          title: "Invalid split amount",
-          description: `Split payments must equal the total amount of ${formatCurrency(cartTotal)}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Check if any split payment is credit but no customer is selected
-      const hasCreditSplit = splitAmounts.some(split => split.method === 'credit');
-      if (hasCreditSplit && !selectedCustomerId) {
-        setShowCustomerSelect(true);
-        return;
-      }
-
-      // Check if there's MPesa payment in the split
-      const hasMpesaSTKSplit = splitAmounts.some(split => split.method === 'mpesa-stk');
-      if (hasMpesaSTKSplit) {
-        // Get the M-Pesa amount from split payments
-        const mpesaSplit = splitAmounts.find(split => split.method === 'mpesa-stk');
-        if (mpesaSplit) {
-          setMpesaAmount(mpesaSplit.amount.toString());
-          setShowMpesaSTKDialog(true);
-        }
-        return;
-      }
-    }
-
-    // For cash, bank, or other payments - show confirmation dialog
-    if (['cash', 'mpesa-till', 'pochi-la-biashara', 'bank-transfer', 'other-custom'].includes(paymentMethod)) {
-      setShowConfirmDialog(true);
-      return;
-    }
-
-    // For MPESA STK, show the M-Pesa dialog
-    if (paymentMethod === 'mpesa-stk') {
-      setMpesaAmount(cartTotal.toString());
-      setShowMpesaSTKDialog(true);
-      return;
-    }
-
-    // For credit sales
-    if (paymentMethod === 'credit') {
-      completeTransaction(true);
-    }
-  };
-
-  const handleMpesaSTKPush = () => {
-    // Validate mobile number
-    if (!mobileNumber || mobileNumber.length !== 10) {
-      toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid 10-digit mobile number",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handlePayment = async (method: PaymentMethod) => {
+    if (cart.length === 0) return;
     
-    setIsProcessingPayment(true);
-    toast({
-      title: "STK Push initiated",
-      description: `STK Push sent to ${mobileNumber}. Customer to enter PIN.`
-    });
-
-    // Simulate STK completion after 5 seconds
-    setTimeout(() => {
-      setIsProcessingPayment(false);
-      setShowMpesaSTKDialog(false);
+    setIsProcessing(true);
+    setPaymentMethod(method);
+    
+    try {
+      // Generate receipt number
+      const receiptNumber = `INV-${nanoid(6).toUpperCase()}`;
       
-      // Simulate random success (80% chance)
-      if (Math.random() < 0.8) {
-        toast({
-          title: "Payment successful",
-          description: "M-Pesa payment has been confirmed.",
-          variant: "default"
-        });
-        completeTransaction();
-      } else {
-        toast({
-          title: "Payment failed",
-          description: "M-Pesa transaction failed or was cancelled by user.",
-          variant: "destructive"
-        });
-      }
-    }, 5000);
-  };
-
-  const handleConfirmPayment = () => {
-    setShowConfirmDialog(false);
-    completeTransaction();
-  };
-
-  const completeTransaction = (isCredit = false) => {
-    // Check for split payment with credit component
-    const hasCreditComponent = paymentType === 'split' && 
-      splitAmounts.some(payment => payment.method === 'credit');
-    
-    // Calculate total paid amount (excluding credit in split payments)
-    const paidAmount = paymentType === 'split'
-      ? splitAmounts.reduce((sum, payment) => 
-          payment.method === 'credit' ? sum : sum + payment.amount, 0)
-      : isCredit ? 0 : cartTotal;
-    
-    // Calculate credit amount
-    const creditAmount = paymentType === 'split'
-      ? splitAmounts.find(payment => payment.method === 'credit')?.amount || 0
-      : isCredit ? cartTotal : 0;
-
-    // If we have both paid amount and credit amount in a split payment
-    if (hasCreditComponent && paidAmount > 0) {
-      // Create paid transaction (receipt)
-      const paidTransactionObj: Transaction = {
-        id: `TRX-PAID-${Date.now()}`,
-        items: [...cart],
-        payments: splitAmounts.filter(p => p.method !== 'credit').map(split => ({
-          id: `PAY-${Date.now()}-${split.method}`,
-          method: split.method,
-          amount: split.amount,
-          reference: split.method === 'mpesa-stk' ? `MPESA-${Date.now().toString().substring(8)}` : undefined
-        })),
-        total: paidAmount,
-        timestamp: new Date().toISOString(),
-        receiptNumber: receiptNumber,
-        status: 'completed',
-        isInvoice: false
-      };
-      
-      // Create credit transaction (invoice)
-      const creditTransactionObj: Transaction = {
-        id: `TRX-CREDIT-${Date.now()}`,
+      // Create transaction record
+      const transaction = {
+        id: nanoid(),
         items: [...cart],
         payments: [{
-          id: `PAY-CREDIT-${Date.now()}`,
-          method: 'credit',
-          amount: creditAmount,
-          reference: undefined
+          id: nanoid(),
+          method: method,
+          amount: cartTotal,
+          reference: receiptNumber
         }],
-        total: creditAmount,
-        customerId: selectedCustomerId || undefined,
-        timestamp: new Date().toISOString(),
-        receiptNumber: `INV-${Date.now().toString().substring(6)}`,
-        status: 'completed',
-        isInvoice: true,
-        paidAmount: paidAmount // Add paid amount for reference
-      };
-      
-      // Save both transactions
-      const existingTransactions = localStorage.getItem('transactions') 
-        ? JSON.parse(localStorage.getItem('transactions') || '[]') 
-        : [];
-      
-      localStorage.setItem('transactions', JSON.stringify([
-        ...existingTransactions, 
-        paidTransactionObj, 
-        creditTransactionObj
-      ]));
-      
-      // Set both transactions for UI display
-      setPaidTransaction(paidTransactionObj);
-      setCreditTransaction(creditTransactionObj);
-      
-      // Update shift with the split payment
-      updateShiftWithSplitSale(cart, splitAmounts);
-      
-      // Set current transaction to the paid one for initial display
-      setCurrentTransaction(paidTransactionObj);
-    } else {
-      // Standard transaction handling (single payment method or full credit)
-      const transaction: Transaction = {
-        id: `TRX-${Date.now()}`,
-        items: [...cart],
-        payments: paymentType === 'split' 
-          ? splitAmounts.map(split => ({
-              id: `PAY-${Date.now()}-${split.method}`,
-              method: split.method,
-              amount: split.amount,
-              reference: split.method === 'mpesa-stk' ? `MPESA-${Date.now().toString().substring(8)}` : undefined
-            }))
-          : [{
-              id: `PAY-${Date.now()}`,
-              method: paymentMethod,
-              amount: cartTotal,
-              reference: paymentMethod === 'mpesa-stk' ? `MPESA-${Date.now().toString().substring(8)}` : undefined
-            }],
         total: cartTotal,
-        customerId: selectedCustomerId || undefined,
         timestamp: new Date().toISOString(),
-        receiptNumber: isCredit ? `INV-${Date.now().toString().substring(6)}` : receiptNumber,
+        receiptNumber,
         status: 'completed',
-        isInvoice: isCredit
       };
-
-      setCurrentTransaction(transaction);
-
-      // Save transaction to localStorage
-      const existingTransactions = localStorage.getItem('transactions') 
-        ? JSON.parse(localStorage.getItem('transactions') || '[]') 
-        : [];
       
-      localStorage.setItem('transactions', JSON.stringify([...existingTransactions, transaction]));
-
-      // Update shift with payment information
-      if (paymentType === 'split') {
-        // For split payments, update each payment separately
-        updateShiftWithSplitSale(cart, splitAmounts);
-      } else {
-        // For single payments
-        updateShiftWithSale(cart, paymentMethod, cartTotal);
+      // Store transaction in localStorage
+      const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+      transactions.unshift(transaction);
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      
+      // Store offline if needed
+      if (!isOnline) {
+        const pendingTransactions = JSON.parse(localStorage.getItem('pendingPosTransactions') || '[]');
+        pendingTransactions.unshift(transaction);
+        localStorage.setItem('pendingPosTransactions', JSON.stringify(pendingTransactions));
+        
+        toast({
+          title: "Transaction saved offline",
+          description: "It will be synced when you're back online",
+        });
       }
-    }
-
-    // Clear cart from localStorage immediately after payment
-    localStorage.removeItem('posCart');
-    clearCart(); // Clear the cart in the parent component state
-
-    // Call onPaymentComplete if provided
-    if (onPaymentComplete) {
-      // For split payments, call with the first payment method and total amount
-      // This is a simplification - in a real app you might want to handle split payments differently
-      if (paymentType === 'split' && splitAmounts.length > 0) {
-        onPaymentComplete(splitAmounts[0].method, cartTotal);
-      } else {
-        onPaymentComplete(paymentMethod, cartTotal);
+      
+      // Update account balance
+      updateAccountBalance(method, cartTotal, 'increase');
+      
+      // Update shift records if there's an active shift
+      if (activeShift) {
+        // Update payment totals in shift
+        const updatedPaymentTotals = { ...activeShift.paymentTotals };
+        
+        switch(method) {
+          case 'cash':
+            updatedPaymentTotals.cash += cartTotal;
+            break;
+          case 'mpesa-stk':
+          case 'mpesa-till':
+            updatedPaymentTotals.mpesa += cartTotal;
+            break;
+          case 'pochi-la-biashara':
+            updatedPaymentTotals.pochiBiashara += cartTotal;
+            break;
+          case 'bank-transfer':
+            updatedPaymentTotals.bankTransfer += cartTotal;
+            break;
+          case 'credit':
+            updatedPaymentTotals.credit += cartTotal;
+            break;
+        }
+        
+        updateShift({
+          ...activeShift,
+          paymentTotals: updatedPaymentTotals,
+          totalSales: activeShift.totalSales + cartTotal
+        });
       }
-    }
-
-    // Show post-payment options dialog
-    setShowPostPaymentDialog(true);
-  };
-
-  const handleTransactionComplete = () => {
-    // Close all dialogs
-    setShowReceiptDialog(false);
-    setShowInvoiceDialog(false);
-    setShowPostPaymentDialog(false);
-    setShowCreditInvoiceDialog(false);
-    
-    // Return to POS
-    onBackToCart();
-    
-    // Show appropriate toast message based on transaction type
-    if (creditTransaction && paidTransaction) {
+      
+      // Clear cart and reset state
+      setTimeout(() => {
+        setIsProcessing(false);
+        clearCart();
+        
+        // Call onPaymentComplete if provided
+        if (onPaymentComplete) {
+          onPaymentComplete(method, cartTotal);
+        }
+        
+        toast({
+          title: "Payment successful",
+          description: `Payment of ${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(cartTotal)} processed`,
+          variant: "default",
+        });
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      setIsProcessing(false);
+      
       toast({
-        title: "Transactions completed",
-        description: `Receipt #${paidTransaction.receiptNumber} and Invoice #${creditTransaction.receiptNumber} created successfully.`,
-        variant: "default"
-      });
-    } else if (currentTransaction) {
-      toast({
-        title: currentTransaction.isInvoice ? "Invoice created" : "Receipt created",
-        description: `${currentTransaction.isInvoice ? 'Invoice' : 'Receipt'} #${currentTransaction.receiptNumber} created successfully.`,
-        variant: "default"
+        title: "Payment failed",
+        description: "There was an error processing your payment. Please try again.",
+        variant: "destructive",
       });
     }
   };
-
-  const handlePrintReceipt = () => {
-    // If we have split payment with credit
-    if (creditTransaction && paidTransaction) {
-      // Show receipt first
-      setPaidTransaction(paidTransaction);
-      setCurrentTransaction(paidTransaction);
-      setShowPostPaymentDialog(false);
-      setShowReceiptDialog(true);
-    } else if (currentTransaction) {
-      // Close the post-payment dialog
-      setShowPostPaymentDialog(false);
+  
+  const handleSplitPayment = (payments: Array<{method: PaymentMethod, amount: number}>) => {
+    setIsProcessing(true);
+    
+    try {
+      // Generate receipt number
+      const receiptNumber = `INV-${nanoid(6).toUpperCase()}`;
       
-      // Show the appropriate receipt or invoice dialog
-      if (currentTransaction.isInvoice) {
-        setShowInvoiceDialog(true);
-      } else {
-        setShowReceiptDialog(true);
+      // Create transaction record with multiple payments
+      const transaction = {
+        id: nanoid(),
+        items: [...cart],
+        payments: payments.map(payment => ({
+          id: nanoid(),
+          method: payment.method,
+          amount: payment.amount,
+          reference: receiptNumber
+        })),
+        total: cartTotal,
+        timestamp: new Date().toISOString(),
+        receiptNumber,
+        status: 'completed',
+      };
+      
+      // Store transaction
+      const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+      transactions.unshift(transaction);
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      
+      // Store offline if needed
+      if (!isOnline) {
+        const pendingTransactions = JSON.parse(localStorage.getItem('pendingPosTransactions') || '[]');
+        pendingTransactions.unshift(transaction);
+        localStorage.setItem('pendingPosTransactions', JSON.stringify(pendingTransactions));
       }
-    }
-  };
-
-  const handleViewCreditInvoice = () => {
-    // For viewing the credit invoice after viewing the receipt
-    if (creditTransaction) {
-      setShowReceiptDialog(false);
-      setCurrentTransaction(creditTransaction);
-      setShowInvoiceDialog(true);
-    }
-  };
-
-  const handleWhatsAppShare = () => {
-    if (!currentTransaction) return;
-    
-    // For WhatsApp sharing, we'll create a message with receipt details
-    const businessName = localStorage.getItem('businessData') 
-      ? JSON.parse(localStorage.getItem('businessData') || '{}').businessName 
-      : 'Our Business';
       
-    const receiptDate = new Date(currentTransaction.timestamp).toLocaleString();
-    
-    let message = `*${currentTransaction.isInvoice ? 'INVOICE' : 'RECEIPT'} from ${businessName}*\n`;
-    message += `${currentTransaction.isInvoice ? 'Invoice' : 'Receipt'} #: ${currentTransaction.receiptNumber}\n`;
-    message += `Date: ${receiptDate}\n\n`;
-    message += `*ITEMS*\n`;
-    
-    currentTransaction.items.forEach(item => {
-      message += `${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}\n`;
-    });
-    
-    message += `\n*TOTAL*: ${formatCurrency(currentTransaction.total)}\n\n`;
-    message += `Thank you for your business!`;
-    
-    // Encode the message for WhatsApp
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
-    
-    // Open WhatsApp in a new window
-    window.open(whatsappUrl, '_blank');
-    
-    toast({
-      title: "Shared via WhatsApp",
-      description: `${currentTransaction.isInvoice ? 'Invoice' : 'Receipt'} details shared via WhatsApp.`,
-    });
-  };
-
-  const handleCustomerSelected = (customerId: string, name: string) => {
-    setSelectedCustomerId(customerId);
-    setCustomerName(name);
-    setShowCustomerSelect(false);
-  };
-
-  const getPaymentMethodIcon = (method: PaymentMethod) => {
-    switch (method) {
-      case 'mpesa-stk':
-      case 'mpesa-till':
-      case 'pochi-la-biashara':
-        return <Phone className="h-4 w-4" />;
-      case 'cash':
-        return <Banknote className="h-4 w-4" />;
-      case 'credit':
-        return <CreditCard className="h-4 w-4" />;
-      case 'bank-transfer':
-        return <CircleDollarSign className="h-4 w-4" />;
-      default:
-        return <Receipt className="h-4 w-4" />;
+      // Update account balances for each payment method
+      payments.forEach(payment => {
+        updateAccountBalance(payment.method, payment.amount, 'increase');
+      });
+      
+      // Update shift if active
+      if (activeShift) {
+        const updatedPaymentTotals = { ...activeShift.paymentTotals };
+        
+        payments.forEach(payment => {
+          switch(payment.method) {
+            case 'cash':
+              updatedPaymentTotals.cash += payment.amount;
+              break;
+            case 'mpesa-stk':
+            case 'mpesa-till':
+              updatedPaymentTotals.mpesa += payment.amount;
+              break;
+            case 'pochi-la-biashara':
+              updatedPaymentTotals.pochiBiashara += payment.amount;
+              break;
+            case 'bank-transfer':
+              updatedPaymentTotals.bankTransfer += payment.amount;
+              break;
+            case 'credit':
+              updatedPaymentTotals.credit += payment.amount;
+              break;
+          }
+        });
+        
+        updateShift({
+          ...activeShift,
+          paymentTotals: updatedPaymentTotals,
+          totalSales: activeShift.totalSales + cartTotal
+        });
+      }
+      
+      // Clear and reset
+      setTimeout(() => {
+        setIsProcessing(false);
+        setIsSplitPayment(false);
+        clearCart();
+        
+        if (onPaymentComplete) {
+          // Just pass the first payment method for simplicity
+          onPaymentComplete(payments[0].method, cartTotal);
+        }
+        
+        toast({
+          title: "Payment successful",
+          description: `Split payment of ${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(cartTotal)} processed`,
+          variant: "default",
+        });
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Split payment error:', error);
+      setIsProcessing(false);
+      
+      toast({
+        title: "Payment failed",
+        description: "There was an error processing your split payment.",
+        variant: "destructive",
+      });
     }
   };
 
-  return <div className="flex flex-col h-full">
-      {/* Checkout header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex justify-between items-center">
-          <Button variant="ghost" size="sm" onClick={onBackToCart}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cart
-          </Button>
-          <h2 className="text-lg font-semibold">Checkout</h2>
-        </div>
+  // If split payment mode is active
+  if (isSplitPayment) {
+    return (
+      <POSSplitPayment 
+        cartTotal={cartTotal} 
+        onComplete={handleSplitPayment}
+        onCancel={() => setIsSplitPayment(false)}
+        isOnline={isOnline}
+      />
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onBackToCart} disabled={isProcessing}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Cart
+        </Button>
+        <h2 className="text-lg font-semibold">Checkout</h2>
+        <div></div> {/* Empty div for flex spacing */}
       </div>
       
-      <div className="p-4 overflow-y-auto flex-1">
-        {/* Order summary */}
-        <div className="mb-6">
-          <h3 className="font-medium mb-2">Order Summary</h3>
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
-            <div className="flex justify-between mb-2">
-              <span className="text-muted-foreground">Items</span>
-              <span>{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
+      {/* Offline warning */}
+      {!isOnline && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mx-4 mt-4 rounded">
+          <p className="font-bold">You are offline</p>
+          <p>Your transaction will be saved locally and synced when you're back online.</p>
+        </div>
+      )}
+      
+      {/* Cart Summary */}
+      <div className="p-4 overflow-auto">
+        <h3 className="text-base font-medium mb-2">Order Summary ({cart.length} items)</h3>
+        <div className="border rounded-md bg-gray-50 dark:bg-gray-800/50 p-3 mb-4">
+          {cart.map((item, idx) => (
+            <div key={`${item.id}-${idx}`} className="flex justify-between mb-1 text-sm">
+              <span>{item.quantity}× {item.name}</span>
+              <span>{new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(item.price * item.quantity)}</span>
             </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-muted-foreground">Receipt #</span>
-              <span>{paymentMethod === 'credit' ? 'Invoice will be generated' : receiptNumber}</span>
-            </div>
-            <div className="flex justify-between mb-0 font-medium text-lg">
-              <span>Total</span>
-              <span>{formatCurrency(cartTotal)}</span>
-            </div>
+          ))}
+          <div className="border-t mt-2 pt-2 font-medium flex justify-between">
+            <span>Total</span>
+            <span>{new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(cartTotal)}</span>
           </div>
         </div>
         
-        {/* Payment options */}
-        <div className="mb-6">
-          <h3 className="font-medium mb-2">Payment Type</h3>
-          <RadioGroup value={paymentType} onValueChange={value => setPaymentType(value as PaymentType)} className="grid grid-cols-2 gap-2">
-            <div className="flex items-center space-x-2 border rounded-md p-3">
-              <RadioGroupItem value="full" id="full" />
-              <Label htmlFor="full" className="flex items-center">
-                <Receipt className="h-4 w-4 mr-2" /> Full Payment
-              </Label>
+        <h3 className="text-base font-medium mb-2">Payment Method</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <Card 
+            className={`p-4 cursor-pointer ${paymentMethod === 'cash' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => !isProcessing && setPaymentMethod('cash')}
+          >
+            <div className="flex flex-col items-center justify-center h-full">
+              <Banknote className="mb-2 h-6 w-6" />
+              <span>Cash</span>
             </div>
-            <div className="flex items-center space-x-2 border rounded-md p-3">
-              <RadioGroupItem value="split" id="split" />
-              <Label htmlFor="split" className="flex items-center">
-                <Split className="h-4 w-4 mr-2" /> Split Payment
-              </Label>
+          </Card>
+          
+          <Card 
+            className={`p-4 cursor-pointer ${paymentMethod === 'mpesa-stk' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => !isProcessing && setPaymentMethod('mpesa-stk')}
+          >
+            <div className="flex flex-col items-center justify-center h-full">
+              <Smartphone className="mb-2 h-6 w-6" />
+              <span>M-Pesa</span>
             </div>
-          </RadioGroup>
+          </Card>
+          
+          <Card 
+            className={`p-4 cursor-pointer ${paymentMethod === 'bank-transfer' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => !isProcessing && setPaymentMethod('bank-transfer')}
+          >
+            <div className="flex flex-col items-center justify-center h-full">
+              <Building className="mb-2 h-6 w-6" />
+              <span>Bank Transfer</span>
+            </div>
+          </Card>
+          
+          <Card 
+            className={`p-4 cursor-pointer ${paymentMethod === 'credit' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => !isProcessing && setPaymentMethod('credit')}
+          >
+            <div className="flex flex-col items-center justify-center h-full">
+              <FileText className="mb-2 h-6 w-6" />
+              <span>Credit</span>
+            </div>
+          </Card>
         </div>
-        
-        {paymentType === 'full' ? <div>
-            <h3 className="font-medium mb-2">Payment Method</h3>
-            <RadioGroup value={paymentMethod} onValueChange={value => setPaymentMethod(value as PaymentMethod)}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash" className="flex items-center">
-                    <Banknote className="h-4 w-4 mr-2" /> Cash
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="mpesa-stk" id="mpesa-stk" />
-                  <Label htmlFor="mpesa-stk" className="flex items-center">
-                    <Phone className="h-4 w-4 mr-2" /> M-PESA STK Push
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="mpesa-till" id="mpesa-till" />
-                  <Label htmlFor="mpesa-till" className="flex items-center">
-                    <Phone className="h-4 w-4 mr-2" /> M-PESA Till
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="pochi-la-biashara" id="pochi-la-biashara" />
-                  <Label htmlFor="pochi-la-biashara" className="flex items-center">
-                    <Phone className="h-4 w-4 mr-2" /> Pochi La Biashara
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="bank-transfer" id="bank-transfer" />
-                  <Label htmlFor="bank-transfer" className="flex items-center">
-                    <CircleDollarSign className="h-4 w-4 mr-2" /> Bank Transfer
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="credit" id="credit" />
-                  <Label htmlFor="credit" className="flex items-center">
-                    <CreditCard className="h-4 w-4 mr-2" /> Credit
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="other-custom" id="other-custom" />
-                  <Label htmlFor="other-custom" className="flex items-center">
-                    <Receipt className="h-4 w-4 mr-2" /> Other
-                  </Label>
-                </div>
-              </div>
-            </RadioGroup>
-            
-            {/* Additional fields based on payment method */}
-            {paymentMethod === 'cash' && <div className="mt-4 p-4 border rounded-md">
-                <Label htmlFor="tendered" className="block mb-2">Amount Tendered</Label>
-                <Input id="tendered" type="number" value={amountTendered} onChange={e => setAmountTendered(e.target.value)} />
-                
-                <div className="flex justify-between mt-2">
-                  <span className="text-sm text-muted-foreground">Change:</span>
-                  <span className="font-medium">
-                    {formatCurrency(Math.max(0, parseFloat(amountTendered) - cartTotal))}
-                  </span>
-                </div>
-              </div>}
-            
-            {paymentMethod === 'credit' && <div className="mt-4 p-4 border rounded-md">
-                {selectedCustomerId ? <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{customerName}</p>
-                      <p className="text-xs text-muted-foreground">Selected Customer</p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setShowCustomerSelect(true)}>
-                      Change
-                    </Button>
-                  </div> : <Button variant="outline" className="w-full" onClick={() => setShowCustomerSelect(true)}>
-                    <CreditCard className="mr-2 h-4 w-4" /> Select Customer
-                  </Button>}
-              </div>}
-          </div> : <POSSplitPayment cartTotal={cartTotal} splitAmounts={splitAmounts} setSplitAmounts={setSplitAmounts} selectedCustomerId={selectedCustomerId} showCustomerSelect={() => setShowCustomerSelect(true)} />}
       </div>
       
-      {/* Payment action */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 mt-auto">
+      {/* Payment buttons */}
+      <div className="mt-auto p-4 border-t">
         <Button 
-          size="lg" 
-          onClick={handlePaymentSubmit} 
-          className="w-full font-extrabold text-3xl bg-green-600 hover:bg-green-500 text-rose-950"
-          disabled={isProcessingPayment}
+          variant="outline" 
+          className="w-full mb-2" 
+          onClick={() => setIsSplitPayment(true)}
+          disabled={isProcessing}
         >
-          {isProcessingPayment ? (
-            <span className="flex items-center justify-center">
-              <Loader className="animate-spin mr-2" />
+          Split Payment
+        </Button>
+        
+        <Button 
+          className="w-full h-14 text-lg" 
+          disabled={isProcessing || cart.length === 0}
+          onClick={() => handlePayment(paymentMethod)}
+        >
+          {isProcessing ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
               Processing...
-            </span>
-          ) : "Complete Payment"}
+            </>
+          ) : (
+            <>
+              Pay {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(cartTotal)}
+            </>
+          )}
         </Button>
       </div>
-      
-      {/* M-Pesa STK Push Dialog */}
-      <Dialog open={showMpesaSTKDialog} onOpenChange={setShowMpesaSTKDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>M-PESA STK Push</DialogTitle>
-            <DialogDescription>
-              Enter the mobile number to receive the M-PESA payment request
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="mpesa-phone">Mobile Number</Label>
-              <Input
-                id="mpesa-phone"
-                placeholder="0712345678"
-                value={mobileNumber}
-                onChange={(e) => setMobileNumber(e.target.value)}
-                maxLength={10}
-                disabled={isProcessingPayment}
-              />
-              <p className="text-xs text-muted-foreground">Enter a valid M-PESA registered number</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="mpesa-amount">Amount (KES)</Label>
-              <Input
-                id="mpesa-amount"
-                type="number"
-                value={mpesaAmount}
-                onChange={(e) => setMpesaAmount(e.target.value)}
-                disabled={true}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowMpesaSTKDialog(false)}
-              disabled={isProcessingPayment}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleMpesaSTKPush}
-              className="bg-green-600 hover:bg-green-500"
-              disabled={isProcessingPayment}
-            >
-              {isProcessingPayment ? (
-                <span className="flex items-center">
-                  <Loader className="animate-spin mr-2 h-4 w-4" />
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  <Phone className="mr-2 h-4 w-4" />
-                  Send STK Push
-                </span>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Payment</AlertDialogTitle>
-            <AlertDialogDescription>
-              {paymentMethod === 'cash' ? <>
-                  Please confirm that you've received{' '}
-                  <span className="font-medium">{formatCurrency(parseFloat(amountTendered))}</span>
-                  {' '}as cash payment.
-                </> : paymentMethod === 'mpesa-till' ? <>Please confirm you have received <span className="font-medium">{formatCurrency(cartTotal)}</span> via M-PESA Till.</> : paymentMethod === 'pochi-la-biashara' ? <>Please confirm you have received <span className="font-medium">{formatCurrency(cartTotal)}</span> via Pochi La Biashara.</> : paymentMethod === 'bank-transfer' ? <>Please confirm you have received <span className="font-medium">{formatCurrency(cartTotal)}</span> via Bank Transfer.</> : <>Please confirm you have received <span className="font-medium">{formatCurrency(cartTotal)}</span> via the selected payment method.</>}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>
-              <X className="mr-2 h-4 w-4" /> Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmPayment}>
-              <Check className="mr-2 h-4 w-4" /> Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Post-Payment Options Dialog */}
-      <Dialog open={showPostPaymentDialog} onOpenChange={setShowPostPaymentDialog}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Payment Successful</DialogTitle>
-            <DialogDescription>
-              {currentTransaction?.isInvoice 
-                ? `Invoice #${currentTransaction?.receiptNumber} has been created.` 
-                : `Receipt #${currentTransaction?.receiptNumber} has been created.`}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <Button 
-              onClick={handlePrintReceipt} 
-              className="w-full flex items-center justify-center"
-              variant="outline"
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print {currentTransaction?.isInvoice ? 'Invoice' : 'Receipt'}
-            </Button>
-            
-            <Button 
-              onClick={handleWhatsAppShare}
-              className="w-full flex items-center justify-center"
-              variant="outline"
-            >
-              <Share2 className="mr-2 h-4 w-4" />
-              Share via WhatsApp
-            </Button>
-            
-            <Button 
-              onClick={handleTransactionComplete}
-              className="w-full flex items-center justify-center"
-            >
-              Return to POS
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Receipt Dialog */}
-      <AlertDialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
-        <AlertDialogContent className="max-w-md">
-          {currentTransaction && (
-            <POSReceiptGenerator 
-              transaction={currentTransaction} 
-              onClose={() => creditTransaction && paidTransaction 
-                ? handleViewCreditInvoice() 
-                : handleTransactionComplete()
-              } 
-              showCreditButton={Boolean(creditTransaction && paidTransaction)}
-              onViewCredit={handleViewCreditInvoice}
-            />
-          )}
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Invoice Dialog */}
-      <AlertDialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
-        <AlertDialogContent className="max-w-md">
-          {currentTransaction && (
-            <POSInvoiceGenerator 
-              transaction={currentTransaction} 
-              customerName={customerName}
-              onClose={() => handleTransactionComplete()} 
-              paidAmount={currentTransaction.paidAmount}
-            />
-          )}
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Customer Selection Dialog */}
-      <POSCustomerSelect open={showCustomerSelect} onOpenChange={setShowCustomerSelect} onCustomerSelected={handleCustomerSelected} />
-    </div>;
+    </div>
+  );
 };
 
 export default POSCheckout;

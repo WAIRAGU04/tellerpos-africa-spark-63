@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { CartItem } from '@/types/pos';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Trash2, Minus, Plus, Package2, FileText, ArrowRight, X } from 'lucide-react';
+import { ShoppingCart, Trash2, Minus, Plus, Package2, FileText, ArrowRight, X, WifiOff } from 'lucide-react';
+
 interface POSCartProps {
   cart: CartItem[];
   updateQuantity: (id: string, quantity: number) => void;
@@ -10,7 +12,9 @@ interface POSCartProps {
   cartTotal: number;
   itemCount: number;
   onCheckout: () => void;
+  isOffline?: boolean;
 }
+
 const POSCart: React.FC<POSCartProps> = ({
   cart,
   updateQuantity,
@@ -18,7 +22,8 @@ const POSCart: React.FC<POSCartProps> = ({
   clearCart,
   cartTotal,
   itemCount,
-  onCheckout
+  onCheckout,
+  isOffline = false
 }) => {
   // Helper to render the item's image or color
   const renderItemVisual = (item: CartItem) => {
@@ -42,7 +47,9 @@ const POSCart: React.FC<POSCartProps> = ({
         {item.type === 'product' ? <Package2 className="w-5 h-5 text-gray-400" /> : <FileText className="w-5 h-5 text-gray-400" />}
       </div>;
   };
-  return <div className="flex flex-col h-full">
+  
+  return (
+    <div className="flex flex-col h-full">
       {/* Cart header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center">
@@ -59,6 +66,14 @@ const POSCart: React.FC<POSCartProps> = ({
             </Button>}
         </div>
       </div>
+      
+      {/* Offline indicator */}
+      {isOffline && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-2 mx-2 mt-2 rounded flex items-center text-sm">
+          <WifiOff className="h-4 w-4 mr-2" />
+          <p>Offline Mode - Sales will sync when online</p>
+        </div>
+      )}
       
       {/* Cart items */}
       <div className="flex-grow overflow-auto">
@@ -128,6 +143,8 @@ const POSCart: React.FC<POSCartProps> = ({
           Proceed to Checkout <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default POSCart;

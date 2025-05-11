@@ -44,4 +44,5 @@ export interface Transaction {
   timestamp: string;
   receiptNumber: string;
   status: 'completed' | 'pending' | 'cancelled';
+  isInvoice?: boolean;
 }

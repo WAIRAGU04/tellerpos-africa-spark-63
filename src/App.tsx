@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import ShiftPage from "./pages/ShiftPage";
 import StockPage from "./pages/StockPage";
 import POSPage from "./pages/POSPage";
+import SalesPage from "./pages/SalesPage";
 import PlaceholderModulePage from "./pages/PlaceholderModulePage";
 
 const queryClient = new QueryClient();
@@ -36,7 +37,7 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/shift" element={<ShiftPage />} />
             <Route path="/dashboard/pos" element={<POSPage />} />
-            <Route path="/dashboard/sales" element={<PlaceholderModulePage />} />
+            <Route path="/dashboard/sales" element={<SalesPage />} />
             <Route path="/dashboard/stock" element={<StockPage />} />
             <Route path="/dashboard/accounts" element={<PlaceholderModulePage />} />
             <Route path="/dashboard/analytics" element={<PlaceholderModulePage />} />

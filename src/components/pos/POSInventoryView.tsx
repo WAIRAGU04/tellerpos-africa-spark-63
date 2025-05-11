@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { InventoryItem, Product, Service } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
@@ -5,10 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Package2, FileText, Search } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+
 interface POSInventoryViewProps {
   inventory: InventoryItem[];
   addToCart: (item: InventoryItem) => void;
 }
+
 const POSInventoryView: React.FC<POSInventoryViewProps> = ({
   inventory,
   addToCart
@@ -69,6 +73,7 @@ const POSInventoryView: React.FC<POSInventoryViewProps> = ({
       return (item as Service).isAvailable;
     }
   };
+
   return <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-grow">
@@ -105,10 +110,7 @@ const POSInventoryView: React.FC<POSInventoryViewProps> = ({
                       
                       <div className="text-right">
                         <p className="font-semibold text-sm">
-                          {new Intl.NumberFormat('en-KE', {
-                      style: 'currency',
-                      currency: 'KES'
-                    }).format(item.price)}
+                          {formatCurrency(item.price)}
                         </p>
                         {canAddToCart(item) ? <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
                             <ShoppingCart className="h-3 w-3 mr-1" /> Add
@@ -124,4 +126,5 @@ const POSInventoryView: React.FC<POSInventoryViewProps> = ({
       </Tabs>
     </div>;
 };
+
 export default POSInventoryView;

@@ -278,7 +278,7 @@ const Dashboard = () => {
             </div>
             
             <div className="bg-white dark:bg-tellerpos-dark-accent rounded-lg shadow p-4">
-              <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">Active Customers</h3>
+              <h3 className="text-gray-500 dark:text-gray-400 font-medium mb-2 text-xl">Active Customers</h3>
               <p className="text-2xl font-bold">24</p>
               <div className="flex items-center mt-2">
                 <span className="text-red-500 text-sm font-medium">-2%</span>
@@ -287,7 +287,7 @@ const Dashboard = () => {
             </div>
             
             <div className="bg-white dark:bg-tellerpos-dark-accent rounded-lg shadow p-4">
-              <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">Inventory Value</h3>
+              <h3 className="text-gray-500 dark:text-gray-400 font-medium mb-2 text-xl">Inventory Value</h3>
               <p className="text-2xl font-bold">KSh 459,200</p>
               <div className="flex items-center mt-2">
                 <span className="text-gray-500 dark:text-gray-400 text-sm">32 products low in stock</span>

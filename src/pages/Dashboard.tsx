@@ -376,7 +376,7 @@ const Dashboard = () => {
           {/* Low Stock Alert Section */}
           <div className="bg-white dark:bg-tellerpos-dark-accent rounded-lg shadow">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-              <h2 className="text-lg font-semibold">Low Stock Alerts</h2>
+              <h2 className="text-lg font-bold text-green-500">Low Stock Alerts</h2>
               <button className="text-tellerpos text-sm">View all</button>
             </div>
             <div className="p-4">

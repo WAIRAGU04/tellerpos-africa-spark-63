@@ -33,10 +33,10 @@ const sidebarItems = [
     path: "/dashboard",
   },
   {
-    id: "sell",
-    label: "Sell",
+    id: "pos",
+    label: "POS",
     icon: ShoppingBag,
-    path: "/dashboard/sell",
+    path: "/dashboard/pos",
   },
   {
     id: "shift",

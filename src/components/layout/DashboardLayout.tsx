@@ -25,7 +25,7 @@ import { UserData } from "@/types/dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-// Sidebar menu items
+// Sidebar menu items - updated to remove "sell" and keep only "pos"
 const sidebarItems = [
   {
     id: "dashboard",

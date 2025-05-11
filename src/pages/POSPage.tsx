@@ -28,7 +28,7 @@ const POSPage = () => {
         description: navigator.onLine 
           ? "Your changes will now sync automatically." 
           : "You can continue working. Changes will sync when you reconnect.",
-        variant: navigator.onLine ? "default" : "warning",
+        variant: navigator.onLine ? "default" : "default", // Changed from "warning" to "default"
       });
     };
 

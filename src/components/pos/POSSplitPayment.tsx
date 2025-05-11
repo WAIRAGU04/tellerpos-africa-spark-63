@@ -24,21 +24,44 @@ import {
 
 interface POSSplitPaymentProps {
   cartTotal: number;
-  splitAmounts: Array<{method: PaymentMethod; amount: number}>;
-  setSplitAmounts: React.Dispatch<React.SetStateAction<Array<{method: PaymentMethod; amount: number}>>>;
-  selectedCustomerId: string | null;
-  showCustomerSelect: () => void;
+  onComplete?: (payments: Array<{method: PaymentMethod; amount: number}>) => void;
+  onCancel?: () => void;
+  isOnline?: boolean;
+  splitAmounts?: Array<{method: PaymentMethod; amount: number}>;
+  setSplitAmounts?: React.Dispatch<React.SetStateAction<Array<{method: PaymentMethod; amount: number}>>>;
+  selectedCustomerId?: string | null;
+  showCustomerSelect?: () => void;
 }
 
 const POSSplitPayment: React.FC<POSSplitPaymentProps> = ({ 
   cartTotal,
-  splitAmounts,
-  setSplitAmounts,
+  onComplete,
+  onCancel,
+  isOnline = true,
+  splitAmounts: propSplitAmounts,
+  setSplitAmounts: propSetSplitAmounts,
   selectedCustomerId,
   showCustomerSelect
 }) => {
+  // Use either props or local state for split amounts
+  const [localSplitAmounts, setLocalSplitAmounts] = useState<Array<{method: PaymentMethod; amount: number}>>([]);
   const [newMethod, setNewMethod] = useState<PaymentMethod>('cash');
   const [newAmount, setNewAmount] = useState('');
+  
+  // Determine whether to use props or local state
+  const splitAmounts = propSplitAmounts !== undefined ? propSplitAmounts : localSplitAmounts;
+  
+  const setSplitAmounts = (value: Array<{method: PaymentMethod; amount: number}> | ((prev: Array<{method: PaymentMethod; amount: number}>) => Array<{method: PaymentMethod; amount: number}>)) => {
+    if (propSetSplitAmounts) {
+      propSetSplitAmounts(value);
+    } else {
+      if (typeof value === 'function') {
+        setLocalSplitAmounts(value);
+      } else {
+        setLocalSplitAmounts(value);
+      }
+    }
+  };
   
   // Calculate remaining amount
   const totalPaid = splitAmounts.reduce((sum, item) => sum + item.amount, 0);
@@ -49,7 +72,7 @@ const POSSplitPayment: React.FC<POSSplitPaymentProps> = ({
     if (isNaN(amount) || amount <= 0 || amount > remainingAmount) return;
     
     // If method is credit and no customer is selected, show customer select
-    if (newMethod === 'credit' && !selectedCustomerId) {
+    if (newMethod === 'credit' && !selectedCustomerId && showCustomerSelect) {
       showCustomerSelect();
       return;
     }
@@ -60,6 +83,12 @@ const POSSplitPayment: React.FC<POSSplitPaymentProps> = ({
   
   const handleRemoveSplit = (index: number) => {
     setSplitAmounts(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const handleComplete = () => {
+    if (onComplete && remainingAmount === 0) {
+      onComplete(splitAmounts);
+    }
   };
   
   const getMethodLabel = (method: PaymentMethod): string => {
@@ -204,6 +233,24 @@ const POSSplitPayment: React.FC<POSSplitPaymentProps> = ({
           </div>
         </div>
       )}
+      
+      {/* Action buttons */}
+      <div className="mt-4 flex justify-between">
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+        {onComplete && (
+          <Button 
+            onClick={handleComplete}
+            className="ml-auto"
+            disabled={remainingAmount > 0}
+          >
+            Complete Payment
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

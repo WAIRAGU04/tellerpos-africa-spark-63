@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { POSCheckoutProps } from '@/types/pos';
+import { POSCheckoutProps, Transaction, PaymentMethod } from '@/types/pos';
 import { nanoid } from 'nanoid';
 import { ArrowLeft, CreditCard, BanknoteIcon, SmartphoneIcon } from 'lucide-react';
 import POSReceiptGenerator from './POSReceiptGenerator';
@@ -11,7 +11,6 @@ import POSCustomerSelect from './POSCustomerSelect';
 import POSSplitPayment from './POSSplitPayment';
 import { useShift } from '@/contexts/ShiftContext';
 import { useToast } from '@/hooks/use-toast';
-import { PaymentMethod } from '@/types/pos';
 
 const POSCheckout: React.FC<POSCheckoutProps> = ({ 
   cart, 
@@ -191,14 +190,34 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
     </div>
   );
 
+  // Create transaction object for receipt/invoice generation
+  const createTransactionObject = (): Transaction => {
+    const receiptNum = generateReceiptNumber();
+    return {
+      id: nanoid(),
+      items: cart,
+      payments: isSplitPayment ? [] : [{ 
+        id: nanoid(), 
+        method: paymentMethod, 
+        amount: cartTotal 
+      }],
+      total: cartTotal,
+      customerId: selectedCustomerId || undefined,
+      timestamp: new Date().toISOString(),
+      receiptNumber: receiptNum,
+      status: 'completed',
+      customerName: selectedCustomerId ? 'Selected Customer' : undefined
+    };
+  };
+
   // If showing receipt view
   if (showReceipt) {
+    const transaction = createTransactionObject();
+    
     return (
       <POSReceiptGenerator 
-        cart={cart}
-        total={cartTotal}
-        paymentMethod={isSplitPayment ? 'Split Payment' : getPaymentMethodName(paymentMethod)}
-        receiptNumber={generateReceiptNumber()}
+        transaction={transaction}
+        receiptNumber={transaction.receiptNumber}
         onClose={handleNewSale}
       />
     );
@@ -206,12 +225,13 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
 
   // If showing invoice view
   if (showInvoice) {
+    const transaction = createTransactionObject();
+    
     return (
       <POSInvoiceGenerator 
-        cart={cart}
-        total={cartTotal}
-        customerId={selectedCustomerId || undefined}
-        invoiceNumber={generateReceiptNumber().replace('RC', 'INV')}
+        transaction={transaction}
+        customerName={selectedCustomerId ? 'Selected Customer' : 'Customer'}
+        invoiceNumber={transaction.receiptNumber.replace('RC', 'INV')}
         onClose={handleNewSale}
       />
     );

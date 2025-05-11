@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Transaction } from '@/types/pos';
+import { Transaction, CartItem } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { Printer, Share2, X, FileText } from 'lucide-react';
@@ -8,7 +8,11 @@ import { formatCurrency } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
 interface POSReceiptGeneratorProps {
-  transaction: Transaction;
+  transaction?: Transaction;
+  cart?: CartItem[];
+  total?: number;
+  paymentMethod?: string;
+  receiptNumber: string;
   onClose: () => void;
   showCreditButton?: boolean;
   onViewCredit?: () => void;
@@ -16,10 +20,21 @@ interface POSReceiptGeneratorProps {
 
 const POSReceiptGenerator: React.FC<POSReceiptGeneratorProps> = ({
   transaction,
+  cart = [],
+  total = 0,
+  paymentMethod = '',
+  receiptNumber,
   onClose,
   showCreditButton = false,
   onViewCredit
 }) => {
+  // Use either transaction data or direct cart/total data
+  const items = transaction ? transaction.items : cart;
+  const totalAmount = transaction ? transaction.total : total;
+  const receiptPaymentMethod = transaction ? 
+    (transaction.payments.length > 1 ? 'Split Payment' : transaction.payments[0]?.method || paymentMethod) : 
+    paymentMethod;
+
   const handlePrint = () => {
     // Clone the receipt content for printing
     const receiptContent = document.getElementById('receipt-content')?.cloneNode(true) as HTMLElement;
@@ -32,7 +47,7 @@ const POSReceiptGenerator: React.FC<POSReceiptGeneratorProps> = ({
     const html = `
       <html>
         <head>
-          <title>Receipt #${transaction.receiptNumber}</title>
+          <title>Receipt #${receiptNumber}</title>
           <style>
             body { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.2; }
             .receipt { width: 300px; margin: 0 auto; }
@@ -72,18 +87,20 @@ const POSReceiptGenerator: React.FC<POSReceiptGeneratorProps> = ({
       ? JSON.parse(localStorage.getItem('businessData') || '{}').businessName 
       : 'Our Business';
       
-    const receiptDate = new Date(transaction.timestamp).toLocaleString();
+    const receiptDate = transaction ? 
+      new Date(transaction.timestamp).toLocaleString() : 
+      new Date().toLocaleString();
     
     let message = `*RECEIPT from ${businessName}*\n`;
-    message += `Receipt #: ${transaction.receiptNumber}\n`;
+    message += `Receipt #: ${receiptNumber}\n`;
     message += `Date: ${receiptDate}\n\n`;
     message += `*ITEMS*\n`;
     
-    transaction.items.forEach(item => {
+    items.forEach(item => {
       message += `${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}\n`;
     });
     
-    message += `\n*TOTAL*: ${formatCurrency(transaction.total)}\n\n`;
+    message += `\n*TOTAL*: ${formatCurrency(totalAmount)}\n\n`;
     message += `Thank you for your business!`;
     
     // Encode the message for WhatsApp
@@ -99,12 +116,14 @@ const POSReceiptGenerator: React.FC<POSReceiptGeneratorProps> = ({
     ? JSON.parse(localStorage.getItem('businessData') || '{}').businessName 
     : 'TellerPOS';
   
-  const receiptDate = new Date(transaction.timestamp).toLocaleString();
+  const receiptDate = transaction ? 
+    new Date(transaction.timestamp).toLocaleString() : 
+    new Date().toLocaleString();
 
   return (
     <>
       <AlertDialogHeader>
-        <AlertDialogTitle className="text-center">Receipt #{transaction.receiptNumber}</AlertDialogTitle>
+        <AlertDialogTitle className="text-center">Receipt #{receiptNumber}</AlertDialogTitle>
       </AlertDialogHeader>
       
       <div id="receipt-content" className="bg-white dark:bg-gray-950 p-4 my-4 rounded-lg border dark:border-gray-800 font-mono text-sm">
@@ -124,7 +143,7 @@ const POSReceiptGenerator: React.FC<POSReceiptGeneratorProps> = ({
           
           <Separator className="my-2" />
           
-          {transaction.items.map((item, index) => (
+          {items.map((item, index) => (
             <div key={index} className="flex justify-between text-xs mb-1">
               <span className="w-1/2 truncate">{item.name}</span>
               <span className="w-1/6 text-center">{item.quantity}</span>
@@ -136,22 +155,29 @@ const POSReceiptGenerator: React.FC<POSReceiptGeneratorProps> = ({
           
           <div className="flex justify-between font-bold">
             <span>TOTAL</span>
-            <span>{formatCurrency(transaction.total)}</span>
+            <span>{formatCurrency(totalAmount)}</span>
           </div>
           
           <div className="mt-4">
             <p className="font-semibold">Payment Method:</p>
-            {transaction.payments.map((payment, index) => (
-              <div key={index} className="flex justify-between text-xs">
-                <span>{payment.method.replace('-', ' ').toUpperCase()}</span>
-                <span>{formatCurrency(payment.amount)}</span>
+            {transaction && transaction.payments ? (
+              transaction.payments.map((payment, index) => (
+                <div key={index} className="flex justify-between text-xs">
+                  <span>{payment.method.replace('-', ' ').toUpperCase()}</span>
+                  <span>{formatCurrency(payment.amount)}</span>
+                </div>
+              ))
+            ) : (
+              <div className="flex justify-between text-xs">
+                <span>{receiptPaymentMethod.toUpperCase()}</span>
+                <span>{formatCurrency(totalAmount)}</span>
               </div>
-            ))}
+            )}
           </div>
           
           <div className="mt-4 text-center text-xs">
             <p>Thank you for your business!</p>
-            <p>Receipt #: {transaction.receiptNumber}</p>
+            <p>Receipt #: {receiptNumber}</p>
           </div>
         </div>
       </div>

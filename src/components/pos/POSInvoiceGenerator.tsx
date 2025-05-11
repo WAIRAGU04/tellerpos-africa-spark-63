@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Transaction } from '@/types/pos';
+import { Transaction, CartItem } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { Printer, Share2, X } from 'lucide-react';
@@ -8,15 +8,23 @@ import { formatCurrency } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
 interface POSInvoiceGeneratorProps {
-  transaction: Transaction;
-  customerName: string;
+  transaction?: Transaction;
+  cart?: CartItem[];
+  total?: number;
+  customerName?: string;
+  customerId?: string;
+  invoiceNumber: string;
   onClose: () => void;
   paidAmount?: number;
 }
 
 const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
   transaction,
-  customerName,
+  cart = [],
+  total = 0,
+  customerName = "Customer",
+  customerId,
+  invoiceNumber,
   onClose,
   paidAmount = 0
 }) => {
@@ -32,7 +40,7 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
     const html = `
       <html>
         <head>
-          <title>Invoice #${transaction.receiptNumber}</title>
+          <title>Invoice #${invoiceNumber}</title>
           <style>
             body { font-family: 'Arial', sans-serif; font-size: 12px; line-height: 1.4; }
             .invoice { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; }
@@ -73,29 +81,34 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
       ? JSON.parse(localStorage.getItem('businessData') || '{}').businessName 
       : 'Our Business';
       
-    const invoiceDate = new Date(transaction.timestamp).toLocaleString();
+    const invoiceDate = transaction ? 
+      new Date(transaction.timestamp).toLocaleString() : 
+      new Date().toLocaleString();
     
     let message = `*INVOICE from ${businessName}*\n`;
-    message += `Invoice #: ${transaction.receiptNumber}\n`;
+    message += `Invoice #: ${invoiceNumber}\n`;
     message += `Date: ${invoiceDate}\n`;
     message += `Customer: ${customerName}\n\n`;
     message += `*ITEMS*\n`;
     
-    transaction.items.forEach(item => {
+    const items = transaction ? transaction.items : cart;
+    
+    items.forEach(item => {
       message += `${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}\n`;
     });
     
     // Add paid amount and balance due for partial payments
-    const isPartialPayment = paidAmount > 0 || transaction.paidAmount > 0;
-    const actualPaidAmount = paidAmount || transaction.paidAmount || 0;
+    const isPartialPayment = paidAmount > 0 || (transaction && transaction.paidAmount > 0);
+    const actualPaidAmount = paidAmount || (transaction && transaction.paidAmount) || 0;
+    const totalAmount = transaction ? transaction.total : total;
     
     if (isPartialPayment) {
-      const totalBill = transaction.total + actualPaidAmount;
+      const totalBill = totalAmount + actualPaidAmount;
       message += `\n*TOTAL BILL*: ${formatCurrency(totalBill)}\n`;
       message += `*PAID AMOUNT*: ${formatCurrency(actualPaidAmount)}\n`;
-      message += `*BALANCE DUE*: ${formatCurrency(transaction.total)}\n\n`;
+      message += `*BALANCE DUE*: ${formatCurrency(totalAmount)}\n\n`;
     } else {
-      message += `\n*TOTAL AMOUNT DUE*: ${formatCurrency(transaction.total)}\n\n`;
+      message += `\n*TOTAL AMOUNT DUE*: ${formatCurrency(totalAmount)}\n\n`;
     }
     
     message += `Thank you for your business! This is a credit sale, payment is due within 30 days.`;
@@ -113,20 +126,31 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
     ? JSON.parse(localStorage.getItem('businessData') || '{}')
     : { businessName: 'TellerPOS', businessAddress: '', businessPhone: '' };
   
-  const invoiceDate = new Date(transaction.timestamp).toLocaleString();
+  const invoiceDate = transaction ? 
+    new Date(transaction.timestamp).toLocaleString() : 
+    new Date().toLocaleString();
+  
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
   const invoiceDueDate = dueDate.toLocaleDateString();
 
   // Calculate total bill for partial payments
-  const isPartialPayment = paidAmount > 0 || transaction.paidAmount > 0;
-  const actualPaidAmount = paidAmount || transaction.paidAmount || 0;
-  const totalBill = isPartialPayment ? transaction.total + actualPaidAmount : transaction.total;
+  const transactionData = transaction || { 
+    total: total,
+    paidAmount: paidAmount,
+    customerId: customerId,
+    items: cart,
+    status: 'pending'
+  };
+  const isPartialPayment = paidAmount > 0 || transactionData.paidAmount > 0;
+  const actualPaidAmount = paidAmount || transactionData.paidAmount || 0;
+  const totalAmount = transactionData.total;
+  const totalBill = isPartialPayment ? totalAmount + actualPaidAmount : totalAmount;
 
   return (
     <>
       <AlertDialogHeader>
-        <AlertDialogTitle className="text-center">Invoice #{transaction.receiptNumber}</AlertDialogTitle>
+        <AlertDialogTitle className="text-center">Invoice #{invoiceNumber}</AlertDialogTitle>
       </AlertDialogHeader>
       
       <div id="invoice-content" className="bg-white dark:bg-gray-950 p-4 my-4 rounded-lg border dark:border-gray-800 text-sm max-h-[60vh] overflow-y-auto">
@@ -138,7 +162,7 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
           </div>
           <div className="text-right">
             <h2 className="text-xl font-bold text-primary">INVOICE</h2>
-            <p className="text-xs"># {transaction.receiptNumber}</p>
+            <p className="text-xs"># {invoiceNumber}</p>
             <p className="text-xs text-gray-500">Date: {invoiceDate}</p>
           </div>
         </div>
@@ -146,7 +170,7 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
         <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md mb-6">
           <h4 className="font-semibold mb-1">Bill To:</h4>
           <p className="font-medium">{customerName}</p>
-          <p className="text-xs text-gray-500">Customer ID: {transaction.customerId}</p>
+          <p className="text-xs text-gray-500">Customer ID: {transactionData.customerId}</p>
         </div>
         
         <table className="w-full mb-6">
@@ -159,7 +183,7 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
             </tr>
           </thead>
           <tbody>
-            {transaction.items.map((item, index) => (
+            {transactionData.items.map((item, index) => (
               <tr key={index} className="border-b dark:border-gray-700">
                 <td className="p-2">{item.name}</td>
                 <td className="p-2 text-center">{item.quantity}</td>
@@ -185,19 +209,19 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
                 <Separator />
                 <div className="flex justify-between py-2 font-bold">
                   <span>BALANCE DUE:</span>
-                  <span>{formatCurrency(transaction.total)}</span>
+                  <span>{formatCurrency(totalAmount)}</span>
                 </div>
               </>
             ) : (
               <>
                 <div className="flex justify-between py-2">
                   <span className="font-medium">Subtotal:</span>
-                  <span>{formatCurrency(transaction.total)}</span>
+                  <span>{formatCurrency(totalAmount)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between py-2 font-bold">
                   <span>TOTAL DUE:</span>
-                  <span>{formatCurrency(transaction.total)}</span>
+                  <span>{formatCurrency(totalAmount)}</span>
                 </div>
               </>
             )}
@@ -208,7 +232,7 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
           <h4 className="font-semibold mb-1">Payment Details:</h4>
           <p className="text-xs">Payment due by: {invoiceDueDate}</p>
           <p className="text-xs">Payment Method: Credit</p>
-          <p className="text-xs">Payment Status: {transaction.status === 'paid' ? 'Paid' : 'Pending'}</p>
+          <p className="text-xs">Payment Status: {transactionData.status === 'paid' ? 'Paid' : 'Pending'}</p>
           {isPartialPayment && (
             <p className="text-xs mt-1 text-amber-600">Note: This is a partial invoice. A separate receipt has been generated for the paid amount.</p>
           )}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -197,7 +196,7 @@ const AccountTransactions: React.FC<{ accountId?: string }> = ({ accountId }) =>
                   ))}
                 </TableBody>
               </Table>
-            )}
+            )
           ) : (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No transactions found</p>

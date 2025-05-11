@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Account, AccountSummary, AccountTransaction } from '@/types/accounts';
@@ -14,7 +13,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useOffline } from '@/hooks/use-offline';
 import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
 import OfflineAlert from '@/components/ui/offline-alert';
-
 const AccountsOverview: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
@@ -25,47 +23,46 @@ const AccountsOverview: React.FC = () => {
     totalCredit: 0,
     totalSales: 0,
     totalRefunds: 0,
-    netSales: 0,
+    netSales: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isReconcileDialogOpen, setIsReconcileDialogOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [showTransactions, setShowTransactions] = useState(false);
-  const { isOnline, setLastSyncTime } = useOffline();
+  const {
+    isOnline,
+    setLastSyncTime
+  } = useOffline();
   const isMobile = useIsMobile();
-
   useEffect(() => {
     loadAccountsData();
   }, []);
-  
   const loadAccountsData = async () => {
     // Get accounts
     const loadedAccounts = getAccounts();
     setAccounts(loadedAccounts);
-    
+
     // Get transactions
     const loadedTransactions = getTransactions();
     setTransactions(loadedTransactions);
-    
+
     // Calculate summary from transactions
     const calculatedSummary = calculateSummary(loadedAccounts, loadedTransactions);
     setSummary(calculatedSummary);
-    
     setIsLoading(false);
-    
+
     // Update last sync time
     const newSyncTime = new Date().toISOString();
     setLastSyncTime(newSyncTime);
   };
-  
+
   // Handle manual sync function
   const handleManualSync = async () => {
     if (!isOnline) return;
-    
     try {
       await syncAccountsData();
       await loadAccountsData();
-      
+
       // Update last sync time
       const newSyncTime = new Date().toISOString();
       setLastSyncTime(newSyncTime);
@@ -73,20 +70,19 @@ const AccountsOverview: React.FC = () => {
       console.error('Failed to sync accounts data:', error);
     }
   };
-  
+
   // Calculate summary from accounts and transactions
   const calculateSummary = (accounts: Account[], transactions: AccountTransaction[]): AccountSummary => {
     const summary: AccountSummary = {
       totalCash: accounts.find(a => a.type === 'cash')?.balance || 0,
-      totalMpesa: accounts.filter(a => a.type.includes('mpesa') || a.type === 'pochi-la-biashara')
-                         .reduce((sum, a) => sum + a.balance, 0),
+      totalMpesa: accounts.filter(a => a.type.includes('mpesa') || a.type === 'pochi-la-biashara').reduce((sum, a) => sum + a.balance, 0),
       totalBankTransfer: accounts.find(a => a.type === 'bank-transfer')?.balance || 0,
       totalCredit: accounts.find(a => a.type === 'credit')?.balance || 0,
       totalSales: 0,
       totalRefunds: 0,
       netSales: 0
     };
-    
+
     // Calculate sales and refunds from transactions
     transactions.forEach(transaction => {
       if (transaction.type === 'sale') {
@@ -95,18 +91,15 @@ const AccountsOverview: React.FC = () => {
         summary.totalRefunds += transaction.amount;
       }
     });
-    
+
     // Calculate net sales
     summary.netSales = summary.totalSales - summary.totalRefunds;
-    
     return summary;
   };
-
   const handleViewTransactions = (accountId: string) => {
     setSelectedAccountId(accountId);
     setShowTransactions(true);
   };
-
   const getAccountIcon = (type: PaymentMethod) => {
     switch (type) {
       case 'cash':
@@ -123,16 +116,13 @@ const AccountsOverview: React.FC = () => {
         return <CircleDollarSign className="h-5 w-5" />;
     }
   };
-
   if (isLoading) {
     return <div className="flex justify-center items-center h-48">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
     </div>;
   }
-
   if (showTransactions && selectedAccountId) {
-    return (
-      <div className="space-y-4">
+    return <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">
             {accounts.find(a => a.id === selectedAccountId)?.name || 'Account'} Transactions
@@ -142,17 +132,11 @@ const AccountsOverview: React.FC = () => {
           </Button>
         </div>
         <AccountTransactions accountId={selectedAccountId} />
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="flex justify-end">
-        <OfflineStatusIndicator 
-          showManualSync={true}
-          onManualSync={handleManualSync}
-        />
+        <OfflineStatusIndicator showManualSync={true} onManualSync={handleManualSync} />
       </div>
       
       {!isOnline && <OfflineAlert />}
@@ -219,8 +203,7 @@ const AccountsOverview: React.FC = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {accounts.map(account => (
-            <Card key={account.id}>
+          {accounts.map(account => <Card key={account.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-base font-medium">
                   <div className="flex items-center gap-2">
@@ -236,36 +219,23 @@ const AccountsOverview: React.FC = () => {
                 </p>
               </CardContent>
               <CardFooter className="pt-0">
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
-                  size="sm"
-                  onClick={() => handleViewTransactions(account.id)}
-                >
+                <Button variant="outline" className="w-full" size="sm" onClick={() => handleViewTransactions(account.id)}>
                   <FileText className="mr-2 h-4 w-4" />
                   View Transactions
                 </Button>
               </CardFooter>
-            </Card>
-          ))}
+            </Card>)}
         </div>
       </div>
 
       <Separator />
 
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">All Transactions</h2>
+        <h2 className="text-xl font-semibold text-green-500">All Transactions</h2>
         <AccountTransactions />
       </div>
 
-      <ReconcileAccountDialog 
-        open={isReconcileDialogOpen}
-        onClose={() => setIsReconcileDialogOpen(false)}
-        accounts={accounts}
-        onReconcile={loadAccountsData}
-      />
-    </div>
-  );
+      <ReconcileAccountDialog open={isReconcileDialogOpen} onClose={() => setIsReconcileDialogOpen(false)} accounts={accounts} onReconcile={loadAccountsData} />
+    </div>;
 };
-
 export default AccountsOverview;

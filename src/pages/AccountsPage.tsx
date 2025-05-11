@@ -10,6 +10,14 @@ import QuotationsTab from '@/components/accounts/QuotationsTab';
 import { getTransactions } from '@/services/accountsService';
 import { formatCurrency } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ChevronDown } from 'lucide-react';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 const AccountsPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -26,6 +34,10 @@ const AccountsPage = () => {
     setTotalSales(sales);
   }, []);
 
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+  };
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
@@ -38,35 +50,40 @@ const AccountsPage = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid ${isMobile ? 'grid-cols-2 gap-2 overflow-x-auto' : 'md:grid-cols-5'} mb-6 md:mb-8`}>
-            <TabsTrigger value="overview" className={isMobile ? "text-sm py-1" : ""}>Overview</TabsTrigger>
-            <TabsTrigger value="transfers" className={isMobile ? "text-sm py-1" : ""}>Transfers</TabsTrigger>
-            <TabsTrigger value="reports" className={isMobile ? "text-sm py-1" : ""}>Reports</TabsTrigger>
-            <TabsTrigger value="sales-orders" className={isMobile ? "text-sm py-1" : ""}>Sales Orders</TabsTrigger>
-            <TabsTrigger value="quotations" className={isMobile ? "text-sm py-1" : ""}>Quotations</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="space-y-4">
-            <AccountsOverview />
-          </TabsContent>
-          
-          <TabsContent value="transfers" className="space-y-4">
-            <AccountsTransfers />
-          </TabsContent>
-          
-          <TabsContent value="reports" className="space-y-4">
-            <AccountsReports />
-          </TabsContent>
-          
-          <TabsContent value="sales-orders" className="space-y-4">
-            <SalesOrdersTab />
-          </TabsContent>
-          
-          <TabsContent value="quotations" className="space-y-4">
-            <QuotationsTab />
-          </TabsContent>
-        </Tabs>
+        {isMobile ? (
+          <div className="mb-6">
+            <Select value={activeTab} onValueChange={handleTabChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Tab" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="overview">Overview</SelectItem>
+                <SelectItem value="transfers">Transfers</SelectItem>
+                <SelectItem value="reports">Reports</SelectItem>
+                <SelectItem value="sales-orders">Sales Orders</SelectItem>
+                <SelectItem value="quotations">Quotations</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid md:grid-cols-5 mb-6 md:mb-8">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="transfers">Transfers</TabsTrigger>
+              <TabsTrigger value="reports">Reports</TabsTrigger>
+              <TabsTrigger value="sales-orders">Sales Orders</TabsTrigger>
+              <TabsTrigger value="quotations">Quotations</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
+        
+        <div className="space-y-4">
+          {activeTab === "overview" && <AccountsOverview />}
+          {activeTab === "transfers" && <AccountsTransfers />}
+          {activeTab === "reports" && <AccountsReports />}
+          {activeTab === "sales-orders" && <SalesOrdersTab />}
+          {activeTab === "quotations" && <QuotationsTab />}
+        </div>
       </div>
     </DashboardLayout>
   );

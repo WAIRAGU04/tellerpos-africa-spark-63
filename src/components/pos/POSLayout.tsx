@@ -7,8 +7,15 @@ import POSInventoryView from './POSInventoryView';
 import POSCart from './POSCart';
 import POSCheckout from './POSCheckout';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, ChevronDown } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { useShift } from '@/contexts/ShiftContext';
 
 interface POSLayoutProps {

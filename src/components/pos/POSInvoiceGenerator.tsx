@@ -86,11 +86,13 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
     });
     
     // Add paid amount and balance due for partial payments
-    const isPartialPayment = paidAmount > 0;
+    const isPartialPayment = paidAmount > 0 || transaction.paidAmount > 0;
+    const actualPaidAmount = paidAmount || transaction.paidAmount || 0;
+    
     if (isPartialPayment) {
-      const totalBill = transaction.total + paidAmount;
+      const totalBill = transaction.total + actualPaidAmount;
       message += `\n*TOTAL BILL*: ${formatCurrency(totalBill)}\n`;
-      message += `*PAID AMOUNT*: ${formatCurrency(paidAmount)}\n`;
+      message += `*PAID AMOUNT*: ${formatCurrency(actualPaidAmount)}\n`;
       message += `*BALANCE DUE*: ${formatCurrency(transaction.total)}\n\n`;
     } else {
       message += `\n*TOTAL AMOUNT DUE*: ${formatCurrency(transaction.total)}\n\n`;
@@ -117,8 +119,9 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
   const invoiceDueDate = dueDate.toLocaleDateString();
 
   // Calculate total bill for partial payments
-  const isPartialPayment = paidAmount > 0;
-  const totalBill = isPartialPayment ? transaction.total + paidAmount : transaction.total;
+  const isPartialPayment = paidAmount > 0 || transaction.paidAmount > 0;
+  const actualPaidAmount = paidAmount || transaction.paidAmount || 0;
+  const totalBill = isPartialPayment ? transaction.total + actualPaidAmount : transaction.total;
 
   return (
     <>
@@ -177,7 +180,7 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
                 </div>
                 <div className="flex justify-between py-2 text-green-600">
                   <span className="font-medium">Amount Paid:</span>
-                  <span>{formatCurrency(paidAmount)}</span>
+                  <span>{formatCurrency(actualPaidAmount)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between py-2 font-bold">
@@ -205,7 +208,7 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
           <h4 className="font-semibold mb-1">Payment Details:</h4>
           <p className="text-xs">Payment due by: {invoiceDueDate}</p>
           <p className="text-xs">Payment Method: Credit</p>
-          <p className="text-xs">Payment Status: Pending</p>
+          <p className="text-xs">Payment Status: {transaction.status === 'paid' ? 'Paid' : 'Pending'}</p>
           {isPartialPayment && (
             <p className="text-xs mt-1 text-amber-600">Note: This is a partial invoice. A separate receipt has been generated for the paid amount.</p>
           )}

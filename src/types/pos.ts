@@ -43,9 +43,11 @@ export interface Transaction {
   customerId?: string;
   timestamp: string;
   receiptNumber: string;
-  status: 'completed' | 'pending' | 'cancelled';
+  status: 'completed' | 'pending' | 'cancelled' | 'paid';
   isInvoice?: boolean;
-  paidAmount?: number; // Add this field to track paid amount for partial invoices
+  paidAmount?: number; // Track paid amount for partial invoices
+  balanceAmount?: number; // Track balance amount for partial invoices
+  customerName?: string; // Store customer name for easier filtering
 }
 
 export interface POSCheckoutProps {

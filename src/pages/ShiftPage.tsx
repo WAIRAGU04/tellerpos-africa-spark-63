@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Shift, Expense, ShiftFormValues } from "@/types/shift";
 import { Button } from "@/components/ui/button";
@@ -12,19 +11,20 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useShift } from "@/contexts/ShiftContext";
 import { nanoid } from "nanoid";
-
 const ShiftPage = () => {
-  const { 
-    activeShift, 
-    isLoading, 
-    startShift, 
-    closeShift, 
+  const {
+    activeShift,
+    isLoading,
+    startShift,
+    closeShift,
     addExpense,
     updateShiftWithSale
   } = useShift();
   const [shiftHistory, setShiftHistory] = useState<Shift[]>([]);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
 
   // Load shift history from localStorage
   useEffect(() => {
@@ -33,11 +33,9 @@ const ShiftPage = () => {
       setShiftHistory(JSON.parse(storedHistory));
     }
   }, []);
-
   const handleStartShift = (values: ShiftFormValues) => {
     startShift(values.openingBalance);
   };
-
   const handleCloseShift = () => {
     closeShift();
     // Refresh shift history after closing
@@ -46,7 +44,6 @@ const ShiftPage = () => {
       setShiftHistory(JSON.parse(updatedHistory));
     }
   };
-
   const handleAddExpense = (expenseData: Omit<Expense, "id" | "timestamp">) => {
     addExpense(expenseData.description, expenseData.amount);
   };
@@ -54,71 +51,56 @@ const ShiftPage = () => {
   // Mock function to simulate updating sales (in a real app this would happen automatically)
   const simulateSale = () => {
     if (!activeShift) return;
-    
+
     // Random sale amount between 1000 and 10000
     const saleAmount = Math.floor(Math.random() * 9000) + 1000;
-    
+
     // Randomly select a payment method
     const paymentMethods = ['mpesa-stk', 'mpesa-till', 'pochi-la-biashara', 'cash', 'bank-transfer', 'credit', 'other-custom'] as const;
     const randomIndex = Math.floor(Math.random() * paymentMethods.length);
     const paymentMethod = paymentMethods[randomIndex];
-    
+
     // Create a dummy cart item
     const dummyItem = {
       id: nanoid(),
       name: "Random Test Item",
       price: saleAmount,
       quantity: 1,
-      type: Math.random() > 0.5 ? 'product' : 'service' as 'product' | 'service',
+      type: Math.random() > 0.5 ? 'product' : 'service' as 'product' | 'service'
     };
-    
+
     // Update the shift with this sale
     updateShiftWithSale([dummyItem], paymentMethod, saleAmount);
-    
     toast({
       title: "Sale recorded",
-      description: `KES ${saleAmount.toLocaleString()} sale recorded via ${
-        paymentMethod === 'mpesa-stk' ? 'Mpesa' : 
-        paymentMethod === 'mpesa-till' ? 'Mpesa Till' : 
-        paymentMethod === 'pochi-la-biashara' ? 'Pochi La Biashara' : 
-        paymentMethod === 'bank-transfer' ? 'Bank Transfer' : 
-        paymentMethod
-      }`
+      description: `KES ${saleAmount.toLocaleString()} sale recorded via ${paymentMethod === 'mpesa-stk' ? 'Mpesa' : paymentMethod === 'mpesa-till' ? 'Mpesa Till' : paymentMethod === 'pochi-la-biashara' ? 'Pochi La Biashara' : paymentMethod === 'bank-transfer' ? 'Bank Transfer' : paymentMethod}`
     });
   };
-
   const renderContent = () => {
     if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-full">
+      return <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tellerpos mx-auto"></div>
             <p className="mt-2 text-tellerpos-gray-light">Loading shift data...</p>
           </div>
-        </div>
-      );
+        </div>;
     }
-
-    return (
-      <div className="p-6 max-w-7xl mx-auto">
+    return <div className="p-6 max-w-7xl mx-auto">
         <div className="flex flex-col space-y-6">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-white">Shift Management</h1>
-            {activeShift && (
-              <div className="space-x-2">
+            {activeShift && <div className="space-x-2">
                 <Button variant="outline" onClick={simulateSale}>
                   Simulate Sale (Demo)
                 </Button>
                 <Button variant="destructive" onClick={() => setIsCloseDialogOpen(true)}>
                   Close Shift
                 </Button>
-              </div>
-            )}
+              </div>}
           </div>
           
-          {activeShift ? (
-            <Tabs defaultValue="details" className="w-full">
-              <TabsList className="mb-4">
+          {activeShift ? <Tabs defaultValue="details" className="w-full">
+              <TabsList className="mb-4 bg-green-400">
                 <TabsTrigger value="details">Shift Details</TabsTrigger>
                 <TabsTrigger value="expenses">Record Expenses</TabsTrigger>
                 <TabsTrigger value="history">Shift History</TabsTrigger>
@@ -134,12 +116,8 @@ const ShiftPage = () => {
                   
                   <div>
                     <h2 className="text-xl font-medium mb-4">Recent Expenses</h2>
-                    {activeShift.expenses.length === 0 ? (
-                      <p className="text-muted-foreground">No expenses recorded for this shift</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {activeShift.expenses.map(expense => (
-                          <li key={expense.id} className="bg-tellerpos-dark-accent/20 p-3 rounded-md">
+                    {activeShift.expenses.length === 0 ? <p className="text-muted-foreground">No expenses recorded for this shift</p> : <ul className="space-y-2">
+                        {activeShift.expenses.map(expense => <li key={expense.id} className="bg-tellerpos-dark-accent/20 p-3 rounded-md">
                             <div className="flex justify-between">
                               <div>
                                 <p className="font-medium">{expense.description}</p>
@@ -151,10 +129,8 @@ const ShiftPage = () => {
                                 KES {expense.amount.toLocaleString()}
                               </p>
                             </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                          </li>)}
+                      </ul>}
                   </div>
                 </div>
               </TabsContent>
@@ -162,9 +138,7 @@ const ShiftPage = () => {
               <TabsContent value="history">
                 <ShiftHistory shifts={shiftHistory} />
               </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </Tabs> : <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-lg mb-4 text-tellerpos-gray-light">
                   There is no active shift. Start a new shift to begin sales and record expenses.
@@ -176,27 +150,14 @@ const ShiftPage = () => {
                 <h2 className="text-xl font-medium mb-4">Previous Shifts</h2>
                 <ShiftHistory shifts={shiftHistory} />
               </div>
-            </div>
-          )}
+            </div>}
           
-          {activeShift && (
-            <CloseShiftDialog
-              shift={activeShift}
-              open={isCloseDialogOpen}
-              onOpenChange={setIsCloseDialogOpen}
-              onCloseShift={handleCloseShift}
-            />
-          )}
+          {activeShift && <CloseShiftDialog shift={activeShift} open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen} onCloseShift={handleCloseShift} />}
         </div>
-      </div>
-    );
+      </div>;
   };
-
-  return (
-    <DashboardLayout>
+  return <DashboardLayout>
       {renderContent()}
-    </DashboardLayout>
-  );
+    </DashboardLayout>;
 };
-
 export default ShiftPage;

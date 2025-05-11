@@ -53,7 +53,7 @@ const ActiveShiftDetails = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="bg-tellerpos-dark-accent/20 pb-2">
-            <CardTitle className="text-lg font-medium">Payment Methods</CardTitle>
+            <CardTitle className="font-bold text-2xl text-green-500">Payment Methods</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             <ul className="space-y-2">

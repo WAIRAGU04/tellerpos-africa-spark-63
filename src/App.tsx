@@ -16,13 +16,14 @@ import { ShiftProvider } from './contexts/ShiftContext';
 import { ThemeProvider } from './components/ui/theme-provider';
 import { Toaster } from "./components/ui/toaster";
 import { initializeAccounts } from './services/accountsService';
-import { initializeOfflineStorage } from './services/syncService';
+import { initializeOfflineStorage, initializeSyncService } from './services/syncService';
 
 function App() {
   // Initialize accounts and offline functionality
   useEffect(() => {
     initializeAccounts();
     initializeOfflineStorage();
+    initializeSyncService(); // Initialize sync service to handle online/offline transitions
   }, []);
 
   return (

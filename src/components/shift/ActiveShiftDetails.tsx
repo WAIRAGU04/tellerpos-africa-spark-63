@@ -88,7 +88,7 @@ const ActiveShiftDetails = ({
 
       <Card>
         <CardHeader className="bg-tellerpos-dark-accent/20 pb-2">
-          <CardTitle className="text-lg font-medium">Summary</CardTitle>
+          <CardTitle className="text-2xl font-bold text-green-500">Summary</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="space-y-2">

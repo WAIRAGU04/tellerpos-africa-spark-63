@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Search, UserPlus, Check } from 'lucide-react';
+import { User, Search, UserPlus, Check, X } from 'lucide-react'; // Added X icon import
 import { Customer } from '@/types/pos';
 
 interface POSCustomerSelectProps {

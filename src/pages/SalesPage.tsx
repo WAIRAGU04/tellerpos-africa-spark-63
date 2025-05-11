@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Transaction } from '@/types/pos';
@@ -637,6 +636,7 @@ const SalesPage = () => {
           {selectedTransaction && (
             <POSReceiptGenerator 
               transaction={selectedTransaction} 
+              receiptNumber={selectedTransaction.receiptNumber} 
               onClose={() => setShowReceiptDialog(false)} 
             />
           )}
@@ -649,6 +649,7 @@ const SalesPage = () => {
           {selectedTransaction && (
             <POSInvoiceGenerator 
               transaction={selectedTransaction} 
+              invoiceNumber={selectedTransaction.receiptNumber}
               customerName={customerName}
               onClose={() => setShowInvoiceDialog(false)} 
               paidAmount={selectedTransaction.paidAmount}

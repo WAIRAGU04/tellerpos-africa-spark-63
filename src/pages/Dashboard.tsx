@@ -270,7 +270,7 @@ const Dashboard = () => {
             
             <div className="bg-white dark:bg-tellerpos-dark-accent rounded-lg shadow p-4">
               <h3 className="text-gray-500 dark:text-gray-400 font-medium mb-2 text-xl">Products Sold</h3>
-              <p className="text-2xl font-bold">51</p>
+              <p className="text-2xl font-bold text-green-500">51</p>
               <div className="flex items-center mt-2">
                 <span className="text-green-500 text-sm font-medium">+8%</span>
                 <span className="text-gray-500 dark:text-gray-400 text-sm ml-2">from yesterday</span>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { nanoid } from 'nanoid';
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +12,6 @@ import InventoryList from "@/components/inventory/InventoryList";
 import InventoryGrid from "@/components/inventory/InventoryGrid";
 import ImportProducts from "@/components/inventory/ImportProducts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
 const StockPage = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -22,8 +20,10 @@ const StockPage = () => {
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addServiceOpen, setAddServiceOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
+
   // Load inventory from localStorage
   useEffect(() => {
     const storedInventory = localStorage.getItem('inventory');
@@ -32,14 +32,14 @@ const StockPage = () => {
     }
     setIsLoading(false);
   }, []);
-  
+
   // Save inventory to localStorage whenever it changes
   useEffect(() => {
     if (!isLoading) {
       localStorage.setItem('inventory', JSON.stringify(inventory));
     }
   }, [inventory, isLoading]);
-  
+
   // Add a new product to inventory
   const addProduct = (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'type'>) => {
     const now = new Date().toISOString();
@@ -50,16 +50,14 @@ const StockPage = () => {
       createdAt: now,
       updatedAt: now
     };
-    
     setInventory(prev => [...prev, newProduct]);
     setAddProductOpen(false);
-    
     toast({
       title: 'Product Added',
-      description: `${product.name} has been added to inventory.`,
+      description: `${product.name} has been added to inventory.`
     });
   };
-  
+
   // Add a new service to inventory
   const addService = (service: Omit<Service, 'id' | 'createdAt' | 'updatedAt' | 'type'>) => {
     const now = new Date().toISOString();
@@ -70,16 +68,14 @@ const StockPage = () => {
       createdAt: now,
       updatedAt: now
     };
-    
     setInventory(prev => [...prev, newService]);
     setAddServiceOpen(false);
-    
     toast({
       title: 'Service Added',
-      description: `${service.name} has been added to your services.`,
+      description: `${service.name} has been added to your services.`
     });
   };
-  
+
   // Import multiple products
   const importProducts = (products: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'type'>[]) => {
     const now = new Date().toISOString();
@@ -90,16 +86,14 @@ const StockPage = () => {
       createdAt: now,
       updatedAt: now
     }));
-    
     setInventory(prev => [...prev, ...newProducts]);
     setImportOpen(false);
-    
     toast({
       title: 'Products Imported',
-      description: `${newProducts.length} products have been added to inventory.`,
+      description: `${newProducts.length} products have been added to inventory.`
     });
   };
-  
+
   // Filter inventory based on active tab
   const filteredInventory = inventory.filter(item => {
     if (activeTab === 'all') return true;
@@ -110,27 +104,29 @@ const StockPage = () => {
     }
     return true;
   });
-  
+
   // Add to cart functionality (will be implemented in the Sell module later)
   const addToCart = (item: InventoryItem) => {
     toast({
       title: 'Added to Cart',
-      description: `${item.name} has been added to cart.`,
+      description: `${item.name} has been added to cart.`
     });
     // In a real app, this would add the item to a cart state
   };
-  
+
   // Download inventory template
   const downloadTemplate = () => {
     // Create a simple CSV template
     const template = 'name,description,price,sku,barcode,quantity,unitOfMeasurement,reorderLevel,costPrice\nExample Product,Product Description,1000,SKU001,,10,pieces,5,800';
-    
+
     // Create a Blob from the CSV string
-    const blob = new Blob([template], { type: 'text/csv' });
-    
+    const blob = new Blob([template], {
+      type: 'text/csv'
+    });
+
     // Create a URL for the Blob
     const url = URL.createObjectURL(blob);
-    
+
     // Create a download link and click it
     const a = document.createElement('a');
     a.href = url;
@@ -138,30 +134,24 @@ const StockPage = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    
     toast({
       title: 'Template Downloaded',
-      description: 'Inventory template has been downloaded.',
+      description: 'Inventory template has been downloaded.'
     });
   };
-  
   if (isLoading) {
-    return (
-      <DashboardLayout>
+    return <DashboardLayout>
         <div className="flex items-center justify-center h-full">
           <div className="w-16 h-16 border-t-4 border-b-4 border-tellerpos rounded-full animate-spin"></div>
         </div>
-      </DashboardLayout>
-    );
+      </DashboardLayout>;
   }
-  
-  return (
-    <DashboardLayout>
+  return <DashboardLayout>
       <div className="p-6 max-w-full mx-auto">
         <div className="flex flex-col space-y-6">
           {/* Header with actions */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <h1 className="text-3xl font-bold text-white">Inventory Management</h1>
+            <h1 className="font-bold text-[tellerpos-gray-dark] text-tellerpos-dark">Inventory Management</h1>
             
             <div className="flex flex-wrap gap-2">
               <Dialog open={addProductOpen} onOpenChange={setAddProductOpen}>
@@ -209,28 +199,16 @@ const StockPage = () => {
                 </DialogContent>
               </Dialog>
               
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2"
-                onClick={downloadTemplate}
-              >
+              <Button variant="outline" className="flex items-center gap-2" onClick={downloadTemplate}>
                 <FileDown size={18} />
                 <span>Template</span>
               </Button>
               
               <div className="flex rounded-md overflow-hidden border">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  className="rounded-none"
-                  onClick={() => setViewMode('grid')}
-                >
+                <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} className="rounded-none" onClick={() => setViewMode('grid')}>
                   <Grid size={18} />
                 </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  className="rounded-none"
-                  onClick={() => setViewMode('list')}
-                >
+                <Button variant={viewMode === 'list' ? 'default' : 'ghost'} className="rounded-none" onClick={() => setViewMode('list')}>
                   <List size={18} />
                 </Button>
               </div>
@@ -238,12 +216,7 @@ const StockPage = () => {
           </div>
           
           {/* Inventory content */}
-          <Tabs 
-            defaultValue="all" 
-            value={activeTab} 
-            onValueChange={setActiveTab} 
-            className="w-full"
-          >
+          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
               <TabsTrigger value="all">All Items</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
@@ -252,37 +225,17 @@ const StockPage = () => {
             </TabsList>
             
             <TabsContent value={activeTab} className="mt-6">
-              {filteredInventory.length === 0 ? (
-                <div className="bg-white dark:bg-tellerpos-dark-accent rounded-lg p-8 text-center">
+              {filteredInventory.length === 0 ? <div className="bg-white dark:bg-tellerpos-dark-accent rounded-lg p-8 text-center">
                   <h2 className="text-2xl font-medium mb-4">No items found</h2>
                   <p className="text-muted-foreground mb-6">
-                    {activeTab === 'all' 
-                      ? "Start by adding products or services to your inventory"
-                      : activeTab === 'products'
-                        ? "No products in your inventory"
-                        : activeTab === 'services'
-                          ? "No services added yet"
-                          : "No items with low stock"}
+                    {activeTab === 'all' ? "Start by adding products or services to your inventory" : activeTab === 'products' ? "No products in your inventory" : activeTab === 'services' ? "No services added yet" : "No items with low stock"}
                   </p>
-                  {activeTab === 'all' || activeTab === 'products' ? (
-                    <Button onClick={() => setAddProductOpen(true)}>Add Product</Button>
-                  ) : activeTab === 'services' ? (
-                    <Button onClick={() => setAddServiceOpen(true)}>Add Service</Button>
-                  ) : null}
-                </div>
-              ) : (
-                viewMode === 'grid' ? (
-                  <InventoryGrid items={filteredInventory} onAddToCart={addToCart} />
-                ) : (
-                  <InventoryList items={filteredInventory} onAddToCart={addToCart} />
-                )
-              )}
+                  {activeTab === 'all' || activeTab === 'products' ? <Button onClick={() => setAddProductOpen(true)}>Add Product</Button> : activeTab === 'services' ? <Button onClick={() => setAddServiceOpen(true)}>Add Service</Button> : null}
+                </div> : viewMode === 'grid' ? <InventoryGrid items={filteredInventory} onAddToCart={addToCart} /> : <InventoryList items={filteredInventory} onAddToCart={addToCart} />}
             </TabsContent>
           </Tabs>
         </div>
       </div>
-    </DashboardLayout>
-  );
+    </DashboardLayout>;
 };
-
 export default StockPage;

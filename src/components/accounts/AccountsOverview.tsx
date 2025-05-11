@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Account, AccountSummary, AccountTransaction } from '@/types/accounts';
@@ -55,6 +56,22 @@ const AccountsOverview: React.FC = () => {
     // Update last sync time
     const newSyncTime = new Date().toISOString();
     setLastSyncTime(newSyncTime);
+  };
+  
+  // Add the missing handleManualSync function
+  const handleManualSync = async () => {
+    if (!isOnline) return;
+    
+    try {
+      await syncAccountsData();
+      await loadAccountsData();
+      
+      // Update last sync time
+      const newSyncTime = new Date().toISOString();
+      setLastSyncTime(newSyncTime);
+    } catch (error) {
+      console.error('Failed to sync accounts data:', error);
+    }
   };
   
   // Calculate summary from accounts and transactions

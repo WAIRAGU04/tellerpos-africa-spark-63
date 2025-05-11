@@ -26,7 +26,7 @@ const ActiveShiftDetails = ({
   return <div className="space-y-4">
       <Card>
         <CardHeader className="bg-tellerpos-dark-accent/20 pb-2">
-          <CardTitle className="text-lg text-green-500 font-bold">Active Shift Information</CardTitle>
+          <CardTitle className="text-green-500 font-bold text-2xl">Active Shift Information</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="grid grid-cols-2 gap-4">

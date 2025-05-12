@@ -222,7 +222,7 @@ const AccountsTransfers: React.FC = () => {
       </Card>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Recent Transfers</h3>
+        <h3 className="text-lg font-medium text-green-500">Recent Transfers</h3>
         
         {transfers.length > 0 ? <Table>
             <TableCaption>A list of your recent account transfers</TableCaption>

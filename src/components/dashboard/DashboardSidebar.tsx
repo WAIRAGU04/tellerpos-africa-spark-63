@@ -1,5 +1,4 @@
 
-import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { UserData } from "@/types/dashboard";
 import { 
@@ -15,29 +14,33 @@ import {
   SidebarSeparator
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { sidebarItems } from "@/lib/navigation";
+import { Button } from "@/components/ui/button";
 
 interface DashboardSidebarProps {
   userData: UserData;
   activeModule: string;
   setActiveModule: (module: string) => void;
+  menuItems: Array<{
+    id: string;
+    label: string;
+    icon: any;
+    path: string;
+  }>;
 }
 
 const DashboardSidebar = ({ 
   userData, 
   activeModule, 
-  setActiveModule
+  setActiveModule,
+  menuItems
 }: DashboardSidebarProps) => {
-  const navigate = useNavigate();
-  
   // Get initials for avatar
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
   
-  const handleMenuClick = (moduleId: string, path: string) => {
+  const handleMenuClick = (moduleId: string) => {
     setActiveModule(moduleId);
-    navigate(path);
   };
   
   return (
@@ -45,7 +48,7 @@ const DashboardSidebar = ({
       <SidebarHeader className="border-b border-tellerpos-dark-accent/30">
         <div className="flex items-center gap-2 px-2 py-4">
           <Avatar className="h-10 w-10 bg-tellerpos text-white">
-            <AvatarFallback>{getInitials(userData.firstName || 'U', userData.lastName || 'N')}</AvatarFallback>
+            <AvatarFallback>{getInitials(userData.firstName, userData.lastName)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col overflow-hidden">
             <span className="font-bold text-white truncate">
@@ -62,11 +65,11 @@ const DashboardSidebar = ({
         <SidebarGroup>
           <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
           <SidebarMenu>
-            {sidebarItems.map((item) => (
+            {menuItems.map((item) => (
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton
                   isActive={activeModule === item.id}
-                  onClick={() => handleMenuClick(item.id, item.path)}
+                  onClick={() => handleMenuClick(item.id)}
                   tooltip={item.label}
                 >
                   <item.icon className="w-5 h-5" />
@@ -81,13 +84,13 @@ const DashboardSidebar = ({
       <SidebarFooter>
         <SidebarSeparator />
         <div className="p-2">
-          <button 
-            onClick={() => navigate("/")}
-            className="flex w-full items-center gap-2 rounded-md p-2 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-red-500 hover:bg-red-500/10 hover:text-red-500"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="mr-2 h-5 w-5" />
             <span>Log Out</span>
-          </button>
+          </Button>
         </div>
       </SidebarFooter>
     </Sidebar>

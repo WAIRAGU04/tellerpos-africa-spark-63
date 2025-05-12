@@ -4,10 +4,10 @@ import { UserData } from "@/types/dashboard";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { getGreeting } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Menu } from "lucide-react";
 
 interface DashboardHeaderProps {
   userData: UserData;
+  toggleMobileMenu?: () => void;
 }
 
 const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
@@ -25,11 +25,6 @@ const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
     
     return () => clearInterval(intervalId);
   }, []);
-
-  // Ensure we have actual user data to display
-  const displayName = userData && userData.firstName ? userData.firstName : "User";
-  const displayRole = userData && userData.role ? userData.role : "";
-  const displayBusiness = userData && userData.businessName ? userData.businessName : "TellerPOS";
   
   return (
     <header className="bg-tellerpos-dark-accent/50 backdrop-blur-lg border-b border-tellerpos-dark-accent/30 p-4 sticky top-0 z-10">
@@ -38,13 +33,13 @@ const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
           {!isMobile && <SidebarTrigger className="mr-4" />}
           <div className={isMobile ? "ml-8" : ""}>
             <h1 className="text-xl font-semibold text-white">
-              {greeting}, {displayName}
-              {displayRole && displayRole !== "Owner" && (
-                <span className="ml-1 text-sm text-tellerpos-gray-light">({displayRole})</span>
+              {greeting}, {userData.firstName}
+              {userData.role && userData.role !== "Owner" && (
+                <span className="ml-1 text-sm text-tellerpos-gray-light">({userData.role})</span>
               )}
             </h1>
             <p className="text-sm text-tellerpos-gray-light">
-              Welcome to {displayBusiness} dashboard
+              Welcome to {userData.businessName || "TellerPOS"} dashboard
             </p>
           </div>
         </div>

@@ -64,30 +64,9 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
     
     // Simulate API call for login
     setTimeout(() => {
-      // For demo purposes, we'll use mock data
-      // In a real app, this would come from the API response
-      const mockUserData = {
-        firstName: formData.email.split('@')[0], // Use part of email as first name
-        lastName: "User", // Default last name for demo
-        email: formData.email,
-        role: "Cashier" // For testing non-owner roles
-      };
-      
-      const mockBusinessData = {
-        businessName: "Demo Shop " + formData.businessId, // Use business ID in name
-        businessCategory: "Retail",
-        country: "Kenya",
-        businessId: formData.businessId
-      };
-      
-      // Save to localStorage
-      localStorage.setItem('userData', JSON.stringify(mockUserData));
-      localStorage.setItem('businessData', JSON.stringify(mockBusinessData));
-      
       toast.success("Signed in successfully!", {
         description: "Welcome back to TellerPOS!"
       });
-      
       setIsSubmitting(false);
       onOpenChange(false);
       

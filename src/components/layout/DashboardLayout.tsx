@@ -1,14 +1,13 @@
 
 import { useState, useEffect, ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { Menu } from "lucide-react";
 import { cn, getGreeting } from "@/lib/utils";
 import { UserData } from "@/types/dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import DashboardSidebar from "./DashboardSidebar";
 import DashboardMobileSidebar from "./DashboardMobileSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { sidebarItems } from "@/lib/navigation";
-import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -23,6 +22,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   
   const [collapsed, setCollapsed] = useState(getInitialCollapsedState);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [greeting, setGreeting] = useState(getGreeting());
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains('dark');
+  });
+  
   const location = useLocation();
   const isMobile = useIsMobile();
 
@@ -53,6 +57,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     businessName: "",
     role: ""
   });
+
+  // Set initial greeting and update it periodically
+  useEffect(() => {
+    setGreeting(getGreeting());
+    
+    const intervalId = setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Load user data from localStorage on component mount
   useEffect(() => {
@@ -91,49 +105,54 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  // Import sidebar items from the DashboardSidebar component
+  const { sidebarItems } = require('./DashboardSidebar');
+
   return (
-    <SidebarProvider>
-      <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100 w-full">
-        {/* Desktop Sidebar */}
-        <DashboardSidebar 
-          userData={userData} 
-          activeModule={activeModule}
-          setActiveModule={setActiveModule}
-        />
+    <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
+      {/* Desktop Sidebar */}
+      <DashboardSidebar 
+        userData={userData} 
+        collapsed={collapsed} 
+        setCollapsed={setCollapsed}
+        activeModule={activeModule}
+        setActiveModule={setActiveModule}
+      />
 
-        {/* Mobile Sidebar */}
-        <DashboardMobileSidebar
-          userData={userData}
-          mobileMenuOpen={mobileMenuOpen}
-          setMobileMenuOpen={setMobileMenuOpen}
-          activeModule={activeModule}
-          setActiveModule={setActiveModule}
-        />
+      {/* Mobile Sidebar */}
+      <DashboardMobileSidebar
+        userData={userData}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        activeModule={activeModule}
+        setActiveModule={setActiveModule}
+        greeting={greeting}
+      />
 
-        {/* Main Content */}
-        <main className={cn("flex-1 transition-all duration-300 ease-in-out flex flex-col", collapsed ? "md:ml-20" : "md:ml-64")}>
-          {/* Top Header Bar */}
-          <DashboardHeader userData={userData} />
-          
-          {/* Mobile Menu Button */}
-          {isMobile && (
-            <div className="fixed left-4 top-5 z-50">
-              <button 
-                onClick={toggleMobileMenu} 
-                className="p-2 rounded-md bg-tellerpos-dark-accent/50 text-white"
-              >
-                <span className="sr-only">Open menu</span>
-              </button>
-            </div>
-          )}
-          
-          {/* Module Content */}
-          <div className="flex-grow overflow-auto">
-            {children}
+      {/* Main Content */}
+      <main className={cn("flex-1 transition-all duration-300 ease-in-out flex flex-col", collapsed ? "md:ml-20" : "md:ml-64")}>
+        {/* Top Header Bar */}
+        <DashboardHeader userData={userData} />
+        
+        {/* Mobile Menu Button */}
+        {isMobile && (
+          <div className="fixed left-4 top-5 z-50">
+            <button 
+              onClick={toggleMobileMenu} 
+              className="p-2 rounded-md bg-tellerpos-dark-accent/50 text-white"
+            >
+              <Menu size={20} />
+              <span className="sr-only">Open menu</span>
+            </button>
           </div>
-        </main>
-      </div>
-    </SidebarProvider>
+        )}
+        
+        {/* Module Content */}
+        <div className="flex-grow overflow-auto">
+          {children}
+        </div>
+      </main>
+    </div>
   );
 };
 

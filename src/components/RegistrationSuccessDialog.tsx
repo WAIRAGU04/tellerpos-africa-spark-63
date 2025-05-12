@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { CheckCircle, Copy, ArrowRight } from "lucide-react";
 import { 
@@ -75,21 +74,6 @@ const RegistrationSuccessDialog = ({
   };
   
   const handleClose = () => {
-    // Save user and business data to localStorage before redirecting
-    localStorage.setItem('userData', JSON.stringify({
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      email: userData.email,
-      role: 'Owner' // Default role for new registrations
-    }));
-    
-    localStorage.setItem('businessData', JSON.stringify({
-      businessName: businessData.businessName,
-      businessCategory: businessData.businessCategory,
-      country: businessData.country,
-      businessId: businessId
-    }));
-    
     onOpenChange(false);
     // Redirect to dashboard
     navigate("/dashboard");

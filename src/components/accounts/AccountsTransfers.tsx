@@ -3,33 +3,18 @@ import { Account, AccountTransfer } from '@/types/accounts';
 import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeftRight, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { nanoid } from 'nanoid';
-import { 
-  Table, 
-  TableBody, 
-  TableCaption, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useOffline } from '@/hooks/use-offline';
 import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
 import OfflineAlert from '@/components/ui/offline-alert';
 import { cacheData, getCachedData, CACHE_KEYS } from '@/services/offlineService';
-
 const AccountsTransfers: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
@@ -38,8 +23,10 @@ const AccountsTransfers: React.FC = () => {
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const { isOnline, setLastSyncTime } = useOffline();
-
+  const {
+    isOnline,
+    setLastSyncTime
+  } = useOffline();
   const loadTransfersData = () => {
     // Load accounts from localStorage
     const storedAccounts = localStorage.getItem('accounts');
@@ -66,32 +53,27 @@ const AccountsTransfers: React.FC = () => {
         setTransfers(cachedTransfers.data);
       }
     }
-
     setIsLoading(false);
     setLastSyncTime(new Date().toISOString());
   };
-
   useEffect(() => {
     loadTransfersData();
   }, []);
-
   const handleTransfer = () => {
     if (!fromAccountId || !toAccountId || !amount || fromAccountId === toAccountId) {
       toast({
         title: "Invalid transfer",
         description: "Please select different accounts and enter a valid amount",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     const amountValue = parseFloat(amount);
-    
     if (isNaN(amountValue) || amountValue <= 0) {
       toast({
         title: "Invalid amount",
         description: "Please enter a valid positive amount",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -99,12 +81,11 @@ const AccountsTransfers: React.FC = () => {
     // Find accounts
     const fromAccount = accounts.find(acc => acc.id === fromAccountId);
     const toAccount = accounts.find(acc => acc.id === toAccountId);
-
     if (!fromAccount || !toAccount) {
       toast({
         title: "Account not found",
         description: "One or more selected accounts do not exist",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -114,7 +95,7 @@ const AccountsTransfers: React.FC = () => {
       toast({
         title: "Insufficient funds",
         description: `${fromAccount.name} has insufficient funds for this transfer`,
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -133,10 +114,18 @@ const AccountsTransfers: React.FC = () => {
     // Update account balances
     const updatedAccounts = accounts.map(acc => {
       if (acc.id === fromAccountId) {
-        return { ...acc, balance: acc.balance - amountValue, lastUpdated: new Date().toISOString() };
+        return {
+          ...acc,
+          balance: acc.balance - amountValue,
+          lastUpdated: new Date().toISOString()
+        };
       }
       if (acc.id === toAccountId) {
-        return { ...acc, balance: acc.balance + amountValue, lastUpdated: new Date().toISOString() };
+        return {
+          ...acc,
+          balance: acc.balance + amountValue,
+          lastUpdated: new Date().toISOString()
+        };
       }
       return acc;
     });
@@ -150,41 +139,33 @@ const AccountsTransfers: React.FC = () => {
     // Reset form
     setAmount('');
     setDescription('');
-    
     toast({
       title: "Transfer successful",
-      description: `${formatCurrency(amountValue)} transferred successfully`,
+      description: `${formatCurrency(amountValue)} transferred successfully`
     });
 
     // Update the last sync time
     setLastSyncTime(new Date().toISOString());
   };
-
   const handleManualSync = async () => {
     // In a real app, this would sync with a backend
     loadTransfersData();
   };
-
   if (isLoading) {
     return <div className="flex justify-center items-center h-48">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
     </div>;
   }
-
-  return (
-    <div className="space-y-8">
+  return <div className="space-y-8">
       <div className="flex justify-end mb-4">
-        <OfflineStatusIndicator 
-          showManualSync={true}
-          onManualSync={handleManualSync}
-        />
+        <OfflineStatusIndicator showManualSync={true} onManualSync={handleManualSync} />
       </div>
 
       {!isOnline && <OfflineAlert />}
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
+          <CardTitle className="flex items-center text-green-500">
             <ArrowLeftRight className="mr-2 h-5 w-5" />
             Transfer Between Accounts
           </CardTitle>
@@ -198,11 +179,9 @@ const AccountsTransfers: React.FC = () => {
                   <SelectValue placeholder="Select source account" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts.map(account => (
-                    <SelectItem key={account.id} value={account.id}>
+                  {accounts.map(account => <SelectItem key={account.id} value={account.id}>
                       {account.name} ({formatCurrency(account.balance)})
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -218,37 +197,21 @@ const AccountsTransfers: React.FC = () => {
                   <SelectValue placeholder="Select destination account" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts.map(account => (
-                    <SelectItem key={account.id} value={account.id}>
+                  {accounts.map(account => <SelectItem key={account.id} value={account.id}>
                       {account.name} ({formatCurrency(account.balance)})
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             
             <div>
               <Label htmlFor="amount">Amount</Label>
-              <Input
-                id="amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-              />
+              <Input id="amount" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" min="0" step="0.01" />
             </div>
             
             <div className="md:col-span-2">
               <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Transfer reason or reference"
-                className="resize-none"
-              />
+              <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Transfer reason or reference" className="resize-none" />
             </div>
           </div>
           
@@ -261,8 +224,7 @@ const AccountsTransfers: React.FC = () => {
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Recent Transfers</h3>
         
-        {transfers.length > 0 ? (
-          <Table>
+        {transfers.length > 0 ? <Table>
             <TableCaption>A list of your recent account transfers</TableCaption>
             <TableHeader>
               <TableRow>
@@ -274,32 +236,24 @@ const AccountsTransfers: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transfers.slice(0, 10).map((transfer) => {
-                const fromAccount = accounts.find(acc => acc.id === transfer.fromAccountId);
-                const toAccount = accounts.find(acc => acc.id === transfer.toAccountId);
-                
-                return (
-                  <TableRow key={transfer.id}>
+              {transfers.slice(0, 10).map(transfer => {
+            const fromAccount = accounts.find(acc => acc.id === transfer.fromAccountId);
+            const toAccount = accounts.find(acc => acc.id === transfer.toAccountId);
+            return <TableRow key={transfer.id}>
                     <TableCell>{new Date(transfer.timestamp).toLocaleDateString()}</TableCell>
                     <TableCell>{fromAccount?.name || 'Unknown Account'}</TableCell>
                     <TableCell>{toAccount?.name || 'Unknown Account'}</TableCell>
                     <TableCell>{formatCurrency(transfer.amount)}</TableCell>
                     <TableCell>{transfer.description}</TableCell>
-                  </TableRow>
-                );
-              })}
+                  </TableRow>;
+          })}
             </TableBody>
-          </Table>
-        ) : (
-          <Card>
+          </Table> : <Card>
             <CardContent className="flex flex-col items-center justify-center py-6">
               <p className="text-center text-muted-foreground">No transfers found</p>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AccountsTransfers;

@@ -64,11 +64,16 @@ export interface Quotation {
   quotationNumber: string;
   customerId: string;
   customerName: string;
+  customerCompany?: string;
+  customerAddress?: string;
+  customerCity?: string;
+  customerPhone?: string;
   items: Array<{
     id: string;
     name: string;
     quantity: number;
     price: number;
+    isTaxable?: boolean;
   }>;
   subtotal: number;
   tax: number;

@@ -60,7 +60,8 @@ export const calculateTaxableAmount = (items: CartItem[]): {
   let nonTaxableAmount = 0;
   
   items.forEach(item => {
-    if (item.isTaxable) {
+    // Default to taxable if isTaxable is not explicitly set to false
+    if (item.isTaxable !== false) {
       taxableAmount += item.price * item.quantity;
     } else {
       nonTaxableAmount += item.price * item.quantity;

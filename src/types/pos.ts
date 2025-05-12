@@ -18,6 +18,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   total: number;
+  isTaxable?: boolean;
   type?: 'product' | 'service';
   imageUrl?: string;
   color?: string;

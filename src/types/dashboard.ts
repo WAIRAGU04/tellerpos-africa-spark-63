@@ -33,11 +33,11 @@ export interface BusinessSettings {
     reportRecipient: string;
   };
   documentFooters: {
-    receipt: string;
-    invoice: string;
-    quotation: string;
-    purchaseOrder: string;
-    deliveryNote: string;
+    receipt?: string;
+    invoice?: string;
+    quotation?: string;
+    purchaseOrder?: string;
+    deliveryNote?: string;
   };
 }
 

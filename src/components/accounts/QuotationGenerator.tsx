@@ -300,12 +300,17 @@ const QuotationGenerator: React.FC<QuotationGeneratorProps> = ({ quotation, onCl
     
     // Get canvas position
     const rect = canvas.getBoundingClientRect();
-    const x = e instanceof MouseEvent 
-      ? e.clientX - rect.left
-      : e.touches[0].clientX - rect.left;
-    const y = e instanceof MouseEvent 
-      ? e.clientY - rect.top 
-      : e.touches[0].clientY - rect.top;
+    let x, y;
+    
+    if ('touches' in e) {
+      // Touch event
+      x = e.touches[0].clientX - rect.left;
+      y = e.touches[0].clientY - rect.top;
+    } else {
+      // Mouse event
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
       
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -320,12 +325,17 @@ const QuotationGenerator: React.FC<QuotationGeneratorProps> = ({ quotation, onCl
     
     // Get current position
     const rect = canvas.getBoundingClientRect();
-    const x = e instanceof MouseEvent 
-      ? e.clientX - rect.left
-      : e.touches[0].clientX - rect.left;
-    const y = e instanceof MouseEvent 
-      ? e.clientY - rect.top 
-      : e.touches[0].clientY - rect.top;
+    let x, y;
+    
+    if ('touches' in e) {
+      // Touch event
+      x = e.touches[0].clientX - rect.left;
+      y = e.touches[0].clientY - rect.top;
+    } else {
+      // Mouse event
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
     
     ctx.lineWidth = penThickness;
     ctx.lineCap = 'round';

@@ -77,17 +77,22 @@ const SettingsPage = () => {
     
     try {
       // Merge with existing business settings
-      const updatedSettings = {
-        ...businessSettings,
-        ...data,
+      const updatedSettings: BusinessSettings = {
+        ...businessSettings as BusinessSettings,
+        currency: data.currency || businessSettings.currency || "KES",
+        logo: data.logo || businessSettings.logo || "",
+        signature: data.signature || businessSettings.signature || "",
         documentFooters: {
-          ...(businessSettings.documentFooters || {}),
-          ...(data.documentFooters || {})
+          receipt: data.documentFooters?.receipt || businessSettings.documentFooters?.receipt || "",
+          invoice: data.documentFooters?.invoice || businessSettings.documentFooters?.invoice || "",
+          quotation: data.documentFooters?.quotation || businessSettings.documentFooters?.quotation || "",
+          purchaseOrder: data.documentFooters?.purchaseOrder || businessSettings.documentFooters?.purchaseOrder || "",
+          deliveryNote: data.documentFooters?.deliveryNote || businessSettings.documentFooters?.deliveryNote || ""
         }
       };
       
       // Save to localStorage
-      saveBusinessSettings(updatedSettings as BusinessSettings);
+      saveBusinessSettings(updatedSettings);
       
       // Update state
       setBusinessSettings(updatedSettings);

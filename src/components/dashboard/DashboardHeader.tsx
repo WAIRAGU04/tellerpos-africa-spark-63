@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { UserData } from "@/types/dashboard";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { getGreeting } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Menu } from "lucide-react";
 
 interface DashboardHeaderProps {
   userData: UserData;

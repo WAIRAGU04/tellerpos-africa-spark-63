@@ -45,7 +45,7 @@ const DashboardSidebar = ({
       <SidebarHeader className="border-b border-tellerpos-dark-accent/30">
         <div className="flex items-center gap-2 px-2 py-4">
           <Avatar className="h-10 w-10 bg-tellerpos text-white">
-            <AvatarFallback>{getInitials(userData.firstName, userData.lastName)}</AvatarFallback>
+            <AvatarFallback>{getInitials(userData.firstName || 'U', userData.lastName || 'N')}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col overflow-hidden">
             <span className="font-bold text-white truncate">

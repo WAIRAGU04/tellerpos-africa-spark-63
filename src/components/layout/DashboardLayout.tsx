@@ -1,7 +1,6 @@
 
 import { useState, useEffect, ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { Menu } from "lucide-react";
 import { cn, getGreeting } from "@/lib/utils";
 import { UserData } from "@/types/dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -24,11 +23,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   
   const [collapsed, setCollapsed] = useState(getInitialCollapsedState);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [greeting, setGreeting] = useState(getGreeting());
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return document.documentElement.classList.contains('dark');
-  });
-  
   const location = useLocation();
   const isMobile = useIsMobile();
 
@@ -59,16 +53,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     businessName: "",
     role: ""
   });
-
-  // Set initial greeting and update it periodically
-  useEffect(() => {
-    setGreeting(getGreeting());
-    
-    const intervalId = setInterval(() => {
-      setGreeting(getGreeting());
-    }, 60000);
-    return () => clearInterval(intervalId);
-  }, []);
 
   // Load user data from localStorage on component mount
   useEffect(() => {
@@ -109,7 +93,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
+      <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100 w-full">
         {/* Desktop Sidebar */}
         <DashboardSidebar 
           userData={userData} 
@@ -124,7 +108,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           setMobileMenuOpen={setMobileMenuOpen}
           activeModule={activeModule}
           setActiveModule={setActiveModule}
-          greeting={greeting}
         />
 
         {/* Main Content */}
@@ -139,7 +122,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 onClick={toggleMobileMenu} 
                 className="p-2 rounded-md bg-tellerpos-dark-accent/50 text-white"
               >
-                <Menu size={20} />
                 <span className="sr-only">Open menu</span>
               </button>
             </div>

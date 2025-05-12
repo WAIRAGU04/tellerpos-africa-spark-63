@@ -40,6 +40,7 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState<{businessId: string, userId: string} | undefined>(undefined);
   
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -64,6 +65,13 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
       toast.success("Registration successful!", {
         description: `Welcome to TellerPOS, ${formData.firstName}! Your account has been created.`
       });
+      // Save the generated IDs to pass to the success dialog
+      if ('businessId' in result && 'userId' in result) {
+        setRegistrationResult({
+          businessId: result.businessId,
+          userId: result.userId
+        });
+      }
       setSuccessDialogOpen(true);
     } else {
       toast.error("Registration failed", {
@@ -132,6 +140,7 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
           lastName: formData.lastName,
           email: formData.email
         }}
+        registrationResult={registrationResult}
       />
       
       <SignInDialog

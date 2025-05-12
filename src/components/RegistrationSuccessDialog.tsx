@@ -25,19 +25,24 @@ interface RegistrationSuccessDialogProps {
     lastName: string;
     email: string;
   };
+  registrationResult?: {
+    businessId: string;
+    userId: string;
+  };
 }
 
 const RegistrationSuccessDialog = ({ 
   open, 
   onOpenChange, 
   businessData, 
-  userData 
+  userData,
+  registrationResult
 }: RegistrationSuccessDialogProps) => {
   const navigate = useNavigate();
   
-  // Generate IDs (in a real app these would come from your backend)
-  const businessId = `TP${Math.floor(100000 + Math.random() * 900000)}`;
-  const userId = `U${Math.floor(1000 + Math.random() * 9000)}`;
+  // Get IDs from registration result or use placeholders
+  const businessId = registrationResult?.businessId || "TP-001";
+  const userId = registrationResult?.userId || "U-ABC123";
   
   const [copyStates, setCopyStates] = useState({
     businessId: false,
@@ -98,12 +103,12 @@ const RegistrationSuccessDialog = ({
               <div className="bg-tellerpos/10 p-4 rounded-lg border border-tellerpos/20">
                 <h3 className="text-lg text-white font-semibold mb-2">Important References</h3>
                 <p className="text-gray-300 mb-4">
-                  Please save these references for your records.
+                  Please save these references for your records. You will need your Business ID to sign in.
                 </p>
                 
                 <div className="flex flex-col gap-4">
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Business ID</p>
+                    <p className="text-sm text-gray-400 mb-1">Business ID <span className="text-amber-400">(Required for login)</span></p>
                     <div className="flex items-center justify-between bg-tellerpos-bg/40 p-2 rounded">
                       <p className="text-white font-medium">{businessId}</p>
                       <button 

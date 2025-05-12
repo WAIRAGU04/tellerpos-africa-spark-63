@@ -20,11 +20,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, Lock, EyeIcon, EyeOffIcon } from "lucide-react";
+import { Briefcase, Mail, Lock, EyeIcon, EyeOffIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
+import BusinessIdRecoveryDialog from "./BusinessIdRecoveryDialog";
+import { authenticateUser } from "@/utils/authUtils";
 
 interface SignInDialogProps {
   open: boolean;
@@ -33,6 +35,7 @@ interface SignInDialogProps {
 
 // Define form schema
 const formSchema = z.object({
+  businessId: z.string().min(1, { message: "Business ID is required." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
@@ -44,10 +47,12 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [businessIdRecoveryOpen, setBusinessIdRecoveryOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      businessId: "",
       email: "",
       password: "",
     },
@@ -56,45 +61,27 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   const onSubmit = (data: FormValues) => {
     setIsSubmitting(true);
     
-    // Simulate API call / authentication check
+    // Authenticate with our utility
+    const result = authenticateUser(data.businessId, data.email, data.password);
+    
     setTimeout(() => {
-      // For demo purposes, we'll accept any valid form data
-      // In a real app, you'd verify credentials against a backend
-
-      // Mock user data - in a real app this would come from your authentication API
-      const mockUserData = {
-        firstName: "Demo",
-        lastName: "User",
-        email: data.email,
-        phoneNumber: "+254700000000",
-        role: "Administrator",
-        businessName: "TellerPOS Demo Business"
-      };
-
-      // Save mock user data to localStorage for testing
-      localStorage.setItem("userData", JSON.stringify(mockUserData));
-      
-      // Also store the business name for the business data
-      const businessData = localStorage.getItem("businessData");
-      if (!businessData) {
-        localStorage.setItem("businessData", JSON.stringify({
-          businessName: "TellerPOS Demo Business",
-          email: data.email,
-          currency: "KES"
-        }));
-      }
-      
       setIsSubmitting(false);
       
-      toast.success("Signed in successfully!", {
-        description: `Welcome back to TellerPOS!`,
-      });
-      
-      // Close the dialog
-      onOpenChange(false);
-      
-      // Redirect to dashboard
-      navigate("/dashboard");
+      if (result.success) {
+        toast.success("Signed in successfully!", {
+          description: `Welcome back to TellerPOS!`,
+        });
+        
+        // Close the dialog
+        onOpenChange(false);
+        
+        // Redirect to dashboard
+        navigate("/dashboard");
+      } else {
+        toast.error("Sign in failed", {
+          description: result.message || "Please check your credentials and try again.",
+        });
+      }
     }, 1500);
   };
 
@@ -105,6 +92,11 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   const handleForgotPassword = () => {
     onOpenChange(false);
     setForgotPasswordOpen(true);
+  };
+  
+  const handleForgotBusinessId = () => {
+    onOpenChange(false);
+    setBusinessIdRecoveryOpen(true);
   };
   
   return (
@@ -121,6 +113,29 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-6">
+                <FormField
+                  control={form.control}
+                  name="businessId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white">Business ID</FormLabel>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <Briefcase className="h-4 w-4 text-tellerpos/70" />
+                        </div>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your Business ID (e.g. TP-001)"
+                            className="bg-tellerpos-bg/50 border-tellerpos/20 text-white pl-10"
+                            {...field}
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage className="text-red-400" />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={form.control}
                   name="email"
@@ -188,14 +203,25 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
                     {isSubmitting ? "Signing in..." : "Sign In"}
                   </Button>
                   
-                  <Button 
-                    type="button"
-                    variant="ghost" 
-                    onClick={handleForgotPassword}
-                    className="w-full text-tellerpos hover:text-tellerpos/80 hover:bg-transparent mt-4"
-                  >
-                    Forgot Password?
-                  </Button>
+                  <div className="flex justify-between mt-4">
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      onClick={handleForgotBusinessId}
+                      className="text-tellerpos hover:text-tellerpos/80 hover:bg-transparent text-sm"
+                    >
+                      Forgot Business ID?
+                    </Button>
+                    
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      onClick={handleForgotPassword}
+                      className="text-tellerpos hover:text-tellerpos/80 hover:bg-transparent text-sm"
+                    >
+                      Forgot Password?
+                    </Button>
+                  </div>
                 </div>
               </form>
             </Form>
@@ -206,6 +232,11 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
       <ForgotPasswordDialog 
         open={forgotPasswordOpen} 
         onOpenChange={setForgotPasswordOpen} 
+      />
+      
+      <BusinessIdRecoveryDialog
+        open={businessIdRecoveryOpen}
+        onOpenChange={setBusinessIdRecoveryOpen}
       />
     </>
   );

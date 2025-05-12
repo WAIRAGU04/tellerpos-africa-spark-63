@@ -15,24 +15,18 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { sidebarItems } from "@/lib/navigation";
 
 interface DashboardSidebarProps {
   userData: UserData;
   activeModule: string;
   setActiveModule: (module: string) => void;
-  menuItems: Array<{
-    id: string;
-    label: string;
-    icon: any;
-    path: string;
-  }>;
 }
 
 const DashboardSidebar = ({ 
   userData, 
   activeModule, 
-  setActiveModule,
-  menuItems
+  setActiveModule
 }: DashboardSidebarProps) => {
   // Get initials for avatar
   const getInitials = (firstName: string, lastName: string) => {
@@ -65,7 +59,7 @@ const DashboardSidebar = ({
         <SidebarGroup>
           <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
           <SidebarMenu>
-            {menuItems.map((item) => (
+            {sidebarItems.map((item) => (
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton
                   isActive={activeModule === item.id}

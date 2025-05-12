@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import DashboardSidebar from "./DashboardSidebar";
 import DashboardMobileSidebar from "./DashboardMobileSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { sidebarItems } from "@/lib/navigation"; // Moving sidebar items to a separate file
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -104,9 +105,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
-
-  // Import sidebar items from the DashboardSidebar component
-  const { sidebarItems } = require('./DashboardSidebar');
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">

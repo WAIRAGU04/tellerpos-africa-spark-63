@@ -30,7 +30,7 @@ const AccountsPage = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl text-green-500 font-extrabold md:text-4xl">Accounts</h1>
-            <p className="text-muted-foreground">
+            <p className="text-lime-200 text-lg font-semibold">
               Total Sales: {formatCurrency(totalSales)}
             </p>
           </div>

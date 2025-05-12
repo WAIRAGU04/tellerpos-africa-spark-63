@@ -1,0 +1,126 @@
+
+import { BusinessSettings, UserData } from "@/types/dashboard";
+
+// Default business settings
+export const defaultBusinessSettings: BusinessSettings = {
+  businessId: "TP12345",
+  businessName: "TellerPOS",
+  email: "info@tellerpos.com",
+  phone: "+2341234567890",
+  country: "Nigeria",
+  address: "123 Main Street, Lagos",
+  postalAddress: "P.O Box 12345",
+  logo: "",
+  taxPin: "",
+  businessHours: {
+    openingTime: "08:00",
+    closingTime: "18:00",
+    dailyReportTime: "20:00",
+  },
+  documentFooters: {
+    receipt: "Thank you for shopping with us!",
+    invoice: "Payment terms: 30 days net",
+    quotation: "This quotation is valid for 30 days",
+    purchaseOrder: "Standard terms and conditions apply",
+    deliveryNote: "Please check goods before signing",
+  },
+};
+
+// Default user data
+export const defaultUserData: UserData = {
+  firstName: "John",
+  lastName: "Doe",
+  businessName: "TellerPOS",
+  email: "john.doe@example.com",
+  phoneNumber: "+2341234567890",
+  role: "Administrator",
+  agentCode: "AG001",
+};
+
+// Load business settings from localStorage or return defaults
+export const loadBusinessSettings = (): BusinessSettings => {
+  try {
+    const stored = localStorage.getItem("tellerpos_business_settings");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        ...defaultBusinessSettings,
+        ...parsed,
+        businessHours: {
+          ...defaultBusinessSettings.businessHours,
+          ...(parsed.businessHours || {}),
+        },
+        documentFooters: {
+          ...defaultBusinessSettings.documentFooters,
+          ...(parsed.documentFooters || {}),
+        },
+      };
+    }
+  } catch (error) {
+    console.error("Error loading business settings:", error);
+  }
+  return defaultBusinessSettings;
+};
+
+// Load user data from localStorage or return defaults
+export const loadUserData = (): UserData => {
+  try {
+    const stored = localStorage.getItem("tellerpos_user_data");
+    if (stored) {
+      return { ...defaultUserData, ...JSON.parse(stored) };
+    }
+  } catch (error) {
+    console.error("Error loading user data:", error);
+  }
+  return defaultUserData;
+};
+
+// Save business settings to localStorage
+export const saveBusinessSettings = (settings: BusinessSettings): void => {
+  try {
+    localStorage.setItem("tellerpos_business_settings", JSON.stringify(settings));
+  } catch (error) {
+    console.error("Error saving business settings:", error);
+  }
+};
+
+// Save user data to localStorage
+export const saveUserData = (data: UserData): void => {
+  try {
+    localStorage.setItem("tellerpos_user_data", JSON.stringify(data));
+  } catch (error) {
+    console.error("Error saving user data:", error);
+  }
+};
+
+// Get document footer for a specific document type
+export const getDocumentFooter = (documentType: keyof BusinessSettings['documentFooters']): string => {
+  const settings = loadBusinessSettings();
+  return settings.documentFooters[documentType] || "";
+};
+
+// Get business logo
+export const getBusinessLogo = (): string => {
+  const settings = loadBusinessSettings();
+  return settings.logo || "";
+};
+
+// Get business contact information formatted for documents
+export const getBusinessContactInfo = (): { 
+  name: string;
+  address: string;
+  postalAddress: string;
+  phone: string;
+  email: string;
+  taxPin: string;
+} => {
+  const settings = loadBusinessSettings();
+  return {
+    name: settings.businessName,
+    address: settings.address || "",
+    postalAddress: settings.postalAddress || "",
+    phone: settings.phone,
+    email: settings.email,
+    taxPin: settings.taxPin || "",
+  };
+};

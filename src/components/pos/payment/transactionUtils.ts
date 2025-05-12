@@ -19,6 +19,10 @@ export const generateReceiptNumber = (): string => {
   return `RC-${nanoid(8).toUpperCase()}`;
 };
 
+export const generateQuotationNumber = (): string => {
+  return `QT-${nanoid(8).toUpperCase()}`;
+};
+
 export const createTransactionObject = (
   cart: CartItem[],
   cartTotal: number,
@@ -45,4 +49,41 @@ export const createTransactionObject = (
     customerName: customerId ? 'Selected Customer' : undefined,
     userId: ''
   };
+};
+
+export const calculateTaxableAmount = (items: CartItem[]): { 
+  taxableAmount: number, 
+  nonTaxableAmount: number,
+  totalTax: number
+} => {
+  let taxableAmount = 0;
+  let nonTaxableAmount = 0;
+  
+  items.forEach(item => {
+    if (item.isTaxable) {
+      taxableAmount += item.price * item.quantity;
+    } else {
+      nonTaxableAmount += item.price * item.quantity;
+    }
+  });
+  
+  // Default tax rate is 16% VAT
+  const taxRate = 0.16;
+  const totalTax = taxableAmount * taxRate;
+  
+  return { taxableAmount, nonTaxableAmount, totalTax };
+};
+
+export const formatQuotationDate = (date: Date): string => {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+};
+
+export const getFormattedExpiryDate = (days = 30): string => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return formatQuotationDate(date);
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Quotation, QuotationStatus } from '@/types/accounts';
 import { Button } from '@/components/ui/button';
@@ -33,6 +32,8 @@ import { CalendarIcon } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import QuotationGenerator from './QuotationGenerator';
+import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
 
 const QuotationsTab: React.FC = () => {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -52,6 +53,8 @@ const QuotationsTab: React.FC = () => {
     validUntil: addDays(new Date(), 30).toISOString(), // Valid for 30 days
     notes: '',
   });
+  const [viewQuotation, setViewQuotation] = useState<Quotation | null>(null);
+  const [showQuotationPreview, setShowQuotationPreview] = useState(false);
 
   useEffect(() => {
     // Load quotations from localStorage
@@ -127,6 +130,10 @@ const QuotationsTab: React.FC = () => {
       quotationNumber: newQuotation.quotationNumber || `QT-${nanoid(8).toUpperCase()}`,
       customerId: nanoid(), // In a real app, this would be selected from customers
       customerName: newQuotation.customerName || 'Guest',
+      customerCompany: '',
+      customerAddress: '',
+      customerCity: '',
+      customerPhone: '',
       items: newQuotation.items || [],
       subtotal: newQuotation.subtotal || 0,
       tax: newQuotation.tax || 0,
@@ -336,6 +343,11 @@ const QuotationsTab: React.FC = () => {
     });
   };
 
+  const viewQuotationDetails = (quotation: Quotation) => {
+    setViewQuotation(quotation);
+    setShowQuotationPreview(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between gap-4">
@@ -380,6 +392,46 @@ const QuotationsTab: React.FC = () => {
                   value={newQuotation.customerName}
                   onChange={(e) => setNewQuotation({ ...newQuotation, customerName: e.target.value })}
                   placeholder="Enter customer name"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-right text-sm font-medium">Customer Company</label>
+                <Input
+                  className="col-span-3"
+                  value={newQuotation.customerCompany || ''}
+                  onChange={(e) => setNewQuotation({ ...newQuotation, customerCompany: e.target.value })}
+                  placeholder="Enter customer company name (optional)"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-right text-sm font-medium">Customer Address</label>
+                <Input
+                  className="col-span-3"
+                  value={newQuotation.customerAddress || ''}
+                  onChange={(e) => setNewQuotation({ ...newQuotation, customerAddress: e.target.value })}
+                  placeholder="Enter customer address (optional)"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-right text-sm font-medium">Customer City/State</label>
+                <Input
+                  className="col-span-3"
+                  value={newQuotation.customerCity || ''}
+                  onChange={(e) => setNewQuotation({ ...newQuotation, customerCity: e.target.value })}
+                  placeholder="Enter city, state, zip (optional)"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-right text-sm font-medium">Customer Phone</label>
+                <Input
+                  className="col-span-3"
+                  value={newQuotation.customerPhone || ''}
+                  onChange={(e) => setNewQuotation({ ...newQuotation, customerPhone: e.target.value })}
+                  placeholder="Enter customer phone (optional)"
                 />
               </div>
 
@@ -518,7 +570,20 @@ const QuotationsTab: React.FC = () => {
                 <TableCell className="text-right">{formatCurrency(quotation.total)}</TableCell>
                 <TableCell>
                   <div className="flex space-x-1">
-                    <Button size="icon" variant="ghost" onClick={() => exportQuotation(quotation)}>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      title="View Quotation" 
+                      onClick={() => viewQuotationDetails(quotation)}
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      title="Export Quotation"
+                      onClick={() => exportQuotation(quotation)}
+                    >
                       <Download className="h-4 w-4" />
                     </Button>
                     <Dialog>
@@ -627,6 +692,21 @@ const QuotationsTab: React.FC = () => {
           </CardContent>
         </Card>
       )}
+      
+      {/* Quotation Preview Dialog */}
+      <AlertDialog 
+        open={showQuotationPreview} 
+        onOpenChange={setShowQuotationPreview}
+      >
+        <AlertDialogContent className="max-w-4xl max-h-[95vh] overflow-hidden p-0">
+          {viewQuotation && (
+            <QuotationGenerator 
+              quotation={viewQuotation}
+              onClose={() => setShowQuotationPreview(false)}
+            />
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

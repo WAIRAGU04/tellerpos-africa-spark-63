@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { LayoutDashboard, ShoppingBag, Calendar, BarChart3, Package2, Wallet, LineChart, Users, Settings, Briefcase, LogOut, ChevronLeft, ChevronRight, Menu, Sun, Moon, User, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn, getGreeting } from "@/lib/utils";
@@ -68,8 +68,7 @@ const Dashboard = () => {
   const [userData, setUserData] = useState<UserData>({
     firstName: "",
     lastName: "",
-    businessName: "",
-    role: ""
+    businessName: ""
   });
 
   // Load user data from localStorage on component mount
@@ -81,8 +80,7 @@ const Dashboard = () => {
       setUserData(prev => ({
         ...prev,
         firstName: parsedUserData.firstName || "",
-        lastName: parsedUserData.lastName || "",
-        role: parsedUserData.role || "Owner"  // Default to Owner if no role is specified
+        lastName: parsedUserData.lastName || ""
       }));
     }
     if (storedBusinessData) {
@@ -99,8 +97,7 @@ const Dashboard = () => {
       setUserData({
         firstName: "User",
         lastName: "",
-        businessName: "Your Business",
-        role: "Owner"
+        businessName: "Your Business"
       });
     }
   }, []);
@@ -173,12 +170,7 @@ const Dashboard = () => {
                 </div>
               </div> : <div className="space-y-2">
                 <p className="text-sm text-gray-600 dark:text-gray-400">{greeting},</p>
-                <p className="font-semibold text-sm">
-                  {userData.firstName} {userData.lastName} 
-                  {userData.role && userData.role !== "Owner" && (
-                    <span className="ml-1 text-xs text-tellerpos">({userData.role})</span>
-                  )}
-                </p>
+                <p className="font-semibold text-sm">{userData.firstName} {userData.lastName}</p>
                 <p className="text-xs text-tellerpos">{userData.businessName}</p>
               </div>}
           </div>
@@ -218,12 +210,7 @@ const Dashboard = () => {
           <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-800">
             <div className="space-y-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">{greeting},</p>
-              <p className="font-semibold text-sm">
-                {userData.firstName} {userData.lastName} 
-                {userData.role && userData.role !== "Owner" && (
-                  <span className="ml-1 text-xs text-tellerpos">({userData.role})</span>
-                )}
-              </p>
+              <p className="font-semibold text-sm">{userData.firstName} {userData.lastName}</p>
               <p className="text-xs text-tellerpos">{userData.businessName}</p>
             </div>
           </div>

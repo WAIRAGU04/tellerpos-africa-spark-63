@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { UserData } from "@/types/dashboard";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { getGreeting } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardHeaderProps {
   userData: UserData;
@@ -10,7 +9,6 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
   const [greeting, setGreeting] = useState("");
-  const isMobile = useIsMobile();
   
   useEffect(() => {
     // Set initial greeting
@@ -28,16 +26,13 @@ const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
     <header className="bg-tellerpos-dark-accent/50 backdrop-blur-lg border-b border-tellerpos-dark-accent/30 p-4 sticky top-0 z-10">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          {!isMobile && <SidebarTrigger className="mr-4" />}
-          <div className={isMobile ? "ml-8" : ""}>
+          <SidebarTrigger className="mr-4" />
+          <div>
             <h1 className="text-xl font-semibold text-white">
               {greeting}, {userData.firstName}
-              {userData.role && userData.role !== "Owner" && (
-                <span className="ml-1 text-sm text-tellerpos-gray-light">({userData.role})</span>
-              )}
             </h1>
             <p className="text-sm text-tellerpos-gray-light">
-              Welcome to {userData.businessName || "TellerPOS"} dashboard
+              Welcome to your TellerPOS dashboard
             </p>
           </div>
         </div>

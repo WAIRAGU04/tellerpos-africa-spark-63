@@ -195,7 +195,7 @@ const AccountsOverview: React.FC = () => {
 
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Accounts</h2>
+          <h2 className="text-xl font-semibold text-green-500">Accounts</h2>
           <Button variant="outline" size="sm" onClick={() => setIsReconcileDialogOpen(true)}>
             <ArrowUpDown className="mr-2 h-4 w-4" />
             Reconcile

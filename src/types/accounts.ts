@@ -1,80 +1,21 @@
 
-import { PaymentMethod } from './pos';
-
-export type AccountType = PaymentMethod;
-
-export interface Account {
-  id: string;
-  name: string;
-  type: AccountType;
-  balance: number;
-  lastUpdated: string;
-}
-
-export interface AccountTransaction {
-  id: string;
-  accountId: string;
-  amount: number;
-  type: 'deposit' | 'withdrawal' | 'transfer' | 'sale' | 'refund' | 'adjustment';
-  reference: string;
-  description: string;
-  timestamp: string;
-  relatedAccountId?: string;
-  userId: string;
-  shiftId?: string;
-}
-
-export interface AccountTransfer {
-  id: string;
-  fromAccountId: string;
-  toAccountId: string;
-  amount: number;
-  timestamp: string;
-  description: string;
-  userId: string;
-}
-
-export type SalesOrderStatus = 'draft' | 'pending' | 'approved' | 'fulfilled' | 'cancelled';
-
-export interface SalesOrder {
-  id: string;
-  orderNumber: string;
-  customerId: string;
-  customerName: string;
-  items: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
-  subtotal: number;
-  tax: number;
-  total: number;
-  status: SalesOrderStatus;
-  createdAt: string;
-  updatedAt: string;
-  notes?: string;
-  userId: string;
-}
+import { CartItem } from '@/types/pos';
 
 export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+export type SalesOrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'cancelled' | 'partially-paid';
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 
 export interface Quotation {
   id: string;
   quotationNumber: string;
-  customerId: string;
+  customerId?: string;
   customerName: string;
   customerCompany?: string;
   customerAddress?: string;
   customerCity?: string;
   customerPhone?: string;
-  items: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    price: number;
-    isTaxable?: boolean;
-  }>;
+  items: CartItem[];
   subtotal: number;
   tax: number;
   total: number;
@@ -86,22 +27,61 @@ export interface Quotation {
   userId: string;
 }
 
-export interface ReportFilter {
-  dateRange: {
-    startDate: Date;
-    endDate: Date;
-  };
-  paymentMethods?: PaymentMethod[];
-  userId?: string;
-  shiftId?: string;
+export interface SalesOrder {
+  id: string;
+  orderNumber: string;
+  customerId?: string;
+  customerName: string;
+  items: CartItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  status: SalesOrderStatus;
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+  userId: string;
 }
 
-export interface AccountSummary {
-  totalCash: number;
-  totalMpesa: number;
-  totalBankTransfer: number;
-  totalCredit: number;
-  totalSales: number;
-  totalRefunds: number;
-  netSales: number;
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  customerId?: string;
+  customerName: string;
+  items: CartItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  status: InvoiceStatus;
+  dueDate: string;
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+  userId: string;
+  salesOrderId?: string;
+  payments: Payment[];
+  balanceDue: number;
+  paidAmount: number;
+}
+
+export interface Payment {
+  id: string;
+  invoiceId?: string;
+  method: 'cash' | 'mpesa' | 'card' | 'bank-transfer' | 'check' | 'credit';
+  amount: number;
+  date: string;
+  reference?: string;
+  notes?: string;
+  status: PaymentStatus;
+  userId: string;
+}
+
+export interface AccountingStats {
+  totalQuotations: number;
+  totalOrders: number;
+  totalInvoices: number;
+  totalPayments: number;
+  pendingInvoicesAmount: number;
+  paidInvoicesAmount: number;
+  overdueInvoicesAmount: number;
 }

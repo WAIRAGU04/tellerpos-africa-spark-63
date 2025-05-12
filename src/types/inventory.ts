@@ -119,3 +119,8 @@ export interface ImportProductRow {
   category?: string;
   stock?: number;
 }
+
+export interface InventoryItemsProps {
+  onSelectItem?: (item: InventoryItem) => void;
+  showSelection?: boolean;
+}

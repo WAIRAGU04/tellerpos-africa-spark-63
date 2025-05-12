@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
-import { FileText, Plus, Search, FileUp, Download, Calendar } from 'lucide-react';
+import { FileText, Plus, Search, FileUp, Download, Calendar, ShoppingCart, Package2 } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { toast } from '@/hooks/use-toast';
 import { CartItem } from '@/types/pos';
@@ -34,13 +34,16 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import QuotationGenerator from './QuotationGenerator';
 import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
+import { InventoryItem, Product, Service } from '@/types/inventory';
 
 const QuotationsTab: React.FC = () => {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [filteredQuotations, setFilteredQuotations] = useState<Quotation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [inventory, setInventory] = useState<CartItem[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [filteredInventoryItems, setFilteredInventoryItems] = useState<InventoryItem[]>([]);
+  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [newQuotation, setNewQuotation] = useState<Partial<Quotation>>({
     quotationNumber: `QT-${nanoid(8).toUpperCase()}`,
@@ -67,13 +70,9 @@ const QuotationsTab: React.FC = () => {
     // Load inventory
     const storedInventory = localStorage.getItem('inventory');
     if (storedInventory) {
-      setInventory(JSON.parse(storedInventory).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: 1,
-        type: item.type
-      })));
+      const parsedInventory = JSON.parse(storedInventory);
+      setInventoryItems(parsedInventory);
+      setFilteredInventoryItems(parsedInventory);
     }
   }, []);
 
@@ -90,8 +89,25 @@ const QuotationsTab: React.FC = () => {
     }
   }, [searchQuery, quotations]);
 
+  // Filter inventory items based on search query
+  useEffect(() => {
+    if (inventorySearchQuery) {
+      const filtered = inventoryItems.filter(item =>
+        item.name.toLowerCase().includes(inventorySearchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(inventorySearchQuery.toLowerCase())
+      );
+      setFilteredInventoryItems(filtered);
+    } else {
+      setFilteredInventoryItems(inventoryItems);
+    }
+  }, [inventorySearchQuery, inventoryItems]);
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+  };
+
+  const handleInventorySearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInventorySearchQuery(e.target.value);
   };
 
   const handleValidUntilChange = (date: Date | undefined) => {
@@ -130,10 +146,10 @@ const QuotationsTab: React.FC = () => {
       quotationNumber: newQuotation.quotationNumber || `QT-${nanoid(8).toUpperCase()}`,
       customerId: nanoid(), // In a real app, this would be selected from customers
       customerName: newQuotation.customerName || 'Guest',
-      customerCompany: '',
-      customerAddress: '',
-      customerCity: '',
-      customerPhone: '',
+      customerCompany: newQuotation.customerCompany || '',
+      customerAddress: newQuotation.customerAddress || '',
+      customerCity: newQuotation.customerCity || '',
+      customerPhone: newQuotation.customerPhone || '',
       items: newQuotation.items || [],
       subtotal: newQuotation.subtotal || 0,
       tax: newQuotation.tax || 0,
@@ -166,6 +182,7 @@ const QuotationsTab: React.FC = () => {
       notes: '',
     });
     setDate(new Date());
+    setInventorySearchQuery('');
 
     setIsOpen(false);
 
@@ -175,9 +192,22 @@ const QuotationsTab: React.FC = () => {
     });
   };
 
-  const addItemToQuotation = (item: CartItem) => {
+  const addItemToQuotation = (inventoryItem: InventoryItem) => {
     // Check if item already exists in quotation
-    const existingItemIndex = newQuotation.items?.findIndex(i => i.id === item.id);
+    const existingItemIndex = newQuotation.items?.findIndex(i => i.id === inventoryItem.id);
+    
+    // Prepare the item from inventory data
+    const cartItem: CartItem = {
+      id: inventoryItem.id,
+      name: inventoryItem.name,
+      price: inventoryItem.price,
+      quantity: 1,
+      total: inventoryItem.price,
+      type: inventoryItem.type,
+      isTaxable: true,
+      imageUrl: inventoryItem.imageUrl,
+      color: inventoryItem.color as string,
+    };
 
     if (existingItemIndex !== undefined && existingItemIndex >= 0 && newQuotation.items) {
       // Update existing item quantity
@@ -185,7 +215,8 @@ const QuotationsTab: React.FC = () => {
       const existingItem = updatedItems[existingItemIndex];
       updatedItems[existingItemIndex] = {
         ...existingItem,
-        quantity: existingItem.quantity + 1
+        quantity: existingItem.quantity + 1,
+        total: existingItem.price * (existingItem.quantity + 1)
       };
 
       // Recalculate totals
@@ -202,10 +233,8 @@ const QuotationsTab: React.FC = () => {
     } else {
       // Add new item
       const newItem = {
-        id: item.id,
-        name: item.name,
-        quantity: 1,
-        price: item.price
+        ...cartItem,
+        total: cartItem.price * cartItem.quantity
       };
 
       const updatedItems = [...(newQuotation.items || []), newItem];
@@ -222,6 +251,9 @@ const QuotationsTab: React.FC = () => {
         total: subtotal + tax
       });
     }
+    
+    // Clear the search after adding
+    setInventorySearchQuery('');
   };
 
   const removeItemFromQuotation = (itemId: string) => {
@@ -346,6 +378,37 @@ const QuotationsTab: React.FC = () => {
   const viewQuotationDetails = (quotation: Quotation) => {
     setViewQuotation(quotation);
     setShowQuotationPreview(true);
+  };
+
+  // Helper to render inventory item visual
+  const renderItemVisual = (item: InventoryItem) => {
+    if (item.imageUrl) {
+      return <img src={item.imageUrl} alt={item.name} className="w-8 h-8 object-cover rounded" />;
+    } else if (item.color) {
+      const colorMap: Record<string, string> = {
+        red: 'bg-red-500',
+        blue: 'bg-blue-500',
+        green: 'bg-green-500',
+        yellow: 'bg-yellow-500',
+        purple: 'bg-purple-500'
+      };
+      return <div className={`w-8 h-8 ${colorMap[item.color]} rounded flex items-center justify-center`}>
+        {item.type === 'product' ? <Package2 className="w-4 h-4 text-white opacity-50" /> : <FileText className="w-4 h-4 text-white opacity-50" />}
+      </div>;
+    }
+
+    // Fallback
+    return <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+      {item.type === 'product' ? <Package2 className="w-4 h-4 text-gray-400" /> : <FileText className="w-4 h-4 text-gray-400" />}
+    </div>;
+  };
+
+  // Helper to check if a product is in stock
+  const isInStock = (item: InventoryItem): boolean => {
+    if (item.type === 'product') {
+      return (item as Product).stock > 0;
+    } 
+    return (item as Service).isAvailable;
   };
 
   return (
@@ -506,20 +569,74 @@ const QuotationsTab: React.FC = () => {
 
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-medium mb-2">Add Items from Inventory</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-36 overflow-y-auto">
-                    {inventory.slice(0, 6).map((item) => (
-                      <Button
-                        key={item.id}
-                        variant="outline"
-                        className="h-auto py-2 px-3 justify-start"
-                        onClick={() => addItemToQuotation(item)}
-                      >
-                        <div className="text-left">
-                          <p className="font-medium text-sm">{item.name}</p>
-                          <p className="text-xs">{formatCurrency(item.price)}</p>
-                        </div>
-                      </Button>
-                    ))}
+                  
+                  <div className="relative mb-4">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search inventory items..."
+                      className="pl-8"
+                      value={inventorySearchQuery}
+                      onChange={handleInventorySearch}
+                    />
+                  </div>
+                  
+                  <div className="max-h-60 overflow-y-auto">
+                    <table className="w-full">
+                      <thead className="bg-muted sticky top-0">
+                        <tr>
+                          <th className="text-left text-xs font-medium p-2">Item</th>
+                          <th className="text-right text-xs font-medium p-2">Price</th>
+                          <th className="text-right text-xs font-medium p-2 w-20">Stock</th>
+                          <th className="text-right text-xs font-medium p-2 w-20">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {filteredInventoryItems.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="text-center py-4 text-sm text-muted-foreground">
+                              No items found
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredInventoryItems.map(item => (
+                            <tr key={item.id} className="hover:bg-muted/50 transition-colors">
+                              <td className="p-2">
+                                <div className="flex items-center">
+                                  {renderItemVisual(item)}
+                                  <div className="ml-2">
+                                    <p className="text-sm font-medium">{item.name}</p>
+                                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                      {item.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-2 text-right text-sm">{formatCurrency(item.price)}</td>
+                              <td className="p-2 text-right">
+                                <Badge variant={isInStock(item) ? "outline" : "destructive"} className="text-xs">
+                                  {item.type === 'product' 
+                                    ? `${(item as Product).stock} left` 
+                                    : (item as Service).isAvailable 
+                                      ? "Available" 
+                                      : "Unavailable"}
+                                </Badge>
+                              </td>
+                              <td className="p-2 text-right">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => addItemToQuotation(item)}
+                                  disabled={!isInStock(item)}
+                                  className="h-7 w-7 p-0"
+                                >
+                                  <ShoppingCart className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

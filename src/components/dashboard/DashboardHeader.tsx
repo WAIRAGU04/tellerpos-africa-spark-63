@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { UserData } from "@/types/dashboard";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -30,9 +31,12 @@ const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
           <div>
             <h1 className="text-xl font-semibold text-white">
               {greeting}, {userData.firstName}
+              {userData.role && userData.role !== "Owner" && (
+                <span className="ml-1 text-sm text-tellerpos-gray-light">({userData.role})</span>
+              )}
             </h1>
             <p className="text-sm text-tellerpos-gray-light">
-              Welcome to your TellerPOS dashboard
+              Welcome to {userData.businessName || "TellerPOS"} dashboard
             </p>
           </div>
         </div>

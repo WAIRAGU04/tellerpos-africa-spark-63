@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SalesOrder, SalesOrderStatus } from '@/types/accounts';
 import { Button } from '@/components/ui/button';
@@ -158,7 +157,8 @@ const SalesOrdersTab: React.FC = () => {
       const existingItem = updatedItems[existingItemIndex];
       updatedItems[existingItemIndex] = {
         ...existingItem,
-        quantity: existingItem.quantity + 1
+        quantity: existingItem.quantity + 1,
+        total: existingItem.price * (existingItem.quantity + 1)
       };
       
       // Recalculate totals
@@ -178,7 +178,8 @@ const SalesOrdersTab: React.FC = () => {
         id: item.id,
         name: item.name,
         quantity: 1,
-        price: item.price
+        price: item.price,
+        total: item.price // Calculate the total for the item
       };
       
       const updatedItems = [...(newOrder.items || []), newItem];

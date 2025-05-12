@@ -13,6 +13,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useOffline } from '@/hooks/use-offline';
 import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
 import OfflineAlert from '@/components/ui/offline-alert';
+
 const AccountsOverview: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
@@ -100,7 +101,7 @@ const AccountsOverview: React.FC = () => {
     setSelectedAccountId(accountId);
     setShowTransactions(true);
   };
-  const getAccountIcon = (type: PaymentMethod) => {
+  const getAccountIcon = (type: string) => {
     switch (type) {
       case 'cash':
         return <Banknote className="h-5 w-5" />;

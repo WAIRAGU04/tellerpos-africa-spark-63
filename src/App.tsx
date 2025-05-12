@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ShiftProvider } from "@/contexts/ShiftContext";
+import { ShiftProvider } from "@/contexts/shift";
 import { initializeAccounts } from '@/services/accountsService';
 import { cacheData, CACHE_KEYS } from '@/services/offlineService';
 import Index from "./pages/Index";

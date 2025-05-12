@@ -219,7 +219,7 @@ const AccountsOverview: React.FC = () => {
                 </p>
               </CardContent>
               <CardFooter className="pt-0">
-                <Button variant="outline" className="w-full" size="sm" onClick={() => handleViewTransactions(account.id)}>
+                <Button variant="outline" size="sm" onClick={() => handleViewTransactions(account.id)} className="w-full bg-sky-500 hover:bg-sky-400">
                   <FileText className="mr-2 h-4 w-4" />
                   View Transactions
                 </Button>

@@ -14,6 +14,7 @@ import SignInDialog from "../SignInDialog";
 import RegistrationSuccessDialog from "../RegistrationSuccessDialog";
 import UserRegistrationForm from "./UserRegistrationForm";
 import { validateUserRegistration, countryCodes, UserFormData } from "./userRegistrationUtils";
+import { saveUserRegistrationData } from "@/utils/authUtils";
 
 interface UserRegistrationDialogProps {
   open: boolean;
@@ -56,16 +57,21 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
     
     setIsSubmitting(true);
     
-    // Simulate API call for registration
-    setTimeout(() => {
+    // Save registration data using the utility function
+    const result = saveUserRegistrationData(formData, businessData);
+    
+    if (result.success) {
       toast.success("Registration successful!", {
         description: `Welcome to TellerPOS, ${formData.firstName}! Your account has been created.`
       });
-      setIsSubmitting(false);
-      
-      // Instead of just closing, show the success dialog with generated IDs
       setSuccessDialogOpen(true);
-    }, 1500);
+    } else {
+      toast.error("Registration failed", {
+        description: "There was an error creating your account. Please try again."
+      });
+    }
+    
+    setIsSubmitting(false);
   };
 
   const handleSignIn = () => {

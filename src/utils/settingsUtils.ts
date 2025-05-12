@@ -1,5 +1,6 @@
 
 import { BusinessSettings, UserData } from "@/types/dashboard";
+import { getAuthUser, getBusinessData } from "./authUtils";
 
 // Default business settings
 export const defaultBusinessSettings: BusinessSettings = {
@@ -44,45 +45,92 @@ export const defaultUserData: UserData = {
 // Load business settings from localStorage or return defaults
 export const loadBusinessSettings = (): BusinessSettings => {
   try {
-    const stored = localStorage.getItem("tellerpos_business_settings");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        ...defaultBusinessSettings,
-        ...parsed,
-        businessHours: {
-          ...defaultBusinessSettings.businessHours,
-          ...(parsed.businessHours || {}),
-        },
-        documentFooters: {
-          ...defaultBusinessSettings.documentFooters,
-          ...(parsed.documentFooters || {})
-        },
-      };
+    // Try to get from the business data first (set during registration/login)
+    const businessData = getBusinessData();
+    
+    // Then check for settings specifically
+    const storedSettings = localStorage.getItem("tellerpos_business_settings");
+    
+    // Combine both data sources with precedence to settings
+    let mergedData: Partial<BusinessSettings> = {};
+    
+    if (businessData) {
+      mergedData = { ...mergedData, ...businessData };
     }
+    
+    if (storedSettings) {
+      mergedData = { ...mergedData, ...JSON.parse(storedSettings) };
+    }
+    
+    // Apply defaults for any missing fields
+    return {
+      ...defaultBusinessSettings,
+      ...mergedData,
+      businessHours: {
+        ...defaultBusinessSettings.businessHours,
+        ...(mergedData.businessHours || {}),
+      },
+      documentFooters: {
+        ...defaultBusinessSettings.documentFooters,
+        ...(mergedData.documentFooters || {})
+      },
+    };
   } catch (error) {
     console.error("Error loading business settings:", error);
+    return defaultBusinessSettings;
   }
-  return defaultBusinessSettings;
 };
 
 // Load user data from localStorage or return defaults
 export const loadUserData = (): UserData => {
   try {
-    const stored = localStorage.getItem("tellerpos_user_data");
-    if (stored) {
-      return { ...defaultUserData, ...JSON.parse(stored) };
+    // First try to get from auth user data (set during login/registration)
+    const authUser = getAuthUser();
+    
+    // Then check for user data specifically saved in settings
+    const storedSettings = localStorage.getItem("tellerpos_user_data");
+    
+    // Combine both data sources with precedence to settings
+    let mergedData: Partial<UserData> = {};
+    
+    if (authUser) {
+      mergedData = { ...mergedData, ...authUser };
     }
+    
+    if (storedSettings) {
+      mergedData = { ...mergedData, ...JSON.parse(storedSettings) };
+    }
+    
+    // Get business name from business data if available
+    const businessData = getBusinessData();
+    if (businessData?.businessName && !mergedData.businessName) {
+      mergedData.businessName = businessData.businessName;
+    }
+    
+    return { ...defaultUserData, ...mergedData };
   } catch (error) {
     console.error("Error loading user data:", error);
+    return defaultUserData;
   }
-  return defaultUserData;
 };
 
 // Save business settings to localStorage
 export const saveBusinessSettings = (settings: BusinessSettings): void => {
   try {
     localStorage.setItem("tellerpos_business_settings", JSON.stringify(settings));
+    
+    // Also update the businessName in the businessData for consistency
+    const businessData = getBusinessData();
+    if (businessData) {
+      localStorage.setItem("businessData", JSON.stringify({
+        ...businessData,
+        businessName: settings.businessName,
+        email: settings.email,
+        phone: settings.phone,
+        country: settings.country,
+        currency: settings.currency
+      }));
+    }
   } catch (error) {
     console.error("Error saving business settings:", error);
   }
@@ -92,6 +140,18 @@ export const saveBusinessSettings = (settings: BusinessSettings): void => {
 export const saveUserData = (data: UserData): void => {
   try {
     localStorage.setItem("tellerpos_user_data", JSON.stringify(data));
+    
+    // Also update the user data in the auth user for consistency
+    const authUser = getAuthUser();
+    if (authUser) {
+      localStorage.setItem("userData", JSON.stringify({
+        ...authUser,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phoneNumber
+      }));
+    }
   } catch (error) {
     console.error("Error saving user data:", error);
   }

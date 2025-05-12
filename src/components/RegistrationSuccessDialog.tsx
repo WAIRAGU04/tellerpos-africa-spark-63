@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
-import { CheckCircle, Copy, ArrowRight } from "lucide-react";
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Dialog, 
   DialogContent, 
-  DialogDescription, 
   DialogFooter, 
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Check, Copy } from "lucide-react";
 
 interface RegistrationSuccessDialogProps {
   open: boolean;
@@ -27,53 +27,35 @@ interface RegistrationSuccessDialogProps {
   };
 }
 
-// Function to generate business ID (TP-XXX format)
-const generateBusinessId = () => {
-  // In a real app, this would come from a database with the latest ID
-  // For now, we'll simulate with a random 3-digit number
-  const randomNum = Math.floor(Math.random() * 900) + 100;
-  return `TP-${randomNum}`;
-};
-
-// Function to generate agent code (6 character alphanumeric)
-const generateAgentCode = () => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-};
-
 const RegistrationSuccessDialog = ({ 
   open, 
   onOpenChange, 
   businessData, 
   userData 
 }: RegistrationSuccessDialogProps) => {
-  const [businessId, setBusinessId] = useState("");
-  const [agentCode, setAgentCode] = useState("");
   const navigate = useNavigate();
   
-  useEffect(() => {
-    if (open) {
-      // Generate IDs when dialog opens
-      setBusinessId(generateBusinessId());
-      setAgentCode(generateAgentCode());
-    }
-  }, [open]);
+  // Generate IDs (in a real app these would come from your backend)
+  const businessId = `TP${Math.floor(100000 + Math.random() * 900000)}`;
+  const userId = `U${Math.floor(1000 + Math.random() * 9000)}`;
   
-  const handleCopyBusinessId = () => {
-    navigator.clipboard.writeText(businessId);
-    toast.success("Business ID copied to clipboard");
+  const [copyStates, setCopyStates] = useState({
+    businessId: false,
+    userId: false
+  });
+  
+  const copyToClipboard = (text: string, type: 'businessId' | 'userId') => {
+    navigator.clipboard.writeText(text);
+    
+    setCopyStates(prev => ({ ...prev, [type]: true }));
+    
+    // Reset icon after 2 seconds
+    setTimeout(() => {
+      setCopyStates(prev => ({ ...prev, [type]: false }));
+    }, 2000);
   };
   
-  const handleCopyAgentCode = () => {
-    navigator.clipboard.writeText(agentCode);
-    toast.success("Agent code copied to clipboard");
-  };
-  
-  const handleClose = () => {
+  const handleContinue = () => {
     onOpenChange(false);
     // Redirect to dashboard
     navigate("/dashboard");
@@ -82,72 +64,91 @@ const RegistrationSuccessDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] bg-tellerpos-dark-accent border-tellerpos/30">
-        <DialogHeader>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-tellerpos/20 mb-4">
-            <CheckCircle className="h-8 w-8 text-tellerpos" />
-          </div>
-          <DialogTitle className="text-2xl text-center text-white">Registration Successful!</DialogTitle>
-          <DialogDescription className="text-center text-gray-300">
-            Welcome {userData.firstName} {userData.lastName} to TellerPOS. Your business account for {businessData.businessName} has been created.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-6 space-y-6">
-          <div className="bg-tellerpos-bg rounded-lg p-4">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-400">Your Business ID</p>
-              <button 
-                onClick={handleCopyBusinessId} 
-                className="text-tellerpos hover:text-tellerpos/80"
-              >
-                <Copy className="h-4 w-4" />
-              </button>
+        <ScrollArea className="max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-white">Registration Successful!</DialogTitle>
+          </DialogHeader>
+          
+          <div className="my-6 space-y-6">
+            <div className="space-y-4">
+              <div className="bg-tellerpos/10 p-4 rounded-lg border border-tellerpos/20">
+                <h3 className="text-lg text-white font-semibold mb-2">Account Created</h3>
+                <p className="text-gray-300 mb-4">
+                  Welcome to TellerPOS, {userData.firstName}! Your account has been created successfully.
+                </p>
+                
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Business Name</p>
+                    <p className="text-white font-medium">{businessData.businessName}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Your Role</p>
+                    <p className="text-white font-medium">Administrator</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Email Address</p>
+                    <p className="text-white font-medium">{userData.email}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-tellerpos/10 p-4 rounded-lg border border-tellerpos/20">
+                <h3 className="text-lg text-white font-semibold mb-2">Important References</h3>
+                <p className="text-gray-300 mb-4">
+                  Please save these references for your records.
+                </p>
+                
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Business ID</p>
+                    <div className="flex items-center justify-between bg-tellerpos-bg/40 p-2 rounded">
+                      <p className="text-white font-medium">{businessId}</p>
+                      <button 
+                        onClick={() => copyToClipboard(businessId, 'businessId')}
+                        className="p-1 text-gray-400 hover:text-white"
+                      >
+                        {copyStates.businessId ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">User ID</p>
+                    <div className="flex items-center justify-between bg-tellerpos-bg/40 p-2 rounded">
+                      <p className="text-white font-medium">{userId}</p>
+                      <button 
+                        onClick={() => copyToClipboard(userId, 'userId')}
+                        className="p-1 text-gray-400 hover:text-white"
+                      >
+                        {copyStates.userId ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-xl font-bold text-white tracking-wider">{businessId}</p>
-            <p className="text-xs text-gray-400 mt-1">Required for login to your business account</p>
           </div>
           
-          <div className="bg-tellerpos-bg rounded-lg p-4">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-400">Your Agent Code</p>
-              <button 
-                onClick={handleCopyAgentCode} 
-                className="text-tellerpos hover:text-tellerpos/80"
-              >
-                <Copy className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-xl font-bold text-white tracking-wider">{agentCode}</p>
-            <p className="text-xs text-gray-400 mt-1">Your unique identification code as the business admin</p>
-          </div>
-          
-          <div className="bg-tellerpos/10 border border-tellerpos/20 rounded-lg p-4">
-            <p className="text-sm text-white">Important Information:</p>
-            <ul className="text-sm text-gray-300 mt-2 space-y-2">
-              <li className="flex items-start">
-                <span className="text-tellerpos mr-2">•</span>
-                <span>Keep your Business ID and Agent Code secure.</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-tellerpos mr-2">•</span>
-                <span>The Business ID will be shared with all users you create for your business.</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-tellerpos mr-2">•</span>
-                <span>Each user will have a unique Agent Code.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button 
-            onClick={handleClose}
-            className="w-full bg-tellerpos hover:bg-tellerpos/90 text-white font-bold py-3 text-base"
-          >
-            Continue to Dashboard <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button 
+              onClick={handleContinue}
+              className="w-full bg-tellerpos hover:bg-tellerpos/90 text-white"
+            >
+              Continue to Dashboard
+            </Button>
+          </DialogFooter>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

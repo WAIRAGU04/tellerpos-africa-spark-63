@@ -1,129 +1,100 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { LogOut, User, ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LogOut } from "lucide-react";
 import { UserData } from "@/types/dashboard";
-import { sidebarItems } from "@/config/navigation";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { 
+  Sidebar, 
+  SidebarHeader, 
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarSeparator
+} from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
 interface DashboardSidebarProps {
-  collapsed: boolean;
-  setCollapsed: (value: boolean) => void;
-  activeModule: string;
-  setActiveModule: (value: string) => void;
   userData: UserData;
-  greeting: string;
+  activeModule: string;
+  setActiveModule: (module: string) => void;
+  menuItems: Array<{
+    id: string;
+    label: string;
+    icon: any;
+    path: string;
+  }>;
 }
 
-export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
-  collapsed,
-  setCollapsed,
-  activeModule,
+const DashboardSidebar = ({ 
+  userData, 
+  activeModule, 
   setActiveModule,
-  userData,
-  greeting
-}) => {
-  const navigate = useNavigate();
-  
-  const toggleSidebar = () => {
-    setCollapsed(!collapsed);
+  menuItems
+}: DashboardSidebarProps) => {
+  // Get initials for avatar
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
   
-  const handleNavigation = (path: string) => {
-    const item = sidebarItems.find(item => item.path === path);
-    if (item) {
-      setActiveModule(item.id);
-    }
-    navigate(path);
+  const handleMenuClick = (moduleId: string) => {
+    setActiveModule(moduleId);
   };
   
   return (
-    <aside className={cn(
-      "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-white dark:bg-tellerpos-dark-accent border-r border-gray-200 dark:border-gray-800 hidden md:block", 
-      collapsed ? "w-20" : "w-64"
-    )}>
-      {/* Sidebar Header */}
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800">
-          <div className={cn(
-            "flex items-center transition-all", 
-            collapsed ? "justify-center w-full" : "justify-start"
-          )}>
-            {!collapsed && (
-              <span className="text-xl font-bold">
-                <span className="text-tellerpos">Teller</span>
-                <span>POS</span>
-              </span>
-            )}
-            {collapsed && <span className="text-xl font-bold text-tellerpos">T</span>}
+    <Sidebar variant="inset">
+      <SidebarHeader className="border-b border-tellerpos-dark-accent/30">
+        <div className="flex items-center gap-2 px-2 py-4">
+          <Avatar className="h-10 w-10 bg-tellerpos text-white">
+            <AvatarFallback>{getInitials(userData.firstName, userData.lastName)}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col overflow-hidden">
+            <span className="font-bold text-white truncate">
+              {userData.firstName.toUpperCase()} {userData.lastName.toUpperCase()}
+            </span>
+            <span className="text-xs text-tellerpos/90 truncate">
+              {userData.businessName}
+            </span>
           </div>
-          
-          <button 
-            onClick={toggleSidebar} 
-            className={cn(
-              "p-2 rounded-md hover:bg-gray-100 dark:hover:bg-tellerpos-bg transition-colors", 
-              collapsed && "absolute right-0 transform translate-x-1/2 bg-white dark:bg-tellerpos-dark-accent border border-gray-200 dark:border-gray-800 rounded-full"
-            )}
+        </div>
+      </SidebarHeader>
+      
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
+          <SidebarMenu>
+            {menuItems.map((item) => (
+              <SidebarMenuItem key={item.id}>
+                <SidebarMenuButton
+                  isActive={activeModule === item.id}
+                  onClick={() => handleMenuClick(item.id)}
+                  tooltip={item.label}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
+      
+      <SidebarFooter>
+        <SidebarSeparator />
+        <div className="p-2">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-red-500 hover:bg-red-500/10 hover:text-red-500"
           >
-            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
+            <LogOut className="mr-2 h-5 w-5" />
+            <span>Log Out</span>
+          </Button>
         </div>
-        
-        {/* User Profile Section */}
-        <div className={cn(
-          "px-4 py-5 border-b border-gray-200 dark:border-gray-800", 
-          collapsed ? "flex justify-center" : ""
-        )}>
-          {collapsed ? (
-            <div className="flex flex-col items-center">
-              <div className="w-10 h-10 rounded-full bg-tellerpos text-white flex items-center justify-center">
-                <User size={20} />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">{greeting},</p>
-              <p className="font-semibold text-sm">{userData.firstName} {userData.lastName}</p>
-              <p className="text-xs text-tellerpos">{userData.businessName}</p>
-            </div>
-          )}
-        </div>
-        
-        {/* Navigation Items */}
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          {sidebarItems.map(item => (
-            <button 
-              key={item.id} 
-              onClick={() => handleNavigation(item.path)} 
-              className={cn(
-                "flex items-center w-full px-2 py-3 rounded-md transition-colors", 
-                activeModule === item.id 
-                  ? "bg-tellerpos text-white" 
-                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50", 
-                collapsed ? "justify-center" : "justify-start"
-              )}
-            >
-              <item.icon size={20} className={collapsed ? "" : "mr-3"} />
-              {!collapsed && <span>{item.label}</span>}
-            </button>
-          ))}
-        </nav>
-        
-        {/* Logout Button */}
-        <div className="px-2 py-4 border-t border-gray-200 dark:border-gray-800">
-          <button 
-            onClick={() => navigate("/")} 
-            className={cn(
-              "flex items-center w-full px-2 py-3 rounded-md transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50", 
-              collapsed ? "justify-center" : "justify-start"
-            )}
-          >
-            <LogOut size={20} className={collapsed ? "" : "mr-3"} />
-            {!collapsed && <span>Logout</span>}
-          </button>
-        </div>
-      </div>
-    </aside>
+      </SidebarFooter>
+    </Sidebar>
   );
 };
+
+export default DashboardSidebar;

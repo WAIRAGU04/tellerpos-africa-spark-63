@@ -5,10 +5,11 @@ import { Menu } from "lucide-react";
 import { cn, getGreeting } from "@/lib/utils";
 import { UserData } from "@/types/dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
-import DashboardSidebar from "./DashboardSidebar";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardMobileSidebar from "./DashboardMobileSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { sidebarItems } from "@/lib/navigation"; // Moving sidebar items to a separate file
+import { sidebarItems } from "@/lib/navigation";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -107,50 +108,50 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
-      {/* Desktop Sidebar */}
-      <DashboardSidebar 
-        userData={userData} 
-        collapsed={collapsed} 
-        setCollapsed={setCollapsed}
-        activeModule={activeModule}
-        setActiveModule={setActiveModule}
-      />
+    <SidebarProvider>
+      <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
+        {/* Desktop Sidebar */}
+        <DashboardSidebar 
+          userData={userData} 
+          activeModule={activeModule}
+          setActiveModule={setActiveModule}
+        />
 
-      {/* Mobile Sidebar */}
-      <DashboardMobileSidebar
-        userData={userData}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        activeModule={activeModule}
-        setActiveModule={setActiveModule}
-        greeting={greeting}
-      />
+        {/* Mobile Sidebar */}
+        <DashboardMobileSidebar
+          userData={userData}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+          activeModule={activeModule}
+          setActiveModule={setActiveModule}
+          greeting={greeting}
+        />
 
-      {/* Main Content */}
-      <main className={cn("flex-1 transition-all duration-300 ease-in-out flex flex-col", collapsed ? "md:ml-20" : "md:ml-64")}>
-        {/* Top Header Bar */}
-        <DashboardHeader userData={userData} />
-        
-        {/* Mobile Menu Button */}
-        {isMobile && (
-          <div className="fixed left-4 top-5 z-50">
-            <button 
-              onClick={toggleMobileMenu} 
-              className="p-2 rounded-md bg-tellerpos-dark-accent/50 text-white"
-            >
-              <Menu size={20} />
-              <span className="sr-only">Open menu</span>
-            </button>
+        {/* Main Content */}
+        <main className={cn("flex-1 transition-all duration-300 ease-in-out flex flex-col", collapsed ? "md:ml-20" : "md:ml-64")}>
+          {/* Top Header Bar */}
+          <DashboardHeader userData={userData} />
+          
+          {/* Mobile Menu Button */}
+          {isMobile && (
+            <div className="fixed left-4 top-5 z-50">
+              <button 
+                onClick={toggleMobileMenu} 
+                className="p-2 rounded-md bg-tellerpos-dark-accent/50 text-white"
+              >
+                <Menu size={20} />
+                <span className="sr-only">Open menu</span>
+              </button>
+            </div>
+          )}
+          
+          {/* Module Content */}
+          <div className="flex-grow overflow-auto">
+            {children}
           </div>
-        )}
-        
-        {/* Module Content */}
-        <div className="flex-grow overflow-auto">
-          {children}
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 };
 

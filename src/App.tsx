@@ -19,6 +19,7 @@ import SalesPage from "./pages/SalesPage";
 import AccountsPage from "./pages/AccountsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import PlaceholderModulePage from "./pages/PlaceholderModulePage";
+import SettingsPage from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -62,7 +63,7 @@ const App = () => {
               <Route path="/dashboard/accounts" element={<AccountsPage />} />
               <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
               <Route path="/dashboard/users" element={<PlaceholderModulePage />} />
-              <Route path="/dashboard/settings" element={<PlaceholderModulePage />} />
+              <Route path="/dashboard/settings" element={<SettingsPage />} />
               <Route path="/dashboard/backoffice" element={<PlaceholderModulePage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

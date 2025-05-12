@@ -36,6 +36,12 @@ const DashboardMobileSidebar = ({
     navigate(path);
     setMobileMenuOpen(false);
   };
+
+  // Ensure we have actual user data to display
+  const displayName = userData && userData.firstName ? userData.firstName : "User";
+  const displayLastName = userData && userData.lastName ? userData.lastName : "";
+  const displayRole = userData && userData.role ? userData.role : "";
+  const displayBusiness = userData && userData.businessName ? userData.businessName : "TellerPOS";
   
   return (
     <>
@@ -64,12 +70,12 @@ const DashboardMobileSidebar = ({
           <div className="space-y-2">
             <p className="text-sm text-gray-600 dark:text-gray-400">{greeting},</p>
             <p className="font-semibold text-sm">
-              {userData.firstName} {userData.lastName}
-              {userData.role && userData.role !== "Owner" && (
-                <span className="ml-1 text-xs text-tellerpos">({userData.role})</span>
+              {displayName} {displayLastName}
+              {displayRole && displayRole !== "Owner" && (
+                <span className="ml-1 text-xs text-tellerpos">({displayRole})</span>
               )}
             </p>
-            <p className="text-xs text-tellerpos">{userData.businessName}</p>
+            <p className="text-xs text-tellerpos">{displayBusiness}</p>
           </div>
         </div>
         

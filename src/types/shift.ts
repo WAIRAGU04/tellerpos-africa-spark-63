@@ -14,6 +14,28 @@ export interface Expense {
   description: string;
   amount: number;
   timestamp: string;
+  date: string;
+  category: string;
+  paymentMethod: string;
+}
+
+export interface Income {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string;
+  timestamp: string;
+}
+
+export interface ShiftSummary {
+  id: string;
+  shiftNumber: number;
+  totalSales: number;
+  totalExpenses: number;
+  transactionCount: number;
+  startTime: string;
+  endTime?: string;
 }
 
 export interface Shift {

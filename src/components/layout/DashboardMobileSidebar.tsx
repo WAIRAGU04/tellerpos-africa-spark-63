@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserData } from "@/types/dashboard";
-import { sidebarItems } from "./DashboardSidebar";
+import { sidebarItems } from "@/lib/navigation";
 
 interface DashboardMobileSidebarProps {
   userData: UserData;

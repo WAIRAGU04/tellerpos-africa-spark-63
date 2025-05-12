@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { UserData } from "@/types/dashboard";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -7,7 +6,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardHeaderProps {
   userData: UserData;
-  toggleMobileMenu?: () => void;
 }
 
 const DashboardHeader = ({ userData }: DashboardHeaderProps) => {

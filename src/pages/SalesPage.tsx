@@ -34,7 +34,7 @@ const SalesPage = () => {
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [showEditStatusDialog, setShowEditStatusDialog] = useState(false);
-  const [newStatus, setNewStatus] = useState<'pending' | 'completed' | 'cancelled' | 'paid'>('pending');
+  const [newStatus, setNewStatus] = useState<'completed' | 'pending' | 'cancelled' | 'paid' | 'refunded'>('pending');
   const [showConfirmDeleteDialog, setShowConfirmDeleteDialog] = useState(false);
   
   // States for filtering and sorting
@@ -675,7 +675,7 @@ const SalesPage = () => {
               <label htmlFor="status" className="text-sm font-medium">New Status</label>
               <Select 
                 value={newStatus} 
-                onValueChange={(value: 'pending' | 'completed' | 'cancelled' | 'paid') => setNewStatus(value)}
+                onValueChange={(value: 'pending' | 'completed' | 'cancelled' | 'paid' | 'refunded') => setNewStatus(value)}
               >
                 <SelectTrigger id="status">
                   <SelectValue placeholder="Select status" />
@@ -685,6 +685,7 @@ const SalesPage = () => {
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
                 </SelectContent>
               </Select>
             </div>

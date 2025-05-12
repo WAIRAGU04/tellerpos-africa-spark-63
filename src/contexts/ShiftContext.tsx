@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Shift, PaymentMethodTotals } from '@/types/shift';
+import { Shift, PaymentMethodTotals, Expense } from '@/types/shift';
 import { useToast } from "@/hooks/use-toast";
 import { CartItem, PaymentMethod } from '@/types/pos';
 import { recordSaleInAccounts } from '@/services/accountsService';
@@ -127,7 +128,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     if (!activeShift) return;
 
     const now = new Date();
-    const newExpense = {
+    const newExpense: Expense = {
       ...expense,
       id: nanoid(),
       timestamp: now.toISOString()
@@ -141,7 +142,8 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
         expenses: [...prevShift.expenses, newExpense]
       };
       
-      saveShift(updatedShift);
+      // Save updated shift to localStorage
+      localStorage.setItem("activeShift", JSON.stringify(updatedShift));
       return updatedShift;
     });
   }, [activeShift]);

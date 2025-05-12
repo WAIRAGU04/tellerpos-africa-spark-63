@@ -45,7 +45,7 @@ const ShiftPage = () => {
     }
   };
   const handleAddExpense = (expenseData: Omit<Expense, "id" | "timestamp">) => {
-    addExpense(expenseData.description, expenseData.amount);
+    addExpense(expenseData);
   };
 
   // Mock function to simulate updating sales (in a real app this would happen automatically)
@@ -66,6 +66,7 @@ const ShiftPage = () => {
       name: "Random Test Item",
       price: saleAmount,
       quantity: 1,
+      total: saleAmount,
       type: Math.random() > 0.5 ? 'product' : 'service' as 'product' | 'service'
     };
 

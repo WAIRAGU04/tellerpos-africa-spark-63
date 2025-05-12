@@ -199,14 +199,17 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       payments: isSplitPayment ? [] : [{ 
         id: nanoid(), 
         method: paymentMethod, 
-        amount: cartTotal 
+        amount: cartTotal,
+        timestamp: new Date().toISOString() 
       }],
       total: cartTotal,
+      subtotal: cartTotal,
       customerId: selectedCustomerId || undefined,
       timestamp: new Date().toISOString(),
       receiptNumber: receiptNum,
       status: 'completed',
-      customerName: selectedCustomerId ? 'Selected Customer' : undefined
+      customerName: selectedCustomerId ? 'Selected Customer' : undefined,
+      userId: ''
     };
   };
 

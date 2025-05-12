@@ -9,8 +9,9 @@ import CloseShiftDialog from "@/components/shift/CloseShiftDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useShift } from "@/contexts/ShiftContext";
+import { useShift } from "@/contexts/shift";
 import { nanoid } from "nanoid";
+
 const ShiftPage = () => {
   const {
     activeShift,

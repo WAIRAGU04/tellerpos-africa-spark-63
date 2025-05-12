@@ -24,6 +24,8 @@ export interface BusinessSettings {
     openingTime: string;
     closingTime: string;
     dailyReportTime: string;
+    reportDeliveryMethod: 'email' | 'whatsapp' | 'both';
+    reportRecipient: string;
   };
   documentFooters: {
     receipt?: string;
@@ -38,4 +40,11 @@ export interface SettingsFormProps {
   initialData?: Partial<BusinessSettings>;
   onSave: (data: BusinessSettings) => void;
   isSaving?: boolean;
+}
+
+export interface OTPVerificationProps {
+  email: string;
+  onVerify: () => void;
+  onCancel: () => void;
+  isOpen: boolean;
 }

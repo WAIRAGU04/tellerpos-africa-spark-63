@@ -1,74 +1,72 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BusinessSettingsForm from "@/components/settings/BusinessSettingsForm";
 import UserProfileForm from "@/components/settings/UserProfileForm";
 import { BusinessSettings, UserData } from "@/types/dashboard";
 import { toast } from "sonner";
+import { 
+  loadBusinessSettings, 
+  loadUserData, 
+  saveBusinessSettings, 
+  saveUserData 
+} from "@/utils/settingsUtils";
 
 const SettingsPage = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingBusiness, setIsSavingBusiness] = useState(false);
+  const [userData, setUserData] = useState<Partial<UserData>>({});
+  const [businessSettings, setBusinessSettings] = useState<Partial<BusinessSettings>>({});
   
-  // Mock initial data - in a real application, this would come from API/localStorage
-  const [userData, setUserData] = useState<Partial<UserData>>({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    businessName: "TellerPOS",
-    phoneNumber: "+123456789",
-    role: "Admin",
-    agentCode: "AG001"
-  });
-  
-  const [businessSettings, setBusinessSettings] = useState<Partial<BusinessSettings>>({
-    businessId: "BP123456",
-    businessName: "TellerPOS",
-    email: "info@tellerpos.com",
-    phone: "+234123456789",
-    country: "Nigeria",
-    address: "123 Business Street",
-    businessHours: {
-      openingTime: "08:00",
-      closingTime: "18:00",
-      dailyReportTime: "20:00",
-    },
-    documentFooters: {
-      receipt: "Thank you for your business!",
-      invoice: "Payment terms: Net 30 days",
-      quotation: "This quotation is valid for 30 days",
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    try {
+      const userDataFromStorage = loadUserData();
+      const businessSettingsFromStorage = loadBusinessSettings();
+      
+      setUserData(userDataFromStorage);
+      setBusinessSettings(businessSettingsFromStorage);
+    } catch (error) {
+      console.error("Error loading settings data:", error);
+      toast.error("Failed to load settings");
     }
-  });
+  }, []);
   
   const handleSaveUserProfile = (data: UserData) => {
     setIsSavingProfile(true);
     
-    // Simulate API call with timeout
-    setTimeout(() => {
-      setUserData(data);
-      setIsSavingProfile(false);
-      toast.success("User profile updated successfully!");
+    try {
+      // Save to localStorage
+      saveUserData(data);
       
-      // In a real app, you would save to API/localStorage here
-      localStorage.setItem("tellerpos_user_data", JSON.stringify(data));
-      console.log("Saved user profile:", data);
-    }, 1000);
+      // Update state
+      setUserData(data);
+      toast.success("User profile updated successfully!");
+    } catch (error) {
+      console.error("Error saving user profile:", error);
+      toast.error("Failed to save user profile");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
   
   const handleSaveBusinessSettings = (data: BusinessSettings) => {
     setIsSavingBusiness(true);
     
-    // Simulate API call with timeout
-    setTimeout(() => {
-      setBusinessSettings(data);
-      setIsSavingBusiness(false);
-      toast.success("Business settings updated successfully!");
+    try {
+      // Save to localStorage
+      saveBusinessSettings(data);
       
-      // In a real app, you would save to API/localStorage here
-      localStorage.setItem("tellerpos_business_settings", JSON.stringify(data));
-      console.log("Saved business settings:", data);
-    }, 1000);
+      // Update state
+      setBusinessSettings(data);
+      toast.success("Business settings updated successfully!");
+    } catch (error) {
+      console.error("Error saving business settings:", error);
+      toast.error("Failed to save business settings");
+    } finally {
+      setIsSavingBusiness(false);
+    }
   };
   
   return (

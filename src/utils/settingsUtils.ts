@@ -16,6 +16,8 @@ export const defaultBusinessSettings: BusinessSettings = {
     openingTime: "08:00",
     closingTime: "18:00",
     dailyReportTime: "20:00",
+    reportDeliveryMethod: "email",
+    reportRecipient: "info@tellerpos.com",
   },
   documentFooters: {
     receipt: "Thank you for shopping with us!",

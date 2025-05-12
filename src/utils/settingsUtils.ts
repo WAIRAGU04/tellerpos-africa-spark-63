@@ -12,6 +12,8 @@ export const defaultBusinessSettings: BusinessSettings = {
   postalAddress: "P.O Box 12345",
   logo: "",
   taxPin: "",
+  currency: "KES", // Default currency (Kenyan Shilling)
+  signature: "", // Authorized signature for documents
   businessHours: {
     openingTime: "08:00",
     closingTime: "18:00",
@@ -54,7 +56,7 @@ export const loadBusinessSettings = (): BusinessSettings => {
         },
         documentFooters: {
           ...defaultBusinessSettings.documentFooters,
-          ...(parsed.documentFooters || {}),
+          ...(parsed.documentFooters || {})
         },
       };
     }
@@ -107,6 +109,18 @@ export const getBusinessLogo = (): string => {
   return settings.logo || "";
 };
 
+// Get business currency
+export const getBusinessCurrency = (): string => {
+  const settings = loadBusinessSettings();
+  return settings.currency || "KES";
+};
+
+// Get business signature
+export const getBusinessSignature = (): string => {
+  const settings = loadBusinessSettings();
+  return settings.signature || "";
+};
+
 // Get business contact information formatted for documents
 export const getBusinessContactInfo = (): { 
   name: string;
@@ -115,6 +129,7 @@ export const getBusinessContactInfo = (): {
   phone: string;
   email: string;
   taxPin: string;
+  currency: string;
 } => {
   const settings = loadBusinessSettings();
   return {
@@ -124,5 +139,39 @@ export const getBusinessContactInfo = (): {
     phone: settings.phone,
     email: settings.email,
     taxPin: settings.taxPin || "",
+    currency: settings.currency || "KES",
   };
+};
+
+// Format money according to business currency
+export const formatMoney = (amount: number): string => {
+  const settings = loadBusinessSettings();
+  const currency = settings.currency || "KES";
+  
+  let locale;
+  switch (currency) {
+    case "KES":
+      locale = "en-KE";
+      break;
+    case "USD":
+      locale = "en-US";
+      break;
+    case "GBP":
+      locale = "en-GB";
+      break;
+    case "EUR":
+      locale = "de-DE";
+      break;
+    case "NGN":
+      locale = "en-NG";
+      break;
+    default:
+      locale = "en-US";
+  }
+  
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+    minimumFractionDigits: 2
+  }).format(amount);
 };

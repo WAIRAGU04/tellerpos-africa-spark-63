@@ -12,10 +12,13 @@ import {
   saveBusinessSettings, 
   saveUserData 
 } from "@/utils/settingsUtils";
+import DocumentSettingsForm from "@/components/settings/DocumentSettingsForm";
 
 const SettingsPage = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingBusiness, setIsSavingBusiness] = useState(false);
+  const [isSavingDocument, setIsSavingDocument] = useState(false);
+  const [activeTab, setActiveTab] = useState("profile");
   const [userData, setUserData] = useState<Partial<UserData>>({});
   const [businessSettings, setBusinessSettings] = useState<Partial<BusinessSettings>>({});
   
@@ -69,6 +72,34 @@ const SettingsPage = () => {
     }
   };
   
+  const handleSaveDocumentSettings = (data: Partial<BusinessSettings>) => {
+    setIsSavingDocument(true);
+    
+    try {
+      // Merge with existing business settings
+      const updatedSettings = {
+        ...businessSettings,
+        ...data,
+        documentFooters: {
+          ...(businessSettings.documentFooters || {}),
+          ...(data.documentFooters || {})
+        }
+      };
+      
+      // Save to localStorage
+      saveBusinessSettings(updatedSettings as BusinessSettings);
+      
+      // Update state
+      setBusinessSettings(updatedSettings);
+      toast.success("Document settings updated successfully!");
+    } catch (error) {
+      console.error("Error saving document settings:", error);
+      toast.error("Failed to save document settings");
+    } finally {
+      setIsSavingDocument(false);
+    }
+  };
+  
   return (
     <DashboardLayout>
       <div className="p-6">
@@ -79,10 +110,11 @@ const SettingsPage = () => {
           </p>
         </div>
         
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="profile">User Profile</TabsTrigger>
             <TabsTrigger value="business">Business Settings</TabsTrigger>
+            <TabsTrigger value="documents">Document Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile" className="space-y-6">
@@ -98,6 +130,14 @@ const SettingsPage = () => {
               initialData={businessSettings} 
               onSave={handleSaveBusinessSettings} 
               isSaving={isSavingBusiness} 
+            />
+          </TabsContent>
+          
+          <TabsContent value="documents" className="space-y-6">
+            <DocumentSettingsForm
+              initialData={businessSettings}
+              onSave={handleSaveDocumentSettings}
+              isSaving={isSavingDocument}
             />
           </TabsContent>
         </Tabs>

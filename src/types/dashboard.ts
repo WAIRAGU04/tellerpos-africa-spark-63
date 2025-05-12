@@ -16,23 +16,28 @@ export interface BusinessSettings {
   email: string;
   phone: string;
   country: string;
-  address?: string;
-  postalAddress?: string;
-  logo?: string;
-  taxPin?: string;
+  address: string;
+  postalAddress: string;
+  logo: string;
+  taxPin: string;
+  businessFax?: string;
+  businessCity?: string;
+  businessWebsite?: string;
+  currency: string; // Currency code (e.g., KES, USD)
+  signature: string; // Base64 encoded signature image
   businessHours: {
     openingTime: string;
     closingTime: string;
     dailyReportTime: string;
-    reportDeliveryMethod: 'email' | 'whatsapp' | 'both';
+    reportDeliveryMethod: string;
     reportRecipient: string;
   };
   documentFooters: {
-    receipt?: string;
-    invoice?: string;
-    quotation?: string;
-    purchaseOrder?: string;
-    deliveryNote?: string;
+    receipt: string;
+    invoice: string;
+    quotation: string;
+    purchaseOrder: string;
+    deliveryNote: string;
   };
 }
 

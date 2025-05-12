@@ -6,6 +6,7 @@ import { AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/compon
 import { Printer, Share2, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { getBusinessCurrency } from '@/utils/settingsUtils';
 
 interface POSInvoiceGeneratorProps {
   transaction?: Transaction;
@@ -28,6 +29,9 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
   onClose,
   paidAmount = 0
 }) => {
+  // Get currency from business settings
+  const currency = getBusinessCurrency();
+  
   const handlePrint = () => {
     // Clone the receipt content for printing
     const invoiceContent = document.getElementById('invoice-content')?.cloneNode(true) as HTMLElement;
@@ -94,7 +98,7 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
     const items = transaction ? transaction.items : cart;
     
     items.forEach(item => {
-      message += `${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}\n`;
+      message += `${item.name} x${item.quantity} - ${currency} ${formatCurrency(item.price * item.quantity)}\n`;
     });
     
     // Add paid amount and balance due for partial payments
@@ -104,11 +108,11 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
     
     if (isPartialPayment) {
       const totalBill = totalAmount + actualPaidAmount;
-      message += `\n*TOTAL BILL*: ${formatCurrency(totalBill)}\n`;
-      message += `*PAID AMOUNT*: ${formatCurrency(actualPaidAmount)}\n`;
-      message += `*BALANCE DUE*: ${formatCurrency(totalAmount)}\n\n`;
+      message += `\n*TOTAL BILL*: ${currency} ${formatCurrency(totalBill)}\n`;
+      message += `*PAID AMOUNT*: ${currency} ${formatCurrency(actualPaidAmount)}\n`;
+      message += `*BALANCE DUE*: ${currency} ${formatCurrency(totalAmount)}\n\n`;
     } else {
-      message += `\n*TOTAL AMOUNT DUE*: ${formatCurrency(totalAmount)}\n\n`;
+      message += `\n*TOTAL AMOUNT DUE*: ${currency} ${formatCurrency(totalAmount)}\n\n`;
     }
     
     message += `Thank you for your business! This is a credit sale, payment is due within 30 days.`;
@@ -187,8 +191,8 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
               <tr key={index} className="border-b dark:border-gray-700">
                 <td className="p-2">{item.name}</td>
                 <td className="p-2 text-center">{item.quantity}</td>
-                <td className="p-2 text-right">{formatCurrency(item.price)}</td>
-                <td className="p-2 text-right">{formatCurrency(item.price * item.quantity)}</td>
+                <td className="p-2 text-right">{currency} {formatCurrency(item.price)}</td>
+                <td className="p-2 text-right">{currency} {formatCurrency(item.price * item.quantity)}</td>
               </tr>
             ))}
           </tbody>
@@ -200,28 +204,28 @@ const POSInvoiceGenerator: React.FC<POSInvoiceGeneratorProps> = ({
               <>
                 <div className="flex justify-between py-2">
                   <span className="font-medium">Total Bill:</span>
-                  <span>{formatCurrency(totalBill)}</span>
+                  <span>{currency} {formatCurrency(totalBill)}</span>
                 </div>
                 <div className="flex justify-between py-2 text-green-600">
                   <span className="font-medium">Amount Paid:</span>
-                  <span>{formatCurrency(actualPaidAmount)}</span>
+                  <span>{currency} {formatCurrency(actualPaidAmount)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between py-2 font-bold">
                   <span>BALANCE DUE:</span>
-                  <span>{formatCurrency(totalAmount)}</span>
+                  <span>{currency} {formatCurrency(totalAmount)}</span>
                 </div>
               </>
             ) : (
               <>
                 <div className="flex justify-between py-2">
                   <span className="font-medium">Subtotal:</span>
-                  <span>{formatCurrency(totalAmount)}</span>
+                  <span>{currency} {formatCurrency(totalAmount)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between py-2 font-bold">
                   <span>TOTAL DUE:</span>
-                  <span>{formatCurrency(totalAmount)}</span>
+                  <span>{currency} {formatCurrency(totalAmount)}</span>
                 </div>
               </>
             )}

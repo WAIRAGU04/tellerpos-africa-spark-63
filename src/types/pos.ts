@@ -18,10 +18,14 @@ export interface CartItem {
   price: number;
   quantity: number;
   total: number;
+  type?: 'product' | 'service';
+  imageUrl?: string;
+  color?: string;
   productType?: 'product' | 'service';
 }
 
 export interface Payment {
+  id?: string;
   method: PaymentMethod;
   amount: number;
   reference?: string;
@@ -38,10 +42,24 @@ export interface Transaction {
   discountType?: 'percentage' | 'fixed';
   tax?: number;
   change?: number;
-  status: 'completed' | 'pending' | 'cancelled' | 'refunded';
+  status: 'completed' | 'pending' | 'cancelled' | 'refunded' | 'paid';
   timestamp: string;
   customer?: Customer;
+  customerId?: string;
+  customerName?: string;
   notes?: string;
   userId: string;
   shiftId?: string;
+  receiptNumber?: string;
+  isInvoice?: boolean;
+  paidAmount?: number;
+  balanceAmount?: number;
+}
+
+export interface POSCheckoutProps {
+  cart: CartItem[];
+  cartTotal: number;
+  onBackToCart: () => void;
+  clearCart: () => void;
+  onPaymentComplete?: (paymentMethod: PaymentMethod, amount: number) => void;
 }

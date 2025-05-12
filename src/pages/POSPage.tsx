@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -68,6 +67,7 @@ const POSPage = () => {
     loadInventoryData();
   };
 
+  // Update the addToCart function to use the correct CartItem properties
   const addToCart = (item: InventoryItem) => {
     if (!activeShift) {
       toast({
@@ -101,6 +101,7 @@ const POSPage = () => {
       }
       
       updatedCart[existingItemIndex].quantity += 1;
+      updatedCart[existingItemIndex].total = updatedCart[existingItemIndex].price * updatedCart[existingItemIndex].quantity;
       setCart(updatedCart);
     } else {
       // Item doesn't exist in cart, add it
@@ -109,9 +110,10 @@ const POSPage = () => {
         name: item.name,
         price: item.price,
         quantity: 1,
+        total: item.price,
         type: item.type,
         imageUrl: item.imageUrl,
-        color: item.color,
+        color: item.color as string,
       };
       
       setCart(prev => [...prev, newCartItem]);

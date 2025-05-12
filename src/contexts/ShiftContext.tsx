@@ -1,16 +1,16 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Shift, PaymentMethodTotals } from '@/types/shift';
 import { useToast } from "@/hooks/use-toast";
 import { CartItem, PaymentMethod } from '@/types/pos';
 import { recordSaleInAccounts } from '@/services/accountsService';
+import { nanoid } from 'nanoid';
 
 type ShiftContextType = {
   activeShift: Shift | null;
   isLoading: boolean;
   startShift: (openingBalance: number) => void;
   closeShift: () => void;
-  addExpense: (description: string, amount: number) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'timestamp'>) => void;
   updateShiftWithSale: (items: CartItem[], paymentMethod: PaymentMethod, amount: number) => void;
   updateShiftWithSplitSale: (items: CartItem[], payments: Array<{method: PaymentMethod, amount: number}>) => void;
 };
@@ -123,36 +123,28 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
   };
   
   // Add an expense to the current shift
-  const addExpense = (description: string, amount: number) => {
-    if (!activeShift) {
-      toast({
-        title: "No active shift",
-        description: "You need to start a shift before adding expenses",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'timestamp'>) => {
+    if (!activeShift) return;
+
+    const now = new Date();
     const newExpense = {
-      id: Math.random().toString(36).substring(2, 9),
-      description,
-      amount,
-      timestamp: new Date().toISOString()
+      ...expense,
+      id: nanoid(),
+      timestamp: now.toISOString()
     };
-    
-    const updatedShift = {
-      ...activeShift,
-      expenses: [...activeShift.expenses, newExpense]
-    };
-    
-    setActiveShift(updatedShift);
-    localStorage.setItem("activeShift", JSON.stringify(updatedShift));
-    
-    toast({
-      title: "Expense added",
-      description: `${description} - KES ${amount.toLocaleString()} added to current shift`
+
+    setActiveShift(prevShift => {
+      if (!prevShift) return null;
+      
+      const updatedShift: Shift = {
+        ...prevShift,
+        expenses: [...prevShift.expenses, newExpense]
+      };
+      
+      saveShift(updatedShift);
+      return updatedShift;
     });
-  };
+  }, [activeShift]);
   
   // Map POS payment methods to shift payment methods
   const mapPaymentMethod = (posMethod: PaymentMethod): keyof PaymentMethodTotals => {

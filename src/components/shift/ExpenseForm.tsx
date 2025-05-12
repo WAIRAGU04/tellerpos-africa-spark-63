@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,40 +15,24 @@ const ExpenseForm = ({ onAddExpense }: ExpenseFormProps) => {
   const [amount, setAmount] = useState<number>(0);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!description.trim()) {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (onAddExpense) {
+      const expense = {
+        description: description.trim(),
+        amount,
+        date: new Date().toISOString().split('T')[0], // Add today's date
+        category: 'Miscellaneous', // Add default category
+        paymentMethod: 'cash' // Add default payment method
+      };
+      onAddExpense(expense);
+      setDescription("");
+      setAmount(0);
       toast({
-        title: "Description required",
-        description: "Please provide a description for the expense",
-        variant: "destructive"
+        title: "Expense added",
+        description: "The expense has been recorded successfully"
       });
-      return;
     }
-    
-    if (amount <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Expense amount must be greater than zero",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    onAddExpense({
-      description: description.trim(),
-      amount
-    });
-    
-    // Reset form
-    setDescription("");
-    setAmount(0);
-    
-    toast({
-      title: "Expense added",
-      description: "The expense has been recorded successfully"
-    });
   };
 
   return (

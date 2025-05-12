@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ImportProductRow, Product, UnitOfMeasurement } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
@@ -160,16 +159,19 @@ const ImportProducts = ({ onImport, onCancel }: ImportProductsProps) => {
   
   const handleImport = () => {
     // Convert to the expected format
-    const productsToImport = parsedProducts.map(p => ({
-      name: p.name,
-      description: p.description || '',
-      price: p.price,
-      sku: p.sku,
-      barcode: p.barcode,
-      quantity: p.quantity,
-      unitOfMeasurement: p.unitOfMeasurement as UnitOfMeasurement,
-      reorderLevel: p.reorderLevel,
-      costPrice: p.costPrice,
+    const validRows = parsedProducts.filter((row) => row.name && row.price && row.sku && row.quantity && row.unitOfMeasurement);
+    const productsToImport = validRows.map((row) => ({
+      name: row.name,
+      description: row.description || '',
+      price: Number(row.price),
+      sku: row.sku,
+      barcode: row.barcode || '',
+      quantity: Number(row.quantity),
+      unitOfMeasurement: row.unitOfMeasurement as UnitOfMeasurement,
+      reorderLevel: Number(row.reorderLevel),
+      costPrice: Number(row.costPrice),
+      category: row.category || '',
+      stock: Number(row.quantity) // Add this line to map quantity to stock
     }));
     
     onImport(productsToImport);

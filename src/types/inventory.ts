@@ -56,15 +56,15 @@ export interface Product extends BaseInventoryItem {
   unitOfMeasurement: UnitOfMeasurement;
   reorderLevel: number;
   costPrice: number;
-  stock: number;  // Adding stock property directly
+  stock: number;
 }
 
 export interface Service extends BaseInventoryItem {
   type: 'service';
   isAvailable: boolean;
   unitOfMeasurement: ServiceUnitOfMeasurement;
-  duration?: number; // In minutes
-  stock: number; // For consistency with Product interface
+  duration?: number;
+  stock: number;
 }
 
 export type InventoryItem = Product | Service;
@@ -89,6 +89,7 @@ export interface ProductFormValues {
   color?: ProductColor;
   useColor: boolean;
   category?: string;
+  stock?: number;
 }
 
 export interface ServiceFormValues {
@@ -102,6 +103,7 @@ export interface ServiceFormValues {
   color?: ProductColor;
   useColor: boolean;
   category?: string;
+  stock?: number;
 }
 
 export interface ImportProductRow {
@@ -115,4 +117,5 @@ export interface ImportProductRow {
   reorderLevel: number;
   costPrice: number;
   category?: string;
+  stock?: number;
 }

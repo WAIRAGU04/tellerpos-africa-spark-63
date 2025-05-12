@@ -17,104 +17,107 @@ import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { isAuthenticated } from "./utils/authUtils";
 import { ProtectedRoute, AuthenticatedRoute } from "./utils/RouteProtection";
+import { ShiftProvider } from "./contexts/shift";
 
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="tellerpos-theme">
-      <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route 
-            path="/signup" 
-            element={
-              <AuthenticatedRoute>
-                <SignupPage />
-              </AuthenticatedRoute>
-            } 
-          />
+      <ShiftProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Index />} />
+            <Route 
+              path="/signup" 
+              element={
+                <AuthenticatedRoute>
+                  <SignupPage />
+                </AuthenticatedRoute>
+              } 
+            />
 
-          {/* Protected Routes */}
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/settings" 
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/pos" 
-            element={
-              <ProtectedRoute>
-                <POSPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/sales" 
-            element={
-              <ProtectedRoute>
-                <SalesPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/accounts" 
-            element={
-              <ProtectedRoute>
-                <AccountsPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/analytics" 
-            element={
-              <ProtectedRoute>
-                <AnalyticsPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/shift" 
-            element={
-              <ProtectedRoute>
-                <ShiftPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/stock" 
-            element={
-              <ProtectedRoute>
-                <StockPage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Protected Routes */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/settings" 
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/pos" 
+              element={
+                <ProtectedRoute>
+                  <POSPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/sales" 
+              element={
+                <ProtectedRoute>
+                  <SalesPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/accounts" 
+              element={
+                <ProtectedRoute>
+                  <AccountsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/analytics" 
+              element={
+                <ProtectedRoute>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/shift" 
+              element={
+                <ProtectedRoute>
+                  <ShiftPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/stock" 
+              element={
+                <ProtectedRoute>
+                  <StockPage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Placeholder route for other modules */}
-          <Route 
-            path="/dashboard/:module" 
-            element={
-              <ProtectedRoute>
-                <PlaceholderModulePage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Catch-all route for non-existing routes */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-      <Toaster position="top-right" richColors />
+            {/* Placeholder route for other modules */}
+            <Route 
+              path="/dashboard/:module" 
+              element={
+                <ProtectedRoute>
+                  <PlaceholderModulePage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Catch-all route for non-existing routes */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+        <Toaster position="top-right" richColors />
+      </ShiftProvider>
     </ThemeProvider>
   );
 }

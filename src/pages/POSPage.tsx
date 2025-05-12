@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import POSLayout from "@/components/pos/POSLayout";
 import { Product, Service, InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
-import { useShift } from '@/contexts/ShiftContext';
+import { useShift } from '@/contexts/shift'; // Updated import path
 import { Button } from "@/components/ui/button";
 import { CalendarClock } from "lucide-react";
 import { useNavigate } from 'react-router-dom';

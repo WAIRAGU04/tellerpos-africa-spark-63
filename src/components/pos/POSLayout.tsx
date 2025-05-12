@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
@@ -16,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { useShift } from '@/contexts/ShiftContext';
+import { useShift } from '@/contexts/shift'; // Updated import path
 
 interface POSLayoutProps {
   inventory: InventoryItem[];

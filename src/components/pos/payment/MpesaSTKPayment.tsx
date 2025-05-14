@@ -10,8 +10,9 @@ import {
 } from '@/services/mpesaService';
 import { nanoid } from 'nanoid';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, CheckCircle, XCircle, Smartphone, ArrowLeft } from 'lucide-react';
+import { AlertCircle, CheckCircle, XCircle, Smartphone, ArrowLeft, WifiOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface MpesaSTKPaymentProps {
   amount: number;
@@ -32,6 +33,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
   const [status, setStatus] = useState<'idle' | 'processing' | 'checking' | 'success' | 'failed'>('idle');
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [networkError, setNetworkError] = useState(false);
   const { toast } = useToast();
 
   // Function to poll payment status
@@ -46,6 +48,9 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
         console.log(`Checking payment status for request ID: ${requestId}`);
         const response = await querySTKStatus(requestId);
         console.log("Payment status response:", response);
+        
+        // Clear any previous network errors
+        setNetworkError(false);
         
         if (response.success && response.data) {
           if (response.data.ResultCode === "0") {
@@ -63,13 +68,23 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
           } else if (response.data.ResultCode) {
             // Payment failed with a result code
             setStatus('failed');
-            setErrorMessage(response.data.ResultDesc);
+            setErrorMessage(response.data.ResultDesc || "Payment failed");
             toast({
               title: "Payment Failed",
-              description: response.data.ResultDesc,
+              description: response.data.ResultDesc || "Payment failed",
               variant: "destructive"
             });
             return true;
+          }
+        } else if (response.error) {
+          // If there's a specific error message from the API, show it
+          console.error("Error checking payment:", response.error);
+          
+          // Check if it might be a CORS/network error
+          if (response.error.includes("Failed to fetch") || 
+              response.error.includes("NetworkError") ||
+              response.error.includes("CORS")) {
+            setNetworkError(true);
           }
         }
         
@@ -91,6 +106,10 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
         }
       } catch (error) {
         console.error("Error checking payment status:", error);
+        
+        // Mark as network error for better UX
+        setNetworkError(true);
+        
         if (retries < maxRetries) {
           retries++;
           setProgress(Math.round((retries / maxRetries) * 80) + 10);
@@ -140,10 +159,12 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
       return;
     }
 
+    // Reset states
     setIsProcessing(true);
     setStatus('processing');
     setProgress(10);
     setErrorMessage('');
+    setNetworkError(false);
 
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber);
@@ -169,10 +190,21 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
         checkPaymentStatus(response.data.CheckoutRequestID);
       } else {
         setStatus('failed');
-        setErrorMessage(response.error || "Failed to initiate payment");
+        
+        // Set a more specific error message
+        const errorMsg = response.error || "Failed to initiate payment";
+        setErrorMessage(errorMsg);
+        
+        // Check if it might be a CORS/network error
+        if (errorMsg.includes("Failed to fetch") || 
+            errorMsg.includes("NetworkError") ||
+            errorMsg.includes("CORS")) {
+          setNetworkError(true);
+        }
+        
         toast({
           title: "Payment Failed",
-          description: response.error || "Failed to initiate payment",
+          description: errorMsg,
           variant: "destructive"
         });
       }
@@ -180,6 +212,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
       console.error("Payment error:", error);
       setStatus('failed');
       setErrorMessage("An unexpected error occurred");
+      setNetworkError(true);
       toast({
         title: "Payment Error",
         description: "An unexpected error occurred during payment processing",
@@ -196,6 +229,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
       setStatus('idle');
       setProgress(0);
       setErrorMessage('');
+      setNetworkError(false);
     };
   }, []);
 
@@ -215,6 +249,18 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
                 ? "Sending payment request to your phone..." 
                 : "Verifying payment status..."}
             </p>
+            
+            {networkError && (
+              <Alert variant="warning" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Network Issue Detected</AlertTitle>
+                <AlertDescription>
+                  We're having trouble connecting to M-Pesa. If you received a payment prompt, 
+                  please continue with the payment. We'll verify it once connection is restored.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <Button 
               variant="outline" 
               className="mt-4" 
@@ -240,12 +286,29 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
           <div className="text-center p-4 space-y-4">
             <XCircle className="h-16 w-16 mx-auto text-red-500" />
             <h3 className="text-xl font-medium">Payment Failed</h3>
-            <p className="text-red-500">{errorMessage || "Your payment could not be processed."}</p>
+            
+            {networkError ? (
+              <Alert variant="destructive" className="mt-4 text-left">
+                <WifiOff className="h-4 w-4" />
+                <AlertTitle>Connection Error</AlertTitle>
+                <AlertDescription className="text-sm">
+                  We couldn't connect to M-Pesa. This might be due to:
+                  <ul className="list-disc pl-5 mt-2">
+                    <li>Network connectivity issues</li>
+                    <li>M-Pesa service being unavailable</li>
+                  </ul>
+                  If money was deducted from your M-Pesa account, please check your M-Pesa statement.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <p className="text-red-500">{errorMessage || "Your payment could not be processed."}</p>
+            )}
+            
             <div className="flex space-x-2 mt-4 justify-center">
               <Button variant="outline" onClick={onCancel}>
                 Back
               </Button>
-              <Button onClick={handleInitiatePayment}>
+              <Button onClick={handleInitiatePayment} disabled={!isOnline}>
                 Try Again
               </Button>
             </div>

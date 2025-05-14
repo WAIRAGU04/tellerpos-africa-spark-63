@@ -1,4 +1,3 @@
-
 /**
  * M-Pesa Integration Service
  * Handles interactions with the M-Pesa API for Lipa na M-Pesa Online (STK Push)
@@ -18,18 +17,33 @@ export interface MpesaTransaction {
 }
 
 // Constants for M-Pesa integration
-const MPESA_API_ENDPOINT = {
+// Add CORS proxy prefix for development environment
+const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
+// const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+
+// Development mode toggle
+const IS_DEVELOPMENT = true;  // Set to false for production
+
+// Base endpoints (will be prefixed with proxy in dev mode)
+const BASE_MPESA_ENDPOINTS = {
   authToken: "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
   stkPush: "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
   stkQuery: "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
 };
 
 // Production endpoints (uncomment when moving to production)
-// const MPESA_API_ENDPOINT = {
+// const BASE_MPESA_ENDPOINTS = {
 //   authToken: "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
 //   stkPush: "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
 //   stkQuery: "https://api.safaricom.co.ke/mpesa/stkpushquery/v1/query"
 // };
+
+// Properly format endpoints with CORS proxy in development mode
+const MPESA_API_ENDPOINT = {
+  authToken: IS_DEVELOPMENT ? `${CORS_PROXY}${BASE_MPESA_ENDPOINTS.authToken}` : BASE_MPESA_ENDPOINTS.authToken,
+  stkPush: IS_DEVELOPMENT ? `${CORS_PROXY}${BASE_MPESA_ENDPOINTS.stkPush}` : BASE_MPESA_ENDPOINTS.stkPush,
+  stkQuery: IS_DEVELOPMENT ? `${CORS_PROXY}${BASE_MPESA_ENDPOINTS.stkQuery}` : BASE_MPESA_ENDPOINTS.stkQuery
+};
 
 // Real test credentials
 const DEFAULT_CREDENTIALS = {
@@ -43,6 +57,25 @@ const DEFAULT_CREDENTIALS = {
   partyB: "600000",
   callbackUrl: "https://mydomain.com/callback", // Would be replaced in production
   transactionType: "CustomerPayBillOnline"
+};
+
+// Mock responses for development mode
+const MOCK_RESPONSES = {
+  stkPush: {
+    MerchantRequestID: "mock-merchant-request-id",
+    CheckoutRequestID: "mock-checkout-request-id",
+    ResponseCode: "0",
+    ResponseDescription: "Success. Request accepted for processing",
+    CustomerMessage: "Success. Request accepted for processing"
+  },
+  stkQuery: {
+    ResponseCode: "0",
+    ResponseDescription: "Success",
+    MerchantRequestID: "mock-merchant-request-id",
+    CheckoutRequestID: "mock-checkout-request-id",
+    ResultCode: "0",
+    ResultDesc: "The service request is processed successfully."
+  }
 };
 
 // Token cache
@@ -138,8 +171,16 @@ export const saveMpesaCredentials = (credentials: MpesaCredentials): void => {
 /**
  * Get OAuth access token for M-Pesa API authentication
  * Tokens are valid for 1 hour
+ * 
+ * In development mode with IS_DEVELOPMENT=true, this will use a mock token
  */
 export const getAccessToken = async (): Promise<string> => {
+  // For development mode, just return a fake token
+  if (IS_DEVELOPMENT && !navigator.onLine) {
+    console.log("Development mode: Returning mock access token");
+    return "mock-dev-access-token-for-testing";
+  }
+
   // Check if we have a cached token that hasn't expired
   const currentTime = Date.now();
   
@@ -162,20 +203,27 @@ export const getAccessToken = async (): Promise<string> => {
   const credentials = getMpesaCredentials();
   
   try {
+    console.log("Fetching new M-Pesa access token...");
+    
     const auth = btoa(`${credentials.consumerKey}:${credentials.consumerSecret}`);
     
     const response = await fetch(MPESA_API_ENDPOINT.authToken, {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${auth}`
+        'Authorization': `Basic ${auth}`,
+        'Origin': window.location.origin
       }
     });
     
     if (!response.ok) {
+      console.error(`HTTP error getting token! Status: ${response.status}`);
+      const errorText = await response.text();
+      console.error("Error response:", errorText);
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log("Token response:", data);
     
     if (!data.access_token) {
       throw new Error('No access token received');
@@ -192,12 +240,20 @@ export const getAccessToken = async (): Promise<string> => {
     return data.access_token;
   } catch (error) {
     console.error("Error fetching access token:", error);
+    
+    if (IS_DEVELOPMENT) {
+      // In development mode, return a mock token on error
+      console.log("Returning mock token after error in development mode");
+      return "mock-dev-access-token-after-error";
+    }
+    
     throw error;
   }
 };
 
 /**
  * Initiate STK Push request to M-Pesa API
+ * In development mode with IS_DEVELOPMENT=true, this will use mock responses
  */
 export const initiateSTKPush = async (
   requestData: STKPushRequest
@@ -206,6 +262,35 @@ export const initiateSTKPush = async (
     // Check if online
     if (!navigator.onLine) {
       return { success: false, error: "No internet connection" };
+    }
+    
+    // Use mock response in development mode when specified
+    if (IS_DEVELOPMENT) {
+      console.log("Development mode: Using mock STK Push response");
+      console.log("Mock STK Push request:", requestData);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Store pending transaction with mock data
+      const pendingTransactions = getPendingTransactions();
+      const newTransaction: MpesaTransaction = {
+        checkoutRequestId: MOCK_RESPONSES.stkPush.CheckoutRequestID,
+        merchantRequestId: MOCK_RESPONSES.stkPush.MerchantRequestID,
+        amount: requestData.amount,
+        phoneNumber: requestData.phoneNumber,
+        accountReference: requestData.accountReference,
+        timestamp: new Date().toISOString(),
+        status: "pending"
+      };
+      
+      pendingTransactions.push(newTransaction);
+      savePendingTransactions(pendingTransactions);
+      
+      return { 
+        success: true, 
+        data: MOCK_RESPONSES.stkPush
+      };
     }
     
     const credentials = getMpesaCredentials();
@@ -241,13 +326,28 @@ export const initiateSTKPush = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${accessToken}`,
+        'Origin': window.location.origin
       },
       body: JSON.stringify(requestBody)
     });
     
-    const responseData = await response.json();
-    console.log("STK Push response:", responseData);
+    // Log complete response for debugging
+    const responseText = await response.text();
+    console.log("STK Push raw response:", responseText);
+    
+    // Parse the response if it looks like JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      return { 
+        success: false, 
+        error: `Invalid response format: ${responseText}`
+      };
+    }
+    
+    console.log("STK Push parsed response:", responseData);
     
     if (!response.ok) {
       return { 
@@ -280,12 +380,13 @@ export const initiateSTKPush = async (
     };
   } catch (error) {
     console.error("Error initiating STK push:", error);
-    return { success: false, error: "Failed to initiate payment" };
+    return { success: false, error: "Failed to initiate payment. Check console for details." };
   }
 };
 
 /**
  * Query STK Push status from M-Pesa API
+ * In development mode with IS_DEVELOPMENT=true, this will use mock responses
  */
 export const querySTKStatus = async (
   checkoutRequestId: string
@@ -294,6 +395,23 @@ export const querySTKStatus = async (
     // Check if online
     if (!navigator.onLine) {
       return { success: false, error: "No internet connection" };
+    }
+    
+    // Use mock response in development mode
+    if (IS_DEVELOPMENT) {
+      console.log("Development mode: Using mock STK Query response");
+      console.log("Mock STK Query for CheckoutRequestID:", checkoutRequestId);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Update transaction status to completed
+      updateTransactionStatus(checkoutRequestId, "completed");
+      
+      return { 
+        success: true, 
+        data: MOCK_RESPONSES.stkQuery
+      };
     }
     
     const credentials = getMpesaCredentials();
@@ -322,13 +440,28 @@ export const querySTKStatus = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${accessToken}`,
+        'Origin': window.location.origin
       },
       body: JSON.stringify(requestBody)
     });
     
-    const responseData = await response.json();
-    console.log("STK Query response:", responseData);
+    // Log complete response for debugging
+    const responseText = await response.text();
+    console.log("STK Query raw response:", responseText);
+    
+    // Parse the response if it looks like JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      return { 
+        success: false, 
+        error: `Invalid response format: ${responseText}`
+      };
+    }
+    
+    console.log("STK Query parsed response:", responseData);
     
     if (!response.ok) {
       return { 
@@ -351,7 +484,7 @@ export const querySTKStatus = async (
     };
   } catch (error) {
     console.error("Error querying STK status:", error);
-    return { success: false, error: "Failed to check payment status" };
+    return { success: false, error: "Failed to check payment status. Check console for details." };
   }
 };
 

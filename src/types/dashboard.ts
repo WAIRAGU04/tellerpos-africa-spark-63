@@ -1,3 +1,4 @@
+
 export interface UserData {
   firstName: string;
   lastName: string;
@@ -38,6 +39,15 @@ export interface BusinessSettings {
     purchaseOrder?: string;
     deliveryNote?: string;
   };
+}
+
+export interface ThemeSettings {
+  colorScheme: "light" | "dark" | "system";
+  reducedMotion: boolean;
+  largeText: boolean;
+  highContrast: boolean;
+  compactView: boolean;
+  sidebarCollapsed: boolean;
 }
 
 export interface SettingsFormProps {

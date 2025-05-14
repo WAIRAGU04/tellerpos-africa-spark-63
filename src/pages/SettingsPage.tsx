@@ -13,14 +13,24 @@ import {
   saveUserData 
 } from "@/utils/settingsUtils";
 import DocumentSettingsForm from "@/components/settings/DocumentSettingsForm";
+import ThemeSettingsForm from "@/components/settings/ThemeSettingsForm";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const SettingsPage = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingBusiness, setIsSavingBusiness] = useState(false);
   const [isSavingDocument, setIsSavingDocument] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile");
+  const [isSavingTheme, setIsSavingTheme] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "profile";
+  const navigate = useNavigate();
   const [userData, setUserData] = useState<Partial<UserData>>({});
   const [businessSettings, setBusinessSettings] = useState<Partial<BusinessSettings>>({});
+  
+  // Handle tab changes
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value });
+  };
   
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -104,6 +114,22 @@ const SettingsPage = () => {
       setIsSavingDocument(false);
     }
   };
+
+  const handleSaveThemeSettings = (themeSettings: any) => {
+    setIsSavingTheme(true);
+    
+    try {
+      // Save theme settings to localStorage
+      localStorage.setItem("tellerpos_theme_settings", JSON.stringify(themeSettings));
+      
+      toast.success("Theme settings updated successfully!");
+    } catch (error) {
+      console.error("Error saving theme settings:", error);
+      toast.error("Failed to save theme settings");
+    } finally {
+      setIsSavingTheme(false);
+    }
+  };
   
   return (
     <DashboardLayout>
@@ -115,11 +141,12 @@ const SettingsPage = () => {
           </p>
         </div>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList>
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className="grid grid-cols-4">
             <TabsTrigger value="profile">User Profile</TabsTrigger>
             <TabsTrigger value="business">Business Settings</TabsTrigger>
             <TabsTrigger value="documents">Document Settings</TabsTrigger>
+            <TabsTrigger value="theme">Theme & Display</TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile" className="space-y-6">
@@ -143,6 +170,13 @@ const SettingsPage = () => {
               initialData={businessSettings}
               onSave={handleSaveDocumentSettings}
               isSaving={isSavingDocument}
+            />
+          </TabsContent>
+          
+          <TabsContent value="theme" className="space-y-6">
+            <ThemeSettingsForm
+              onSave={handleSaveThemeSettings}
+              isSaving={isSavingTheme}
             />
           </TabsContent>
         </Tabs>

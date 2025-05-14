@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Wifi, WifiOff, Sync } from 'lucide-react';
+import { Wifi, WifiOff, RotateCw } from 'lucide-react';
 import { useOffline } from '@/hooks/use-offline';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -103,7 +103,7 @@ const OfflineStatusIndicator: React.FC<OfflineStatusIndicatorProps> = ({
                   syncResult === 'error' && "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
                 )}
               >
-                <Sync className={cn(
+                <RotateCw className={cn(
                   "h-4 w-4", 
                   isSyncing && "animate-spin",
                   syncResult === 'success' && "text-green-700",

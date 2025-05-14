@@ -95,16 +95,20 @@ const UnsynchronizedSales = ({ unsyncedSales, onSyncSales }: UnsynchronizedSales
                 className="p-3 border rounded-md bg-muted/30"
               >
                 <div className="flex justify-between">
-                  <span className="font-medium">KES {sale.amount.toLocaleString()}</span>
+                  <span className="font-medium">KES {sale.total.toLocaleString()}</span>
                   <span className="text-sm text-muted-foreground">
                     {new Date(sale.timestamp).toLocaleString()}
                   </span>
                 </div>
                 <div className="text-sm mt-1 flex justify-between">
                   <span>
-                    {sale.paymentMethod === 'credit' ? 'Credit Sale' : 
-                      sale.paymentMethod.charAt(0).toUpperCase() + 
-                      sale.paymentMethod.slice(1).replace(/-/g, ' ')}
+                    {sale.payments && sale.payments.length > 0 ? (
+                      sale.payments[0].method === 'credit' ? 'Credit Sale' : 
+                      sale.payments[0].method.charAt(0).toUpperCase() + 
+                      sale.payments[0].method.slice(1).replace(/-/g, ' ')
+                    ) : (
+                      'No payment method'
+                    )}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {sale.items.length} items

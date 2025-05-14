@@ -105,6 +105,8 @@ export const saveUserRegistrationData = (userData: UserFormData, businessData: B
       role: 'Administrator', // Default role for the first user
       agentCode: `AG${Math.floor(1000 + Math.random() * 9000)}`,
       businessId, // Link to business
+      status: "active",
+      createdAt: new Date().toISOString()
     };
     
     localStorage.setItem(`user_${userData.email}`, JSON.stringify(userObj));
@@ -185,10 +187,21 @@ export const authenticateUser = (businessId: string, email: string, password: st
       return { success: false, message: "Invalid business ID" };
     }
     
-    // In a real app, we would hash passwords. For demo, we're using the email as password
-    // This is just a simple check for the demo
-    if (email !== password) { // In real app, compare hashed passwords
-      return { success: false, message: "Invalid password" };
+    // For regular users, check password
+    if (user.password) {
+      if (user.password !== password) {
+        return { success: false, message: "Invalid password" };
+      }
+    } else {
+      // Legacy users (admin) use email as password
+      if (email !== password) { 
+        return { success: false, message: "Invalid password" };
+      }
+    }
+    
+    // Check if user is active
+    if (user.status === "inactive") {
+      return { success: false, message: "This user account is inactive" };
     }
     
     // Get business data
@@ -208,10 +221,51 @@ export const authenticateUser = (businessId: string, email: string, password: st
     localStorage.setItem('userData', userData);
     localStorage.setItem('businessData', businessData);
     
-    return { success: true };
+    // Return info about temporary password
+    return { 
+      success: true,
+      isTemporaryPassword: user.isTemporaryPassword || false 
+    };
   } catch (error) {
     console.error('Error authenticating:', error);
     return { success: false, message: "Authentication error" };
+  }
+};
+
+// Change user password
+export const changeUserPassword = (email: string, oldPassword: string, newPassword: string) => {
+  try {
+    // Check for the user in localStorage
+    const userData = localStorage.getItem(`user_${email}`);
+    if (!userData) {
+      return { success: false, message: "User not found" };
+    }
+    
+    const user = JSON.parse(userData);
+    
+    // Verify old password
+    if (user.password) {
+      if (user.password !== oldPassword) {
+        return { success: false, message: "Current password is incorrect" };
+      }
+    } else {
+      // Legacy users (admin) use email as password
+      if (email !== oldPassword) { 
+        return { success: false, message: "Current password is incorrect" };
+      }
+    }
+    
+    // Update password
+    user.password = newPassword;
+    user.isTemporaryPassword = false;
+    
+    // Save updated user data
+    localStorage.setItem(`user_${email}`, JSON.stringify(user));
+    
+    return { success: true, message: "Password changed successfully" };
+  } catch (error) {
+    console.error('Error changing password:', error);
+    return { success: false, message: "Error changing password" };
   }
 };
 

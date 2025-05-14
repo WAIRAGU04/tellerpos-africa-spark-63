@@ -1,5 +1,5 @@
 
-import { LogOut } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 import { UserData } from "@/types/dashboard";
 import { 
   Sidebar, 
@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { logoutUser } from "@/utils/authUtils";
+import { toast } from "sonner";
 
 interface DashboardSidebarProps {
   userData: UserData;
@@ -34,6 +37,8 @@ const DashboardSidebar = ({
   setActiveModule,
   menuItems
 }: DashboardSidebarProps) => {
+  const navigate = useNavigate();
+  
   // Get initials for avatar
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -41,6 +46,12 @@ const DashboardSidebar = ({
   
   const handleMenuClick = (moduleId: string) => {
     setActiveModule(moduleId);
+  };
+  
+  const handleLogout = () => {
+    logoutUser();
+    toast.success("Logged out successfully");
+    navigate("/");
   };
   
   return (
@@ -77,6 +88,20 @@ const DashboardSidebar = ({
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            
+            {/* Add User Management Link - only for Admin and Managers */}
+            {(userData.role === 'Administrator' || userData.role === 'Manager') && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={window.location.pathname === '/dashboard/users'}
+                  onClick={() => navigate('/dashboard/users')}
+                  tooltip="User Management"
+                >
+                  <Users className="w-5 h-5" />
+                  <span>Users</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
@@ -87,6 +112,7 @@ const DashboardSidebar = ({
           <Button 
             variant="ghost" 
             className="w-full justify-start text-red-500 hover:bg-red-500/10 hover:text-red-500"
+            onClick={handleLogout}
           >
             <LogOut className="mr-2 h-5 w-5" />
             <span>Log Out</span>

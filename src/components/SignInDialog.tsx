@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -26,6 +25,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
 import BusinessIdRecoveryDialog from "./BusinessIdRecoveryDialog";
+import ChangePasswordDialog from "./user-management/ChangePasswordDialog";
 import { authenticateUser } from "@/utils/authUtils";
 
 interface SignInDialogProps {
@@ -37,7 +37,7 @@ interface SignInDialogProps {
 const formSchema = z.object({
   businessId: z.string().min(1, { message: "Business ID is required." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string().min(1, { message: "Password is required." }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -48,6 +48,11 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [businessIdRecoveryOpen, setBusinessIdRecoveryOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [tempLoginData, setTempLoginData] = useState<{email: string, isFirstLogin: boolean}>({
+    email: "",
+    isFirstLogin: false
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +73,18 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
       setIsSubmitting(false);
       
       if (result.success) {
+        // Check if user has a temporary password
+        if (result.isTemporaryPassword) {
+          // Store login info and show password change dialog
+          setTempLoginData({
+            email: data.email,
+            isFirstLogin: true
+          });
+          setChangePasswordOpen(true);
+          // Keep the sign-in dialog open until password is changed
+          return;
+        }
+        
         toast.success("Signed in successfully!", {
           description: `Welcome back to TellerPOS!`,
         });
@@ -97,6 +114,18 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   const handleForgotBusinessId = () => {
     onOpenChange(false);
     setBusinessIdRecoveryOpen(true);
+  };
+
+  const handlePasswordChangeComplete = () => {
+    toast.success("Password changed successfully!", {
+      description: `Welcome to TellerPOS!`,
+    });
+    
+    // Close the dialog
+    onOpenChange(false);
+    
+    // Redirect to dashboard
+    navigate("/dashboard");
   };
   
   return (
@@ -237,6 +266,14 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
       <BusinessIdRecoveryDialog
         open={businessIdRecoveryOpen}
         onOpenChange={setBusinessIdRecoveryOpen}
+      />
+
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+        email={tempLoginData.email}
+        isFirstLogin={tempLoginData.isFirstLogin}
+        onComplete={handlePasswordChangeComplete}
       />
     </>
   );

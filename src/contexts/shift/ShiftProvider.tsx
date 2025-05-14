@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { Shift, PaymentMethodTotals, Expense } from '@/types/shift';
-import { CartItem, PaymentMethod } from '@/types/pos';
+import { CartItem, PaymentMethod, Transaction } from '@/types/pos';
 import { useToast } from "@/hooks/use-toast";
 import { nanoid } from 'nanoid';
 import { recordSaleInAccounts } from '@/services/accountsService';
@@ -53,7 +53,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     
     const now = new Date();
     const newShift: Shift = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: nanoid(),
       openingBalance: openingBalance,
       status: "active",
       paymentTotals: {
@@ -140,6 +140,66 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
       return updatedShift;
     });
   }, [activeShift]);
+  
+  // Record a transaction in both the current shift and sales records
+  const recordTransaction = (transaction: Transaction) => {
+    if (!activeShift) {
+      toast({
+        title: "No active shift",
+        description: "You must start a shift before making sales",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    try {
+      // Calculate total amount from payments
+      const totalAmount = transaction.payments.reduce((sum, payment) => sum + payment.amount, 0);
+      
+      // Update the payment totals in the shift
+      const updatedPaymentTotals = { ...activeShift.paymentTotals };
+      
+      transaction.payments.forEach(payment => {
+        const shiftPaymentMethod = mapPaymentMethod(payment.method);
+        updatedPaymentTotals[shiftPaymentMethod] += payment.amount;
+      });
+      
+      const updatedShift = {
+        ...activeShift,
+        paymentTotals: updatedPaymentTotals,
+        totalSales: activeShift.totalSales + totalAmount
+      };
+      
+      setActiveShift(updatedShift);
+      localStorage.setItem("activeShift", JSON.stringify(updatedShift));
+      
+      // Record the sale in accounts
+      recordSaleInAccounts(
+        transaction.payments.map(p => ({ method: p.method, amount: p.amount })),
+        transaction.id,
+        activeShift.id
+      );
+      
+      // Record the transaction in sales history
+      const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+      const updatedTransaction = {
+        ...transaction,
+        shiftId: activeShift.id
+      };
+      transactions.unshift(updatedTransaction);
+      localStorage.setItem("transactions", JSON.stringify(transactions));
+      
+      return true;
+    } catch (error) {
+      console.error("Error recording transaction:", error);
+      toast({
+        title: "Transaction error",
+        description: "Failed to record the transaction",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
   
   // Update shift with a new sale
   const updateShiftWithSale = (
@@ -229,7 +289,8 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     closeShift,
     addExpense,
     updateShiftWithSale,
-    updateShiftWithSplitSale
+    updateShiftWithSplitSale,
+    recordTransaction
   };
   
   return (

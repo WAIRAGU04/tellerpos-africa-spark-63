@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { InventoryItem } from '@/types/inventory';
-import { CartItem } from '@/types/pos';
+import { CartItem, PaymentMethod } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import POSInventoryView from './POSInventoryView';
 import POSCart from './POSCart';
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { useShift } from '@/contexts/shift'; // Ensure we're using the correct import path
+import { useShift } from '@/contexts/shift';
 
 interface POSLayoutProps {
   inventory: InventoryItem[];
@@ -25,6 +25,7 @@ interface POSLayoutProps {
   updateCartItemQuantity: (id: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
+  onPaymentComplete?: () => void;
 }
 
 const POSLayout: React.FC<POSLayoutProps> = ({
@@ -33,7 +34,8 @@ const POSLayout: React.FC<POSLayoutProps> = ({
   addToCart,
   updateCartItemQuantity,
   removeFromCart,
-  clearCart
+  clearCart,
+  onPaymentComplete
 }) => {
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const isMobile = useIsMobile();
@@ -71,12 +73,17 @@ const POSLayout: React.FC<POSLayoutProps> = ({
   };
 
   // Handle successful payment/checkout
-  const handlePaymentComplete = (paymentMethod: string, amount: number) => {
+  const handlePaymentComplete = (paymentMethod: PaymentMethod, amount: number) => {
     // Clear the cart after successful payment
     clearCart();
     
     // Return to inventory view
     setIsCheckoutMode(false);
+    
+    // Call the parent callback if provided
+    if (onPaymentComplete) {
+      onPaymentComplete();
+    }
   };
 
   return (

@@ -31,7 +31,8 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [isOnline] = useState(navigator.onLine);
-  const { updateShiftWithSale, updateShiftWithSplitSale, activeShift } = useShift();
+  const [transactionData, setTransactionData] = useState(null);
+  const { updateShiftWithSale, updateShiftWithSplitSale, activeShift, recordTransaction } = useShift();
   const { toast } = useToast();
 
   // Handle payment process
@@ -46,21 +47,27 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
     }
 
     try {
-      // Record the sale in the shift
-      updateShiftWithSale(cart, paymentMethod, cartTotal);
+      // Create transaction object
+      const transaction = createTransactionObject(cart, cartTotal, paymentMethod, selectedCustomerId, false);
       
-      // Mark payment as complete
-      setIsPaymentComplete(true);
+      // Record the transaction (this updates shift, accounts, and sales records)
+      const success = recordTransaction(transaction);
       
-      // Notify parent component (if callback provided)
-      if (onPaymentComplete) {
-        onPaymentComplete(paymentMethod, cartTotal);
+      if (success) {
+        // Mark payment as complete and store transaction data for receipt/invoice
+        setTransactionData(transaction);
+        setIsPaymentComplete(true);
+        
+        // Notify parent component (if callback provided)
+        if (onPaymentComplete) {
+          onPaymentComplete(paymentMethod, cartTotal);
+        }
+        
+        toast({
+          title: "Payment successful",
+          description: `KES ${cartTotal.toLocaleString()} received via ${paymentMethod}`
+        });
       }
-      
-      toast({
-        title: "Payment successful",
-        description: `KES ${cartTotal.toLocaleString()} received via ${paymentMethod}`
-      });
     } catch (error) {
       console.error("Payment error:", error);
       toast({
@@ -83,17 +90,31 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
     }
 
     try {
-      // Record the split payment in the shift
-      updateShiftWithSplitSale(cart, payments);
+      // Create transaction object for split payment
+      const transaction = createTransactionObject(cart, cartTotal, 'cash', selectedCustomerId, true);
       
-      // Mark payment as complete
-      setIsPaymentComplete(true);
-      setIsSplitPayment(false);
+      // Add the payments to the transaction
+      transaction.payments = payments.map(payment => ({
+        id: nanoid(),
+        method: payment.method,
+        amount: payment.amount,
+        timestamp: new Date().toISOString()
+      }));
       
-      toast({
-        title: "Split payment successful",
-        description: `KES ${cartTotal.toLocaleString()} received via multiple payment methods`
-      });
+      // Record the transaction
+      const success = recordTransaction(transaction);
+      
+      if (success) {
+        // Store transaction data and mark payment as complete
+        setTransactionData(transaction);
+        setIsPaymentComplete(true);
+        setIsSplitPayment(false);
+        
+        toast({
+          title: "Split payment successful",
+          description: `KES ${cartTotal.toLocaleString()} received via multiple payment methods`
+        });
+      }
     } catch (error) {
       console.error("Split payment error:", error);
       toast({
@@ -122,7 +143,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
 
   // If showing receipt view
   if (showReceipt) {
-    const transaction = createTransactionObject(cart, cartTotal, paymentMethod, selectedCustomerId, isSplitPayment);
+    const transaction = transactionData || createTransactionObject(cart, cartTotal, paymentMethod, selectedCustomerId, isSplitPayment);
     
     return (
       <POSReceiptGenerator 
@@ -135,7 +156,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
 
   // If showing invoice view
   if (showInvoice) {
-    const transaction = createTransactionObject(cart, cartTotal, paymentMethod, selectedCustomerId, isSplitPayment);
+    const transaction = transactionData || createTransactionObject(cart, cartTotal, paymentMethod, selectedCustomerId, isSplitPayment);
     
     return (
       <POSInvoiceGenerator 

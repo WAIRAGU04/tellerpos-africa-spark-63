@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Transaction } from '@/types/pos';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
+import { useShift } from '@/contexts/shift';
 
 // Importing refactored components
 import SalesStatsCards from '@/components/sales/SalesStatsCards';
@@ -22,6 +22,7 @@ const SalesPage = () => {
   // States for data
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
+  const { activeShift } = useShift();
   
   // States for UI
   const [activeTab, setActiveTab] = useState('all');
@@ -68,10 +69,16 @@ const SalesPage = () => {
   useEffect(() => {
     let filtered = [...transactions];
     
-    // Filter by tab
-    if (activeTab === 'receipts') {
+    // Filter by active shift if on the shift tab
+    if (activeTab === 'shift' && activeShift) {
+      filtered = filtered.filter(transaction => transaction.shiftId === activeShift.id);
+    }
+    // Filter by receipts
+    else if (activeTab === 'receipts') {
       filtered = filtered.filter(transaction => !transaction.isInvoice);
-    } else if (activeTab === 'invoices') {
+    }
+    // Filter by invoices
+    else if (activeTab === 'invoices') {
       filtered = filtered.filter(transaction => transaction.isInvoice);
     }
     
@@ -125,7 +132,7 @@ const SalesPage = () => {
     });
     
     setFilteredTransactions(filtered);
-  }, [transactions, searchQuery, sortOrder, activeTab, customerFilter, amountFilter, dateRange]);
+  }, [transactions, searchQuery, sortOrder, activeTab, customerFilter, amountFilter, dateRange, activeShift]);
 
   // Handle viewing transaction details
   const handleViewTransaction = (transaction: Transaction) => {
@@ -223,6 +230,7 @@ const SalesPage = () => {
             <TabsTrigger value="all">All Transactions</TabsTrigger>
             <TabsTrigger value="receipts">Receipts</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            {activeShift && <TabsTrigger value="shift">Current Shift</TabsTrigger>}
           </TabsList>
           
           <TabsContent value={activeTab} className="mt-4">

@@ -56,7 +56,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
           <MpesaFailedState
             errorMessage={errorMessage}
             networkError={networkError}
-            onRetry={() => handleInitiatePayment}
+            onRetry={() => handleInitiatePayment("")} // Properly passed as function
             onCancel={onCancel}
             onManualCheck={handleManualCheck}
             checkoutRequestId={checkoutRequestId}

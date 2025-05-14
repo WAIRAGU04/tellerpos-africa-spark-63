@@ -17,33 +17,56 @@ export interface MpesaTransaction {
   status: "pending" | "completed" | "failed";
 }
 
-// Constants for M-Pesa integration
-// Add CORS proxy prefix for development environment
-const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
-// const CORS_PROXY = "https://api.allorigins.win/raw?url=";
-
-// Development mode toggle - set to false for production
-const IS_DEVELOPMENT = true;
-
-// Base endpoints (will be prefixed with proxy in dev mode)
-const BASE_MPESA_ENDPOINTS = {
-  authToken: "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
-  stkPush: "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-  stkQuery: "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
-};
-
-// Production endpoints (uncomment when moving to production)
-// const BASE_MPESA_ENDPOINTS = {
-//   authToken: "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
-//   stkPush: "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-//   stkQuery: "https://api.safaricom.co.ke/mpesa/stkpushquery/v1/query"
-// };
-
-// Properly format endpoints with CORS proxy in development mode
-const MPESA_API_ENDPOINT = {
-  authToken: IS_DEVELOPMENT ? `${CORS_PROXY}${BASE_MPESA_ENDPOINTS.authToken}` : BASE_MPESA_ENDPOINTS.authToken,
-  stkPush: IS_DEVELOPMENT ? `${CORS_PROXY}${BASE_MPESA_ENDPOINTS.stkPush}` : BASE_MPESA_ENDPOINTS.stkPush,
-  stkQuery: IS_DEVELOPMENT ? `${CORS_PROXY}${BASE_MPESA_ENDPOINTS.stkQuery}` : BASE_MPESA_ENDPOINTS.stkQuery
+// Configuration object for M-Pesa integration
+const MPESA_CONFIG = {
+  // Enable/disable development mode
+  IS_DEVELOPMENT: true,
+  
+  // Enable/disable mock responses in development
+  USE_MOCK_RESPONSES: true,
+  
+  // CORS proxy configuration
+  CORS_PROXY: {
+    // Which proxy to use
+    ACTIVE: "cors-anywhere", // Options: "cors-anywhere", "allorigins", "custom", "none"
+    
+    // Available proxy services
+    SERVICES: {
+      "cors-anywhere": "https://cors-anywhere.herokuapp.com/",
+      "allorigins": "https://api.allorigins.win/raw?url=",
+      "custom": "https://your-custom-proxy.com/proxy/" // Replace with your own proxy if needed
+    },
+    
+    // Whether to use the proxy in development mode
+    USE_IN_DEV: true,
+    
+    // Retry configuration for proxy requests
+    MAX_RETRIES: 3,
+    RETRY_DELAY: 1000 // Base delay in ms (will use exponential backoff)
+  },
+  
+  // M-Pesa API endpoints
+  API_ENDPOINTS: {
+    DEVELOPMENT: {
+      authToken: "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+      stkPush: "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+      stkQuery: "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
+    },
+    PRODUCTION: {
+      authToken: "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+      stkPush: "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+      stkQuery: "https://api.safaricom.co.ke/mpesa/stkpushquery/v1/query"
+    }
+  },
+  
+  // Token refresh configuration
+  TOKEN: {
+    EXPIRY_BUFFER: 60000, // 60 seconds before actual expiry
+    CACHE_KEYS: {
+      TOKEN: "mpesa_access_token",
+      EXPIRY: "mpesa_token_expiry"
+    }
+  }
 };
 
 // Test credentials provided
@@ -78,10 +101,6 @@ const MOCK_RESPONSES = {
     ResultDesc: "The service request is processed successfully."
   }
 };
-
-// Token cache
-let oauthToken: string | null = null;
-let tokenExpiry: number | null = null;
 
 // Types for M-Pesa API
 export interface MpesaCredentials {
@@ -123,8 +142,90 @@ export interface STKQueryResponse {
 
 // Cache keys
 const PENDING_MPESA_TRANSACTIONS = "pending_mpesa_transactions";
-const ACCESS_TOKEN_KEY = "mpesa_access_token";
-const TOKEN_EXPIRY_KEY = "mpesa_token_expiry";
+const PENDING_RECONCILIATIONS = "pending_mpesa_reconciliations";
+const ACCESS_TOKEN_KEY = MPESA_CONFIG.TOKEN.CACHE_KEYS.TOKEN;
+const TOKEN_EXPIRY_KEY = MPESA_CONFIG.TOKEN.CACHE_KEYS.EXPIRY;
+
+// Token cache
+let oauthToken: string | null = null;
+let tokenExpiry: number | null = null;
+let tokenRefreshPromise: Promise<string> | null = null;
+
+/**
+ * Get active API endpoints based on mode
+ */
+const getApiEndpoints = () => {
+  return MPESA_CONFIG.IS_DEVELOPMENT 
+    ? MPESA_CONFIG.API_ENDPOINTS.DEVELOPMENT 
+    : MPESA_CONFIG.API_ENDPOINTS.PRODUCTION;
+};
+
+/**
+ * Determine if CORS proxy should be used
+ */
+const shouldUseProxy = () => {
+  return MPESA_CONFIG.IS_DEVELOPMENT && MPESA_CONFIG.CORS_PROXY.USE_IN_DEV;
+};
+
+/**
+ * Get active CORS proxy URL
+ */
+const getProxyUrl = () => {
+  if (!shouldUseProxy() || MPESA_CONFIG.CORS_PROXY.ACTIVE === "none") {
+    return "";
+  }
+  
+  return MPESA_CONFIG.CORS_PROXY.SERVICES[MPESA_CONFIG.CORS_PROXY.ACTIVE] || "";
+};
+
+/**
+ * Get the full API URL with proxy if needed
+ */
+const getFullApiUrl = (endpoint: string) => {
+  const proxyPrefix = getProxyUrl();
+  return `${proxyPrefix}${endpoint}`;
+};
+
+/**
+ * Retry a fetch request with exponential backoff
+ */
+const retryFetch = async (url: string, options: RequestInit, maxRetries = MPESA_CONFIG.CORS_PROXY.MAX_RETRIES): Promise<Response> => {
+  let lastError: any;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      console.log(`Fetch attempt ${i + 1} for ${url}`);
+      return await fetch(url, options);
+    } catch (error) {
+      console.log(`Attempt ${i + 1} failed. Retrying...`, error);
+      lastError = error;
+      // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, 
+        MPESA_CONFIG.CORS_PROXY.RETRY_DELAY * Math.pow(2, i)));
+    }
+  }
+  
+  throw lastError || new Error(`Failed to fetch after ${maxRetries} attempts`);
+};
+
+/**
+ * Validate a phone number format
+ */
+export const validatePhoneNumber = (phoneNumber: string): boolean => {
+  // Remove any non-digit characters
+  const digitsOnly = phoneNumber.replace(/\D/g, '');
+  
+  if (digitsOnly.length < 9) return false;
+  
+  // Kenyan formats
+  const validFormats = [
+    /^0[17]\d{8}$/, // 07XXXXXXXX or 01XXXXXXXX
+    /^254[17]\d{8}$/, // 2547XXXXXXXX or 2541XXXXXXXX
+    /^[17]\d{8}$/ // 7XXXXXXXX or 1XXXXXXXX
+  ];
+  
+  return validFormats.some(regex => regex.test(digitsOnly));
+};
 
 /**
  * Format phone number to international format (254XXXXXXXXX)
@@ -150,8 +251,8 @@ export const formatPhoneNumber = (phoneNumber: string): string => {
     return digitsOnly;
   }
   
-  // If none of the above patterns match, return as is
-  return digitsOnly;
+  // If none of the above patterns match, throw error
+  throw new Error(`Invalid phone number format: ${phoneNumber}`);
 };
 
 /**
@@ -202,8 +303,14 @@ export const saveMpesaCredentials = (credentials: MpesaCredentials): void => {
  * Tokens are valid for 1 hour
  */
 export const getAccessToken = async (): Promise<string> => {
+  // If a token refresh is already in progress, wait for it
+  if (tokenRefreshPromise) {
+    console.log("Token refresh already in progress, waiting for it to complete");
+    return tokenRefreshPromise;
+  }
+  
   // For development mode with no internet connection, return a mock token
-  if (IS_DEVELOPMENT && !navigator.onLine) {
+  if (MPESA_CONFIG.IS_DEVELOPMENT && !navigator.onLine) {
     console.log("Development mode with no internet: Returning mock access token");
     return "mock-dev-access-token-for-testing";
   }
@@ -212,7 +319,7 @@ export const getAccessToken = async (): Promise<string> => {
   const currentTime = Date.now();
   
   // Try to get from memory first
-  if (oauthToken && tokenExpiry && currentTime < tokenExpiry) {
+  if (oauthToken && tokenExpiry && currentTime < tokenExpiry - MPESA_CONFIG.TOKEN.EXPIRY_BUFFER) {
     console.log("Using cached token from memory");
     return oauthToken;
   }
@@ -221,7 +328,7 @@ export const getAccessToken = async (): Promise<string> => {
   const cachedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
   const cachedExpiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
   
-  if (cachedToken && cachedExpiry && currentTime < parseInt(cachedExpiry)) {
+  if (cachedToken && cachedExpiry && currentTime < parseInt(cachedExpiry) - MPESA_CONFIG.TOKEN.EXPIRY_BUFFER) {
     console.log("Using cached token from localStorage");
     oauthToken = cachedToken;
     tokenExpiry = parseInt(cachedExpiry);
@@ -229,55 +336,87 @@ export const getAccessToken = async (): Promise<string> => {
   }
 
   // If no valid token found, get a new one
-  const credentials = getMpesaCredentials();
-  
-  try {
-    console.log("Fetching new M-Pesa access token...");
-    
-    const auth = btoa(`${credentials.consumerKey}:${credentials.consumerSecret}`);
-    
-    const response = await fetch(MPESA_API_ENDPOINT.authToken, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Origin': window.location.origin
+  console.log("No valid token found, requesting a new one");
+
+  // Create a promise for the token refresh
+  tokenRefreshPromise = (async () => {
+    try {
+      const credentials = getMpesaCredentials();
+      console.log("Fetching new M-Pesa access token...");
+      
+      const auth = btoa(`${credentials.consumerKey}:${credentials.consumerSecret}`);
+      
+      // Use mock token in development if configured
+      if (MPESA_CONFIG.IS_DEVELOPMENT && MPESA_CONFIG.USE_MOCK_RESPONSES) {
+        console.log("Using mock token in development mode");
+        
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const mockToken = "mock-dev-access-token-with-mock-responses";
+        oauthToken = mockToken;
+        tokenExpiry = currentTime + 3600000; // 1 hour
+        
+        // Store in localStorage as backup
+        localStorage.setItem(ACCESS_TOKEN_KEY, oauthToken);
+        localStorage.setItem(TOKEN_EXPIRY_KEY, tokenExpiry.toString());
+        
+        return mockToken;
       }
-    });
-    
-    if (!response.ok) {
-      console.error(`HTTP error getting token! Status: ${response.status}`);
-      const errorText = await response.text();
-      console.error("Error response:", errorText);
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      
+      const endpoints = getApiEndpoints();
+      const tokenUrl = getFullApiUrl(endpoints.authToken);
+      
+      console.log(`Fetching token from: ${tokenUrl}`);
+      
+      const response = await retryFetch(tokenUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Origin': window.location.origin
+        }
+      });
+      
+      if (!response.ok) {
+        console.error(`HTTP error getting token! Status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("Token response:", data);
+      
+      if (!data.access_token) {
+        throw new Error('No access token received');
+      }
+      
+      // Cache the token
+      oauthToken = data.access_token;
+      tokenExpiry = currentTime + (data.expires_in * 1000 || 3600000); // Default to 1 hour if not specified
+      
+      // Store in localStorage as backup
+      localStorage.setItem(ACCESS_TOKEN_KEY, oauthToken);
+      localStorage.setItem(TOKEN_EXPIRY_KEY, tokenExpiry.toString());
+      
+      return data.access_token;
+    } catch (error) {
+      console.error("Error fetching access token:", error);
+      
+      if (MPESA_CONFIG.IS_DEVELOPMENT) {
+        // In development mode, return a mock token on error
+        console.log("Returning mock token after error in development mode");
+        return "mock-dev-access-token-after-error";
+      }
+      
+      throw error;
+    } finally {
+      // Clear the promise when done
+      tokenRefreshPromise = null;
     }
-    
-    const data = await response.json();
-    console.log("Token response:", data);
-    
-    if (!data.access_token) {
-      throw new Error('No access token received');
-    }
-    
-    // Cache the token (valid for 1 hour)
-    oauthToken = data.access_token;
-    tokenExpiry = currentTime + (data.expires_in * 1000 || 3600000); // Default to 1 hour if not specified
-    
-    // Store in localStorage as backup
-    localStorage.setItem(ACCESS_TOKEN_KEY, oauthToken);
-    localStorage.setItem(TOKEN_EXPIRY_KEY, tokenExpiry.toString());
-    
-    return data.access_token;
-  } catch (error) {
-    console.error("Error fetching access token:", error);
-    
-    if (IS_DEVELOPMENT) {
-      // In development mode, return a mock token on error
-      console.log("Returning mock token after error in development mode");
-      return "mock-dev-access-token-after-error";
-    }
-    
-    throw error;
-  }
+  })();
+  
+  return tokenRefreshPromise;
 };
 
 /**
@@ -287,14 +426,27 @@ export const initiateSTKPush = async (
   requestData: STKPushRequest
 ): Promise<{ success: boolean; data?: STKPushResponse; error?: string }> => {
   try {
+    // Validate request data
+    if (!requestData.phoneNumber) {
+      return { success: false, error: "Phone number is required" };
+    }
+
+    // Validate amount
+    if (isNaN(requestData.amount) || requestData.amount <= 0) {
+      return { 
+        success: false, 
+        error: `Invalid amount: ${requestData.amount}. Amount must be a positive number.` 
+      };
+    }
+    
     // Check if online
     if (!navigator.onLine) {
       console.error("No internet connection available for STK Push");
       return { success: false, error: "No internet connection" };
     }
     
-    // Use mock response in development mode without hitting API
-    if (IS_DEVELOPMENT && false) { // Set to true to force mock responses
+    // Use mock response in development mode if configured
+    if (MPESA_CONFIG.IS_DEVELOPMENT && MPESA_CONFIG.USE_MOCK_RESPONSES) {
       console.log("Development mode: Using mock STK Push response");
       console.log("Mock STK Push request:", requestData);
       
@@ -335,8 +487,13 @@ export const initiateSTKPush = async (
     console.log(`Using access token: ${accessToken.substring(0, 15)}...`);
     
     // Format phone number
-    const formattedPhone = formatPhoneNumber(requestData.phoneNumber);
-    console.log(`Formatted phone number: ${formattedPhone}`);
+    let formattedPhone;
+    try {
+      formattedPhone = formatPhoneNumber(requestData.phoneNumber);
+      console.log(`Formatted phone number: ${formattedPhone}`);
+    } catch (error) {
+      return { success: false, error: `Invalid phone number: ${error.message}` };
+    }
     
     // Prepare request body
     const requestBody = {
@@ -355,8 +512,12 @@ export const initiateSTKPush = async (
     
     console.log("STK Push request:", requestBody);
     
-    // Make API call
-    const response = await fetch(MPESA_API_ENDPOINT.stkPush, {
+    const endpoints = getApiEndpoints();
+    const pushUrl = getFullApiUrl(endpoints.stkPush);
+    console.log(`Sending STK push to: ${pushUrl}`);
+    
+    // Make API call with retry
+    const response = await retryFetch(pushUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -408,6 +569,9 @@ export const initiateSTKPush = async (
       pendingTransactions.push(newTransaction);
       savePendingTransactions(pendingTransactions);
       console.log("Saved pending transaction:", newTransaction);
+      
+      // Queue for reconciliation if needed
+      queueTransactionForReconciliation(responseData.CheckoutRequestID);
     }
 
     return { 
@@ -437,8 +601,8 @@ export const querySTKStatus = async (
       return { success: false, error: "No internet connection" };
     }
     
-    // Use mock response in development mode without hitting API
-    if (IS_DEVELOPMENT && false) { // Set to true to force mock responses
+    // Use mock response in development mode if configured
+    if (MPESA_CONFIG.IS_DEVELOPMENT && MPESA_CONFIG.USE_MOCK_RESPONSES) {
       console.log("Development mode: Using mock STK Query response");
       console.log("Mock STK Query for CheckoutRequestID:", checkoutRequestId);
       
@@ -476,8 +640,12 @@ export const querySTKStatus = async (
     
     console.log("STK Query request:", requestBody);
     
-    // Make API call
-    const response = await fetch(MPESA_API_ENDPOINT.stkQuery, {
+    const endpoints = getApiEndpoints();
+    const queryUrl = getFullApiUrl(endpoints.stkQuery);
+    console.log(`Querying STK status at: ${queryUrl}`);
+    
+    // Make API call with retry
+    const response = await retryFetch(queryUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -519,6 +687,11 @@ export const querySTKStatus = async (
       const newStatus: "completed" | "failed" = resultCode === "0" ? "completed" : "failed";
       updateTransactionStatus(checkoutRequestId, newStatus);
       console.log(`Updated transaction status to ${newStatus}`);
+      
+      // Remove from reconciliation queue if completed
+      if (newStatus === "completed") {
+        removeTransactionFromReconciliationQueue(checkoutRequestId);
+      }
     }
 
     return { 
@@ -559,8 +732,15 @@ export const savePendingTransactions = (transactions: MpesaTransaction[]): void 
 export const updateTransactionStatus = (
   checkoutRequestId: string,
   status: "pending" | "completed" | "failed"
-): void => {
+): boolean => {
   const pendingTransactions = getPendingTransactions();
+  const transaction = pendingTransactions.find(tx => tx.checkoutRequestId === checkoutRequestId);
+  
+  if (!transaction) {
+    console.warn(`Transaction with ID ${checkoutRequestId} not found`);
+    return false;
+  }
+  
   const updatedTransactions = pendingTransactions.map(tx => {
     if (tx.checkoutRequestId === checkoutRequestId) {
       return { ...tx, status };
@@ -569,6 +749,31 @@ export const updateTransactionStatus = (
   });
   
   savePendingTransactions(updatedTransactions);
+  return true;
+};
+
+/**
+ * Queue transaction for reconciliation when back online
+ */
+export const queueTransactionForReconciliation = (checkoutRequestId: string): void => {
+  const pendingReconciliations = localStorage.getItem(PENDING_RECONCILIATIONS) || '[]';
+  const reconciliations = JSON.parse(pendingReconciliations);
+  
+  if (!reconciliations.includes(checkoutRequestId)) {
+    reconciliations.push(checkoutRequestId);
+    localStorage.setItem(PENDING_RECONCILIATIONS, JSON.stringify(reconciliations));
+  }
+};
+
+/**
+ * Remove transaction from reconciliation queue
+ */
+export const removeTransactionFromReconciliationQueue = (checkoutRequestId: string): void => {
+  const pendingReconciliations = localStorage.getItem(PENDING_RECONCILIATIONS) || '[]';
+  const reconciliations = JSON.parse(pendingReconciliations);
+  
+  const updatedReconciliations = reconciliations.filter(id => id !== checkoutRequestId);
+  localStorage.setItem(PENDING_RECONCILIATIONS, JSON.stringify(updatedReconciliations));
 };
 
 /**
@@ -576,28 +781,48 @@ export const updateTransactionStatus = (
  * This would be called when coming back online
  */
 export const reconcilePendingTransactions = async (): Promise<void> => {
-  const pendingTransactions = getPendingTransactions();
-  const pendingOnly = pendingTransactions.filter(tx => tx.status === "pending");
+  // First, check the specific reconciliation queue
+  const pendingReconciliations = localStorage.getItem(PENDING_RECONCILIATIONS) || '[]';
+  let reconciliationIds = JSON.parse(pendingReconciliations);
   
-  if (pendingOnly.length === 0) return;
+  // Also check general pending transactions
+  const pendingTransactions = getPendingTransactions();
+  const pendingTransactionIds = pendingTransactions
+    .filter(tx => tx.status === "pending")
+    .map(tx => tx.checkoutRequestId);
+  
+  // Merge and deduplicate
+  const allPendingIds = [...new Set([...reconciliationIds, ...pendingTransactionIds])];
+  
+  if (allPendingIds.length === 0) return;
   
   toast({
     title: "Checking pending M-Pesa payments",
-    description: `Reconciling ${pendingOnly.length} pending transactions`
+    description: `Reconciling ${allPendingIds.length} pending transactions`
   });
   
-  for (const tx of pendingOnly) {
+  let successCount = 0;
+  let failedCount = 0;
+  
+  for (const id of allPendingIds) {
     try {
-      console.log(`Reconciling transaction: ${tx.checkoutRequestId}`);
-      await querySTKStatus(tx.checkoutRequestId);
+      console.log(`Reconciling transaction: ${id}`);
+      const result = await querySTKStatus(id);
+      
+      if (result.success) {
+        successCount++;
+      } else {
+        failedCount++;
+      }
     } catch (error) {
-      console.error(`Failed to reconcile transaction ${tx.checkoutRequestId}:`, error);
+      console.error(`Failed to reconcile transaction ${id}:`, error);
+      failedCount++;
     }
   }
   
   toast({
     title: "Reconciliation complete",
-    description: "All pending M-Pesa transactions have been updated"
+    description: `Updated ${successCount} transactions successfully. ${failedCount} failed.`
   });
 };
 
@@ -634,3 +859,9 @@ export const updateMpesaTransaction = (transaction: Omit<MpesaTransaction, "stat
   localStorage.setItem('mpesaTransactions', JSON.stringify(transactions));
   return typedTransaction;
 };
+
+// Add online status listener for automatic reconciliation
+window.addEventListener('online', () => {
+  console.log("Back online - reconciling pending transactions");
+  reconcilePendingTransactions();
+});

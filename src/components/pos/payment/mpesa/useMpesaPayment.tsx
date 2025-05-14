@@ -15,6 +15,7 @@ interface UseMpesaPaymentProps {
 }
 
 export function useMpesaPayment({ amount, onSuccess, isOnline }: UseMpesaPaymentProps) {
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'processing' | 'checking' | 'success' | 'failed'>('idle');
@@ -192,8 +193,16 @@ export function useMpesaPayment({ amount, onSuccess, isOnline }: UseMpesaPayment
   };
 
   // Initiate STK Push
-  const handleInitiatePayment = async (phoneNumber: string) => {
-    if (!phoneNumber.trim()) {
+  const handleInitiatePayment = async (phoneInput: string) => {
+    // Store the phone number for retry functionality
+    if (phoneInput) {
+      setPhoneNumber(phoneInput);
+    }
+    
+    // Use stored number for retries or new number from input
+    const phoneNumberToUse = phoneInput || phoneNumber;
+    
+    if (!phoneNumberToUse.trim()) {
       toast({
         title: "Phone Number Required",
         description: "Please enter a valid phone number",
@@ -211,6 +220,16 @@ export function useMpesaPayment({ amount, onSuccess, isOnline }: UseMpesaPayment
       return;
     }
 
+    // Validate amount
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Payment amount must be greater than zero",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Reset states
     setIsProcessing(true);
     setStatus('processing');
@@ -220,7 +239,21 @@ export function useMpesaPayment({ amount, onSuccess, isOnline }: UseMpesaPayment
     setCheckCount(0);
 
     try {
-      const formattedPhone = formatPhoneNumber(phoneNumber);
+      let formattedPhone;
+      try {
+        formattedPhone = formatPhoneNumber(phoneNumberToUse);
+        console.log(`Formatted phone number: ${formattedPhone}`);
+      } catch (error) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Please enter a valid Kenyan phone number",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+        setStatus('idle');
+        return;
+      }
+      
       console.log(`Initiating STK Push to phone number: ${formattedPhone}`);
       
       const response = await initiateSTKPush({
@@ -285,6 +318,13 @@ export function useMpesaPayment({ amount, onSuccess, isOnline }: UseMpesaPayment
       setNetworkError(false);
     };
   }, []);
+
+  // Reset network error when online status changes
+  useEffect(() => {
+    if (isOnline && networkError && status === 'failed') {
+      setNetworkError(false);
+    }
+  }, [isOnline, networkError, status]);
 
   return {
     status,

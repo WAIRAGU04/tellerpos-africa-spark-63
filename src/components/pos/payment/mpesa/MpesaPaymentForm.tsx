@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { formatPhoneNumber } from '@/services/mpesaService';
+import { validatePhoneNumber } from '@/services/mpesaService';
 
 interface MpesaPaymentFormProps {
   onInitiatePayment: (phoneNumber: string) => void;
@@ -21,17 +21,40 @@ const MpesaPaymentForm: React.FC<MpesaPaymentFormProps> = ({
   isProcessing
 }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
+  // Clear validation errors when user starts typing again
+  useEffect(() => {
+    if (phoneError && phoneNumber) {
+      setPhoneError('');
+    }
+  }, [phoneNumber, phoneError]);
 
   const handleSubmit = () => {
-    if (phoneNumber.trim()) {
+    // Validate phone number before submission
+    try {
+      if (!phoneNumber.trim()) {
+        setPhoneError('Phone number is required');
+        return;
+      }
+      
+      // Basic validation - can be enhanced further
+      if (phoneNumber.length < 9) {
+        setPhoneError('Phone number is too short');
+        return;
+      }
+
+      // If validation passes, initiate payment
       onInitiatePayment(phoneNumber);
+    } catch (error) {
+      setPhoneError('Invalid phone number format');
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="mb-4">
-        <h3 className="text-lg font-medium mb-2">M-Pesa STK Push</h3>
+        <h3 className="text-lg font-medium">M-Pesa STK Push</h3>
         <p className="text-sm text-muted-foreground">
           Enter your M-Pesa phone number to receive a payment prompt.
         </p>
@@ -47,9 +70,14 @@ const MpesaPaymentForm: React.FC<MpesaPaymentFormProps> = ({
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
           placeholder="e.g., 0712345678"
-          className="w-full"
+          className={`w-full ${phoneError ? 'border-red-500' : ''}`}
           disabled={isProcessing}
         />
+        {phoneError && (
+          <p className="text-xs text-red-500 mt-1">
+            {phoneError}
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           Enter your phone number in format 07XX XXX XXX
         </p>
@@ -59,7 +87,7 @@ const MpesaPaymentForm: React.FC<MpesaPaymentFormProps> = ({
         <Button 
           className="w-full"
           onClick={handleSubmit}
-          disabled={!phoneNumber.trim() || !isOnline || isProcessing}
+          disabled={!isOnline || isProcessing}
         >
           Pay KES {amount.toLocaleString()}
         </Button>

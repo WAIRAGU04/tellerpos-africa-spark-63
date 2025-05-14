@@ -6,6 +6,7 @@ import { UserData } from "@/types/dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
 // Sidebar menu items - updated to remove "sell" and keep only "pos"
 const sidebarItems = [{
@@ -59,10 +60,12 @@ const sidebarItems = [{
   icon: Briefcase,
   path: "/dashboard/backoffice"
 }];
+
 interface DashboardLayoutProps {
   children: ReactNode;
   onManualSync?: () => Promise<void>;
 }
+
 const DashboardLayout = ({
   children,
   onManualSync
@@ -72,7 +75,7 @@ const DashboardLayout = ({
     const savedState = localStorage.getItem("sidebar-collapsed");
     return savedState ? JSON.parse(savedState) : false;
   };
-  const [collapsed, setCollapsed] = useState(getInitialCollapsedState);
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [greeting, setGreeting] = useState(getGreeting());
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -95,11 +98,6 @@ const DashboardLayout = ({
   useEffect(() => {
     setActiveModule(getActiveModule());
   }, [location]);
-
-  // Save sidebar collapsed state to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem("sidebar-collapsed", JSON.stringify(collapsed));
-  }, [collapsed]);
 
   // Get user data from localStorage instead of hardcoded values
   const [userData, setUserData] = useState<UserData>({
@@ -150,6 +148,7 @@ const DashboardLayout = ({
       });
     }
   }, []);
+  
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     if (isDarkMode) {
@@ -158,12 +157,11 @@ const DashboardLayout = ({
       document.documentElement.classList.add('dark');
     }
   };
-  const toggleSidebar = () => {
-    setCollapsed(!collapsed);
-  };
+  
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
+  
   const handleNavigation = (path: string) => {
     const item = sidebarItems.find(item => item.path === path);
     if (item) {
@@ -175,104 +173,21 @@ const DashboardLayout = ({
     }
   };
 
-  // Get initials for avatar
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
-  return <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
-      {/* Sidebar for desktop */}
-      <aside className={cn("fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-white dark:bg-tellerpos-dark-accent border-r border-gray-200 dark:border-gray-800 hidden md:block", collapsed ? "w-20" : "w-64")}>
-        {/* Sidebar Header */}
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800">
-            <div className={cn("flex items-center transition-all", collapsed ? "justify-center w-full" : "justify-start")}>
-              {!collapsed && <span className="text-xl font-bold">
-                  <span className="text-tellerpos">Teller</span>
-                  <span>POS</span>
-                </span>}
-              {collapsed && <span className="text-xl font-bold text-tellerpos">T</span>}
-            </div>
-            
-            <button onClick={toggleSidebar} className={cn("p-2 rounded-md hover:bg-gray-100 dark:hover:bg-tellerpos-bg transition-colors", collapsed && "absolute right-0 transform translate-x-1/2 bg-white dark:bg-tellerpos-dark-accent border border-gray-200 dark:border-gray-800 rounded-full")}>
-              {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </button>
-          </div>
-          
-          {/* User Profile Section */}
-          <div className={cn("px-4 py-5 border-b border-gray-200 dark:border-gray-800", collapsed ? "flex justify-center" : "")}>
-            {collapsed ? <div className="flex flex-col items-center">
-                <Avatar className="h-10 w-10 bg-tellerpos text-white">
-                  <AvatarFallback>{getInitials(userData.firstName, userData.lastName)}</AvatarFallback>
-                </Avatar>
-              </div> : <div className="space-y-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">{greeting},</p>
-                <p className="font-semibold text-sm">{userData.firstName} {userData.lastName}</p>
-                <p className="text-xs text-tellerpos">{userData.businessName}</p>
-              </div>}
-          </div>
-          
-          {/* Navigation Items */}
-          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-            {sidebarItems.map(item => <button key={item.id} onClick={() => handleNavigation(item.path)} className={cn("flex items-center w-full px-2 py-3 rounded-md transition-colors", activeModule === item.id ? "bg-tellerpos text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50", collapsed ? "justify-center" : "justify-start")}>
-                <item.icon size={20} className={collapsed ? "" : "mr-3"} />
-                {!collapsed && <span>{item.label}</span>}
-                {collapsed && <span className="sr-only">{item.label}</span>}
-              </button>)}
-          </nav>
-          
-          {/* Logout Button */}
-          <div className="px-2 py-4 border-t border-gray-200 dark:border-gray-800">
-            <button onClick={() => navigate("/")} className={cn("flex items-center w-full px-2 py-3 rounded-md transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50", collapsed ? "justify-center" : "justify-start")} aria-label="Logout">
-              <LogOut size={20} className={collapsed ? "" : "mr-3"} />
-              {!collapsed && <span>Logout</span>}
-            </button>
-          </div>
-        </div>
-      </aside>
-
+  return (
+    <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
+      {/* Using the new DashboardSidebar component with shadcn/ui */}
+      <DashboardSidebar 
+        userData={userData}
+        activeModule={activeModule}
+        setActiveModule={setActiveModule}
+        menuItems={sidebarItems}
+      />
+      
       {/* Mobile sidebar overlay */}
       <div className={cn("fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity md:hidden", mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none")} onClick={() => setMobileMenuOpen(false)} />
 
-      {/* Mobile sidebar */}
-      <div className={cn("fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-tellerpos-dark-accent transition-transform md:hidden", mobileMenuOpen ? "translate-x-0" : "-translate-x-full")}>
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800">
-          <span className="text-xl font-bold">
-            <span className="text-tellerpos">Teller</span>
-            <span>POS</span>
-          </span>
-          <button onClick={toggleMobileMenu} className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-            <ChevronLeft size={20} />
-          </button>
-        </div>
-        
-        {/* User Profile Section */}
-        <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-800">
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600 dark:text-gray-400">{greeting},</p>
-            <p className="font-semibold text-sm">{userData.firstName} {userData.lastName}</p>
-            <p className="text-xs text-tellerpos">{userData.businessName}</p>
-          </div>
-        </div>
-        
-        {/* Mobile Navigation Items */}
-        <nav className="px-2 py-4 space-y-1 overflow-y-auto h-[calc(100%-172px)]">
-          {sidebarItems.map(item => <button key={item.id} onClick={() => handleNavigation(item.path)} className={cn("flex items-center w-full px-2 py-3 rounded-md transition-colors", activeModule === item.id ? "bg-tellerpos text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50")}>
-              <item.icon size={20} className="mr-3" />
-              <span>{item.label}</span>
-            </button>)}
-        </nav>
-        
-        {/* Mobile Logout Button */}
-        <div className="absolute bottom-0 left-0 right-0 px-2 py-4 border-t border-gray-200 dark:border-gray-800">
-          <button onClick={() => navigate("/")} className="flex items-center w-full px-2 py-3 rounded-md transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50">
-            <LogOut size={20} className="mr-3" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <main className={cn("flex-1 transition-all duration-300 ease-in-out flex flex-col", collapsed ? "md:ml-20" : "md:ml-64")}>
+      <main className="flex-1 flex flex-col">
         {/* Top Header Bar */}
         <DashboardHeader userData={userData} onManualSync={onManualSync} />
         
@@ -281,6 +196,8 @@ const DashboardLayout = ({
           {children}
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default DashboardLayout;

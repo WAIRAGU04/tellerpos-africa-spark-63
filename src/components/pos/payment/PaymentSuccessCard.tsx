@@ -2,19 +2,22 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ReceiptIcon } from 'lucide-react';
 
 interface PaymentSuccessCardProps {
   cartTotal: number;
   onShowReceipt: () => void;
   onShowInvoice: () => void;
   onNewSale: () => void;
+  isInvoice?: boolean;
 }
 
 const PaymentSuccessCard: React.FC<PaymentSuccessCardProps> = ({
   cartTotal,
   onShowReceipt,
   onShowInvoice,
-  onNewSale
+  onNewSale,
+  isInvoice = false
 }) => {
   return (
     <Card className="text-center">
@@ -28,9 +31,17 @@ const PaymentSuccessCard: React.FC<PaymentSuccessCardProps> = ({
         <p className="text-muted-foreground mb-6">Total amount: KES {cartTotal.toLocaleString()}</p>
         
         <div className="grid grid-cols-2 gap-3">
-          <Button onClick={onShowReceipt}>Print Receipt</Button>
-          <Button variant="outline" onClick={onShowInvoice}>Print Invoice</Button>
-          <Button className="col-span-2" onClick={onNewSale}>New Sale</Button>
+          {isInvoice ? (
+            <Button onClick={onShowReceipt} className="col-span-2">
+              <ReceiptIcon className="mr-2 h-4 w-4" /> View Invoice
+            </Button>
+          ) : (
+            <>
+              <Button onClick={onShowReceipt}>Print Receipt</Button>
+              <Button variant="outline" onClick={onShowInvoice}>Print Invoice</Button>
+            </>
+          )}
+          <Button className="col-span-2" variant={isInvoice ? "outline" : "default"} onClick={onNewSale}>New Sale</Button>
         </div>
       </CardContent>
     </Card>

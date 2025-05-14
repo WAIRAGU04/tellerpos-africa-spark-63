@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { POSCheckoutProps, PaymentMethod } from '@/types/pos';
@@ -47,9 +46,24 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       return;
     }
 
+    // Check if customer is selected for credit payment
+    if (paymentMethod === 'credit' && !selectedCustomerId) {
+      toast({
+        title: "Customer required",
+        description: "Please select a customer for credit payment",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       // Create transaction object
       const transaction = createTransactionObject(cart, cartTotal, paymentMethod, selectedCustomerId, false);
+      
+      // Mark as invoice if it's a credit payment
+      if (paymentMethod === 'credit') {
+        transaction.isInvoice = true;
+      }
       
       // Record the transaction (this updates shift, accounts, and sales records)
       const success = recordTransaction(transaction);
@@ -90,6 +104,17 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       return;
     }
 
+    // Check if any payment is on credit and validate customer selection
+    const hasCreditPayment = payments.some(payment => payment.method === 'credit');
+    if (hasCreditPayment && !selectedCustomerId) {
+      toast({
+        title: "Customer required",
+        description: "Please select a customer when using credit payment",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       // Create transaction object for split payment
       const transaction = createTransactionObject(cart, cartTotal, 'cash', selectedCustomerId, true);
@@ -101,6 +126,19 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
         amount: payment.amount,
         timestamp: new Date().toISOString()
       }));
+      
+      // Mark transaction as invoice if any part is credit
+      if (hasCreditPayment) {
+        transaction.isInvoice = true;
+        
+        // Calculate the paid amount (non-credit) and balance amount (credit)
+        const creditAmount = payments
+          .filter(payment => payment.method === 'credit')
+          .reduce((sum, payment) => sum + payment.amount, 0);
+          
+        transaction.paidAmount = cartTotal - creditAmount;
+        transaction.balanceAmount = creditAmount;
+      }
       
       // Record the transaction
       const success = recordTransaction(transaction);
@@ -142,6 +180,21 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
     setShowInvoice(true);
   };
 
+  // Determine if we should automatically show invoice instead of receipt
+  const shouldShowInvoice = () => {
+    if (!transactionData) return false;
+    
+    // Show invoice if transaction is marked as invoice (credit payment)
+    if (transactionData.isInvoice) return true;
+    
+    // Otherwise, show invoice if any payment is credit type
+    if (transactionData.payments) {
+      return transactionData.payments.some(payment => payment.method === 'credit');
+    }
+    
+    return false;
+  };
+
   // If showing receipt view
   if (showReceipt) {
     const transaction = transactionData || createTransactionObject(cart, cartTotal, paymentMethod, selectedCustomerId, isSplitPayment);
@@ -165,6 +218,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
         customerName={selectedCustomerId ? 'Selected Customer' : 'Customer'}
         invoiceNumber={transaction.receiptNumber.replace('RC', 'INV')}
         onClose={handleNewSale}
+        paidAmount={transaction.paidAmount}
       />
     );
   }
@@ -177,6 +231,14 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
         onComplete={handleSplitPaymentComplete}
         onCancel={() => setIsSplitPayment(false)}
         isOnline={isOnline}
+        selectedCustomerId={selectedCustomerId}
+        showCustomerSelect={() => {
+          setIsSplitPayment(false);
+          // Give time for UI to update before showing focus on customer select
+          setTimeout(() => {
+            document.querySelector('.customer-select')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }}
       />
     );
   }
@@ -191,13 +253,14 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
         {isPaymentComplete ? (
           <PaymentSuccessCard 
             cartTotal={cartTotal}
-            onShowReceipt={showReceiptView}
+            onShowReceipt={shouldShowInvoice() ? showInvoiceView : showReceiptView}
             onShowInvoice={showInvoiceView}
             onNewSale={handleNewSale}
+            isInvoice={shouldShowInvoice()}
           />
         ) : (
           <>
-            <div className="mb-6">
+            <div className="mb-6 customer-select">
               <h3 className="text-lg font-medium mb-2">Customer Information (Optional)</h3>
               <POSCustomerSelect 
                 onSelectCustomer={(customerId) => setSelectedCustomerId(customerId)}
@@ -233,7 +296,11 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       {/* Footer */}
       {!isPaymentComplete && (
         <div className="border-t p-4">
-          <Button onClick={handlePayment} className="w-full h-16 text-lg" disabled={!isOnline && paymentMethod !== 'cash'}>
+          <Button 
+            onClick={handlePayment} 
+            className="w-full h-16 text-lg" 
+            disabled={(paymentMethod === 'credit' && !selectedCustomerId) || (!isOnline && paymentMethod !== 'cash')}
+          >
             Pay KES {cartTotal.toLocaleString()}
           </Button>
         </div>

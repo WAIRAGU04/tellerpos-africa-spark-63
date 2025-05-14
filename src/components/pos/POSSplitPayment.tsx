@@ -20,7 +20,9 @@ import {
   Banknote,
   Plus,
   Trash2,
+  AlertCircle
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface POSSplitPaymentProps {
   cartTotal: number;
@@ -67,6 +69,9 @@ const POSSplitPayment: React.FC<POSSplitPaymentProps> = ({
   const totalPaid = splitAmounts.reduce((sum, item) => sum + item.amount, 0);
   const remainingAmount = cartTotal - totalPaid;
   
+  // Check if any payment is credit type
+  const hasCreditPayment = splitAmounts.some(item => item.method === 'credit');
+  
   const handleAddSplit = () => {
     const amount = parseFloat(newAmount);
     if (isNaN(amount) || amount <= 0 || amount > remainingAmount) return;
@@ -87,6 +92,14 @@ const POSSplitPayment: React.FC<POSSplitPaymentProps> = ({
   
   const handleComplete = () => {
     if (onComplete && remainingAmount === 0) {
+      // Check if credit payment is included but no customer selected
+      if (hasCreditPayment && !selectedCustomerId) {
+        if (showCustomerSelect) {
+          showCustomerSelect();
+        }
+        return;
+      }
+      
       onComplete(splitAmounts);
     }
   };
@@ -124,6 +137,25 @@ const POSSplitPayment: React.FC<POSSplitPaymentProps> = ({
   return (
     <div>
       <h3 className="font-medium mb-2">Split Payment</h3>
+      
+      {/* Show warning if using credit without customer */}
+      {hasCreditPayment && !selectedCustomerId && (
+        <Alert variant="warning" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Customer selection is required when using credit payment. 
+            {showCustomerSelect && (
+              <Button 
+                variant="link" 
+                className="p-0 h-auto ml-1" 
+                onClick={showCustomerSelect}
+              >
+                Select a customer now
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       
       {/* Current splits */}
       <div className="mb-4">
@@ -245,7 +277,7 @@ const POSSplitPayment: React.FC<POSSplitPaymentProps> = ({
           <Button 
             onClick={handleComplete}
             className="ml-auto"
-            disabled={remainingAmount > 0}
+            disabled={remainingAmount > 0 || (hasCreditPayment && !selectedCustomerId)}
           >
             Complete Payment
           </Button>

@@ -19,6 +19,10 @@ export const generateReceiptNumber = (): string => {
   return `RC-${nanoid(8).toUpperCase()}`;
 };
 
+export const generateInvoiceNumber = (): string => {
+  return `INV-${nanoid(8).toUpperCase()}`;
+};
+
 export const generateQuotationNumber = (): string => {
   return `QT-${nanoid(8).toUpperCase()}`;
 };
@@ -30,7 +34,12 @@ export const createTransactionObject = (
   customerId: string | null,
   isSplitPayment: boolean = false
 ): Transaction => {
-  const receiptNum = generateReceiptNumber();
+  // Determine if this should be an invoice
+  const isInvoice = paymentMethod === 'credit';
+  
+  // Generate appropriate document number
+  const documentNumber = isInvoice ? generateInvoiceNumber() : generateReceiptNumber();
+  
   return {
     id: nanoid(),
     items: cart,
@@ -44,10 +53,14 @@ export const createTransactionObject = (
     subtotal: cartTotal,
     customerId: customerId || undefined,
     timestamp: new Date().toISOString(),
-    receiptNumber: receiptNum,
-    status: 'completed',
+    receiptNumber: documentNumber,
+    status: isInvoice ? 'pending' : 'completed',
     customerName: customerId ? 'Selected Customer' : undefined,
-    userId: ''
+    userId: '',
+    isInvoice: isInvoice,
+    // For credit sales, the entire amount is unpaid
+    paidAmount: isInvoice ? 0 : cartTotal,
+    balanceAmount: isInvoice ? cartTotal : 0
   };
 };
 

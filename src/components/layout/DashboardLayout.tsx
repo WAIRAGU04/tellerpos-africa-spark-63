@@ -1,3 +1,4 @@
+
 import { useState, useEffect, ReactNode } from "react";
 import { LayoutDashboard, ShoppingBag, Calendar, BarChart3, Package2, Wallet, LineChart, Users, Settings, Briefcase, LogOut, ChevronLeft, ChevronRight, Menu, Sun, Moon, User, Bell } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -209,6 +210,9 @@ const DashboardLayout = ({
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
   
+  // Determine if dark mode is active
+  const isDarkTheme = theme === "dark";
+  
   return <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
       {/* Sidebar for desktop */}
       <aside className={cn("fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-white dark:bg-tellerpos-dark-accent border-r border-gray-200 dark:border-gray-800 hidden md:block", collapsed ? "w-20" : "w-64")}>
@@ -317,8 +321,8 @@ const DashboardLayout = ({
             <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label="Notifications">
               <Bell size={20} />
             </button>
-            <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}>
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label={isDarkTheme ? "Switch to light mode" : "Switch to dark mode"}>
+              {isDarkTheme ? <Sun size={20} /> : <Moon size={20} />}
             </button>
           </div>
         </header>
@@ -331,3 +335,4 @@ const DashboardLayout = ({
     </div>;
 };
 export default DashboardLayout;
+

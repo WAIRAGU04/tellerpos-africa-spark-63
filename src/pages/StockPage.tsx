@@ -159,15 +159,6 @@ const StockPage = () => {
     return true;
   });
 
-  // Add to cart functionality (will be implemented in the Sell module later)
-  const addToCart = (item: InventoryItem) => {
-    toast({
-      title: 'Added to Cart',
-      description: `${item.name} has been added to cart.`
-    });
-    // In a real app, this would add the item to a cart state
-  };
-
   // Download inventory template
   const downloadTemplate = () => {
     // Create a simple CSV template
@@ -294,12 +285,10 @@ const StockPage = () => {
                 </div> : viewMode === 'grid' ? 
                 <InventoryGrid 
                   items={filteredInventory} 
-                  onAddToCart={addToCart}
                   onEdit={handleEdit}
                 /> : 
                 <InventoryList 
                   items={filteredInventory} 
-                  onAddToCart={addToCart}
                   onEdit={handleEdit} 
                 />
               }

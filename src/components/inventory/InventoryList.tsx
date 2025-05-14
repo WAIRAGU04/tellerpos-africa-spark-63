@@ -3,7 +3,7 @@ import React from 'react';
 import { InventoryItem, Product, Service } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Edit } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -15,11 +15,10 @@ import {
 
 interface InventoryListProps {
   items: InventoryItem[];
-  onAddToCart: (item: InventoryItem) => void;
   onEdit?: (item: InventoryItem) => void;
 }
 
-const InventoryList = ({ items, onAddToCart, onEdit }: InventoryListProps) => {
+const InventoryList = ({ items, onEdit }: InventoryListProps) => {
   // Helper to render status badge
   const renderStatus = (item: InventoryItem) => {
     if (item.type === 'product') {
@@ -93,25 +92,15 @@ const InventoryList = ({ items, onAddToCart, onEdit }: InventoryListProps) => {
                 <div className="flex justify-end gap-2">
                   {onEdit && (
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       onClick={() => onEdit(item)}
-                      className="h-8 w-8 p-0"
+                      className="h-8"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4 mr-1" /> 
+                      <span className="hidden sm:inline">Edit</span>
                     </Button>
                   )}
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => onAddToCart(item)}
-                    disabled={(item.type === 'product' && (item as Product).quantity <= 0) || 
-                              (item.type === 'service' && !(item as Service).isAvailable)}
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-1" /> 
-                    <span className="hidden sm:inline">Add to Cart</span>
-                  </Button>
                 </div>
               </TableCell>
             </TableRow>

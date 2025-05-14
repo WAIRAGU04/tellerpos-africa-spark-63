@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import POSLayout from "@/components/pos/POSLayout";
 import { Product, Service, InventoryItem } from '@/types/inventory';
 import { CartItem } from '@/types/pos';
-import { useShift } from '@/contexts/shift'; // Ensure we're using the correct import path
+import { useShift } from '@/contexts/shift'; 
 import { Button } from "@/components/ui/button";
 import { CalendarClock } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
@@ -104,6 +104,11 @@ const POSPage = () => {
       updatedCart[existingItemIndex].quantity += 1;
       updatedCart[existingItemIndex].total = updatedCart[existingItemIndex].price * updatedCart[existingItemIndex].quantity;
       setCart(updatedCart);
+      
+      toast({
+        title: "Added to cart",
+        description: `${item.name} quantity increased in cart.`,
+      });
     } else {
       // Item doesn't exist in cart, add it
       const newCartItem: CartItem = {
@@ -118,12 +123,12 @@ const POSPage = () => {
       };
       
       setCart(prev => [...prev, newCartItem]);
+      
+      toast({
+        title: "Added to cart",
+        description: `${item.name} added to cart.`,
+      });
     }
-    
-    toast({
-      title: "Added to cart",
-      description: `${item.name} added to cart.`,
-    });
   };
 
   const updateCartItemQuantity = (id: string, quantity: number) => {
@@ -148,7 +153,7 @@ const POSPage = () => {
     if (quantity > 0) {
       setCart(prevCart => 
         prevCart.map(item => 
-          item.id === id ? { ...item, quantity } : item
+          item.id === id ? { ...item, quantity, total: item.price * quantity } : item
         )
       );
     } else {

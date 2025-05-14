@@ -3,11 +3,17 @@ import React, { useState } from 'react';
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { UserPrivilege, UserPrivilegeGroup, PrivilegeCategories } from '@/types/users';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface UserPrivilegesProps {
   selectedPrivileges: string[];
@@ -21,6 +27,7 @@ const UserPrivileges: React.FC<UserPrivilegesProps> = ({
   userRole
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("customers");
   
   // Define all available privileges grouped by category
   const privilegeGroups: UserPrivilegeGroup[] = [
@@ -187,6 +194,9 @@ const UserPrivileges: React.FC<UserPrivilegesProps> = ({
     }
   };
 
+  // Get the current category group
+  const currentGroup = privilegeGroups.find(group => group.category === selectedCategory) || privilegeGroups[0];
+
   // Apply role-based default privileges
   React.useEffect(() => {
     if (userRole && selectedPrivileges.length === 0) {
@@ -240,63 +250,70 @@ const UserPrivileges: React.FC<UserPrivilegesProps> = ({
           className="flex-1"
         />
       </div>
+      
+      <div className="w-full">
+        <div className="flex items-center mb-4">
+          <label className="mr-2 text-sm font-medium">Category:</label>
+          <Select
+            value={selectedCategory}
+            onValueChange={setSelectedCategory}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {privilegeGroups.map(group => (
+                <SelectItem key={group.category} value={group.category}>
+                  {group.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <Tabs defaultValue="customers" className="w-full">
-        <TabsList className="grid grid-cols-4 md:grid-cols-8">
-          {privilegeGroups.map(group => (
-            <TabsTrigger key={group.category} value={group.category}>
-              {group.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {privilegeGroups.map(group => (
-          <TabsContent key={group.category} value={group.category} className="space-y-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle>{group.label}</CardTitle>
-                  <div className="flex items-center space-x-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle>{currentGroup.label}</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id={`select-all-${currentGroup.category}`} 
+                  checked={currentGroup.privileges.every(p => selectedPrivileges.includes(p.id))}
+                  onCheckedChange={() => handleSelectAll(currentGroup.category)}
+                />
+                <Label htmlFor={`select-all-${currentGroup.category}`}>Select All</Label>
+              </div>
+            </div>
+            <CardDescription>
+              {currentGroup.label} permissions control access to {currentGroup.category} functionality
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filterPrivileges(currentGroup.privileges).map(privilege => (
+                  <div key={privilege.id} className="flex items-start space-x-2">
                     <Checkbox 
-                      id={`select-all-${group.category}`} 
-                      checked={group.privileges.every(p => selectedPrivileges.includes(p.id))}
-                      onCheckedChange={() => handleSelectAll(group.category)}
+                      id={privilege.id} 
+                      checked={isPrivilegeSelected(privilege.id)}
+                      onCheckedChange={() => handlePrivilegeToggle(privilege.id)}
                     />
-                    <Label htmlFor={`select-all-${group.category}`}>Select All</Label>
+                    <div className="space-y-1">
+                      <Label 
+                        htmlFor={privilege.id}
+                        className="font-medium"
+                      >
+                        {privilege.name}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">{privilege.description}</p>
+                    </div>
                   </div>
-                </div>
-                <CardDescription>
-                  {group.label} permissions control access to {group.category} functionality
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[300px]">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filterPrivileges(group.privileges).map(privilege => (
-                      <div key={privilege.id} className="flex items-start space-x-2">
-                        <Checkbox 
-                          id={privilege.id} 
-                          checked={isPrivilegeSelected(privilege.id)}
-                          onCheckedChange={() => handlePrivilegeToggle(privilege.id)}
-                        />
-                        <div className="space-y-1">
-                          <Label 
-                            htmlFor={privilege.id}
-                            className="font-medium"
-                          >
-                            {privilege.name}
-                          </Label>
-                          <p className="text-xs text-muted-foreground">{privilege.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -286,7 +286,7 @@ const ImportProducts = ({ onImport, onCancel, existingItems = [] }: ImportProduc
       )}
       
       {duplicateWarnings.length > 0 && (
-        <Alert variant="warning" className="bg-yellow-50 text-yellow-800 border-yellow-200">
+        <Alert variant="warning">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Duplicate Products Detected</AlertTitle>
           <AlertDescription>

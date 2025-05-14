@@ -3,7 +3,7 @@ export interface UserPrivilege {
   id: string;
   name: string;
   description: string;
-  category: 'customers' | 'sales' | 'inventory' | 'accounts' | 'users' | 'settings' | 'reports' | 'other';
+  category: 'customers' | 'sales' | 'inventory' | 'accounts' | 'users' | 'settings' | 'reports' | 'suppliers' | 'other';
   enabled: boolean;
 }
 

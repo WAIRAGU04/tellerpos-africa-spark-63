@@ -248,7 +248,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
   // Update shift with a new sale
   const updateShiftWithSale = (
     items: CartItem[], 
-    paymentMethod: PosPaymentMethod, 
+    paymentMethod: PaymentMethod, 
     amount: number
   ) => {
     if (!activeShift) {
@@ -293,7 +293,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
   // Handle split payment sales
   const updateShiftWithSplitSale = (
     items: CartItem[],
-    payments: Array<{method: PosPaymentMethod, amount: number}>
+    payments: Array<{method: PaymentMethod, amount: number}>
   ) => {
     if (!activeShift) {
       toast({

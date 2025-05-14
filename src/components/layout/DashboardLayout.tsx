@@ -5,8 +5,9 @@ import { cn, getGreeting } from "@/lib/utils";
 import { UserData } from "@/types/dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useTheme } from "@/components/ui/theme-provider";
 
-// Sidebar menu items - updated to remove "sell" and keep only "pos"
+// Sidebar menu items - updated to match App.tsx routes
 const sidebarItems = [{
   id: "dashboard",
   label: "Dashboard",
@@ -28,10 +29,10 @@ const sidebarItems = [{
   icon: BarChart3,
   path: "/dashboard/sales"
 }, {
-  id: "stock",
+  id: "inventory", // Changed from "stock" to "inventory" to match App.tsx route
   label: "Stock",
   icon: Package2,
-  path: "/dashboard/stock"
+  path: "/dashboard/inventory"
 }, {
   id: "accounts",
   label: "Accounts",
@@ -43,11 +44,6 @@ const sidebarItems = [{
   icon: LineChart,
   path: "/dashboard/analytics"
 }, {
-  id: "users",
-  label: "Users",
-  icon: Users,
-  path: "/dashboard/users"
-}, {
   id: "settings",
   label: "Settings",
   icon: Settings,
@@ -58,23 +54,39 @@ const sidebarItems = [{
   icon: Briefcase,
   path: "/dashboard/backoffice"
 }];
+
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 const DashboardLayout = ({
   children
 }: DashboardLayoutProps) => {
-  // Get collapsed state from localStorage if available
+  // Use theme provider
+  const { theme, setTheme } = useTheme();
+  
+  // Get collapsed state from localStorage if available, or from theme settings
   const getInitialCollapsedState = () => {
+    // First check theme settings
+    try {
+      const themeSettings = localStorage.getItem("tellerpos_theme_settings");
+      if (themeSettings) {
+        const parsedSettings = JSON.parse(themeSettings);
+        if (parsedSettings.sidebarCollapsed !== undefined) {
+          return parsedSettings.sidebarCollapsed;
+        }
+      }
+    } catch (e) {
+      console.error("Error reading theme settings:", e);
+    }
+    
+    // Fall back to direct sidebar state
     const savedState = localStorage.getItem("sidebar-collapsed");
     return savedState ? JSON.parse(savedState) : false;
   };
+  
   const [collapsed, setCollapsed] = useState(getInitialCollapsedState);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [greeting, setGreeting] = useState(getGreeting());
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return document.documentElement.classList.contains('dark');
-  });
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -83,9 +95,18 @@ const DashboardLayout = ({
   const getActiveModule = () => {
     const path = location.pathname;
     if (path === "/dashboard") return "dashboard";
-    const foundItem = sidebarItems.find(item => path.startsWith(item.path) && item.path !== "/dashboard");
+    
+    // Check for exact path matches first
+    const exactMatch = sidebarItems.find(item => item.path === path);
+    if (exactMatch) return exactMatch.id;
+    
+    // Then check for path starts with
+    const foundItem = sidebarItems.find(item => 
+      path.startsWith(item.path) && item.path !== "/dashboard"
+    );
     return foundItem ? foundItem.id : "dashboard";
   };
+  
   const [activeModule, setActiveModule] = useState(getActiveModule());
 
   // Update active module when location changes
@@ -96,6 +117,18 @@ const DashboardLayout = ({
   // Save sidebar collapsed state to localStorage when it changes
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", JSON.stringify(collapsed));
+    
+    // Also update theme settings if they exist
+    try {
+      const themeSettings = localStorage.getItem("tellerpos_theme_settings");
+      if (themeSettings) {
+        const parsedSettings = JSON.parse(themeSettings);
+        parsedSettings.sidebarCollapsed = collapsed;
+        localStorage.setItem("tellerpos_theme_settings", JSON.stringify(parsedSettings));
+      }
+    } catch (e) {
+      console.error("Error updating theme settings:", e);
+    }
   }, [collapsed]);
 
   // Get user data from localStorage instead of hardcoded values
@@ -147,20 +180,19 @@ const DashboardLayout = ({
       });
     }
   }, []);
+  
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-    } else {
-      document.documentElement.classList.add('dark');
-    }
+    setTheme(theme === "dark" ? "light" : "dark");
   };
+  
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
   };
+  
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
+  
   const handleNavigation = (path: string) => {
     const item = sidebarItems.find(item => item.path === path);
     if (item) {
@@ -176,6 +208,7 @@ const DashboardLayout = ({
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
+  
   return <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
       {/* Sidebar for desktop */}
       <aside className={cn("fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-white dark:bg-tellerpos-dark-accent border-r border-gray-200 dark:border-gray-800 hidden md:block", collapsed ? "w-20" : "w-64")}>

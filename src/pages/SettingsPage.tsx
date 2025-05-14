@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BusinessSettingsForm from "@/components/settings/BusinessSettingsForm";
 import UserProfileForm from "@/components/settings/UserProfileForm";
-import { BusinessSettings, UserData } from "@/types/dashboard";
+import { BusinessSettings, UserData, ThemeSettings } from "@/types/dashboard";
 import { toast } from "sonner";
 import { 
   loadBusinessSettings, 
@@ -115,12 +115,17 @@ const SettingsPage = () => {
     }
   };
 
-  const handleSaveThemeSettings = (themeSettings: any) => {
+  const handleSaveThemeSettings = (themeSettings: ThemeSettings) => {
     setIsSavingTheme(true);
     
     try {
       // Save theme settings to localStorage
       localStorage.setItem("tellerpos_theme_settings", JSON.stringify(themeSettings));
+      
+      // Apply sidebar collapsed state if the setting was changed
+      if (themeSettings.sidebarCollapsed !== undefined) {
+        localStorage.setItem("sidebar-collapsed", JSON.stringify(themeSettings.sidebarCollapsed));
+      }
       
       toast.success("Theme settings updated successfully!");
     } catch (error) {

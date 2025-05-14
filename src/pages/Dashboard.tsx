@@ -26,10 +26,10 @@ const sidebarItems = [{
   icon: BarChart3,
   path: "/dashboard/sales"
 }, {
-  id: "stock",
+  id: "inventory",
   label: "Stock",
   icon: Package2,
-  path: "/dashboard/stock"
+  path: "/dashboard/inventory"
 }, {
   id: "accounts",
   label: "Accounts",

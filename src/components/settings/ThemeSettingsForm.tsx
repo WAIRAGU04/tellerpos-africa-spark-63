@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Moon, Sun, Monitor } from "lucide-react";
+import { useTheme } from "@/components/ui/theme-provider";
 
 const themeSettingsSchema = z.object({
   colorScheme: z.enum(["light", "dark", "system"]),
@@ -31,14 +32,18 @@ const ThemeSettingsForm: React.FC<ThemeSettingsFormProps> = ({
   onSave,
   isSaving,
 }) => {
+  const { setTheme, theme } = useTheme();
+  
   // Load theme settings from localStorage or use defaults
   const loadThemeSettings = (): ThemeSettings => {
     try {
       const stored = localStorage.getItem("tellerpos_theme_settings");
+      const currentTheme = theme as "light" | "dark" | "system"; // Use current theme from ThemeProvider
+      
       if (stored) {
         const parsed = JSON.parse(stored);
         return {
-          colorScheme: parsed.colorScheme || "system",
+          colorScheme: currentTheme, // Use ThemeProvider's value
           reducedMotion: parsed.reducedMotion || false,
           largeText: parsed.largeText || false,
           highContrast: parsed.highContrast || false,
@@ -52,7 +57,7 @@ const ThemeSettingsForm: React.FC<ThemeSettingsFormProps> = ({
     
     // Default values
     return {
-      colorScheme: "system",
+      colorScheme: theme as "light" | "dark" | "system", // Use ThemeProvider's value
       reducedMotion: false,
       largeText: false,
       highContrast: false,
@@ -66,11 +71,16 @@ const ThemeSettingsForm: React.FC<ThemeSettingsFormProps> = ({
     defaultValues: loadThemeSettings(),
   });
 
+  // Update form when theme changes in ThemeProvider
+  useEffect(() => {
+    form.setValue("colorScheme", theme as "light" | "dark" | "system");
+  }, [theme, form]);
+
   // Apply theme settings when form values change
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "colorScheme") {
-        applyColorScheme(value.colorScheme as "light" | "dark" | "system");
+        setTheme(value.colorScheme as "light" | "dark" | "system");
       }
       
       if (name === "largeText") {
@@ -83,22 +93,13 @@ const ThemeSettingsForm: React.FC<ThemeSettingsFormProps> = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form.watch]);
-  
-  // Apply color scheme based on selection
-  const applyColorScheme = (scheme: "light" | "dark" | "system") => {
-    if (scheme === "light") {
-      document.documentElement.classList.remove("dark");
-    } else if (scheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      // System preference
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      document.documentElement.classList.toggle("dark", prefersDark);
-    }
-  };
+  }, [form.watch, setTheme]);
 
   const onSubmit = (data: ThemeSettings) => {
+    // Update the theme in ThemeProvider
+    setTheme(data.colorScheme);
+    
+    // Save other settings
     onSave(data);
   };
 
@@ -123,8 +124,12 @@ const ThemeSettingsForm: React.FC<ThemeSettingsFormProps> = ({
                   <FormItem>
                     <FormLabel>Color Scheme</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setTheme(value as "light" | "dark" | "system");
+                      }}
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger className="w-full">

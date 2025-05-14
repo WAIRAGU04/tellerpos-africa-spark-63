@@ -55,7 +55,7 @@ const DEFAULT_CREDENTIALS = {
   initiatorPassword: "Safaricom123!!",
   partyA: "600984",
   partyB: "600000",
-  callbackUrl: "https://mydomain.com/callback", // Would be replaced in production
+  callbackUrl: "https://lovable.dev/projects/431e79dc-699d-4ad0-b83d-3b93b67b9ee8", // Updated callback URL
   transactionType: "CustomerPayBillOnline"
 };
 

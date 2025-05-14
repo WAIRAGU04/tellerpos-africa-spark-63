@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Shift, Expense, ShiftFormValues } from "@/types/shift";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useShift } from "@/contexts/shift";
-import { nanoid } from "nanoid";
 
 const ShiftPage = () => {
   const {
@@ -19,7 +19,6 @@ const ShiftPage = () => {
     startShift,
     closeShift,
     addExpense,
-    updateShiftWithSale
   } = useShift();
   const [shiftHistory, setShiftHistory] = useState<Shift[]>([]);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
@@ -49,35 +48,6 @@ const ShiftPage = () => {
     addExpense(expenseData);
   };
 
-  // Mock function to simulate updating sales (in a real app this would happen automatically)
-  const simulateSale = () => {
-    if (!activeShift) return;
-
-    // Random sale amount between 1000 and 10000
-    const saleAmount = Math.floor(Math.random() * 9000) + 1000;
-
-    // Randomly select a payment method
-    const paymentMethods = ['mpesa-stk', 'mpesa-till', 'pochi-la-biashara', 'cash', 'bank-transfer', 'credit', 'other-custom'] as const;
-    const randomIndex = Math.floor(Math.random() * paymentMethods.length);
-    const paymentMethod = paymentMethods[randomIndex];
-
-    // Create a dummy cart item
-    const dummyItem = {
-      id: nanoid(),
-      name: "Random Test Item",
-      price: saleAmount,
-      quantity: 1,
-      total: saleAmount,
-      type: Math.random() > 0.5 ? 'product' : 'service' as 'product' | 'service'
-    };
-
-    // Update the shift with this sale
-    updateShiftWithSale([dummyItem], paymentMethod, saleAmount);
-    toast({
-      title: "Sale recorded",
-      description: `KES ${saleAmount.toLocaleString()} sale recorded via ${paymentMethod === 'mpesa-stk' ? 'Mpesa' : paymentMethod === 'mpesa-till' ? 'Mpesa Till' : paymentMethod === 'pochi-la-biashara' ? 'Pochi La Biashara' : paymentMethod === 'bank-transfer' ? 'Bank Transfer' : paymentMethod}`
-    });
-  };
   const renderContent = () => {
     if (isLoading) {
       return <div className="flex items-center justify-center h-full">
@@ -92,9 +62,6 @@ const ShiftPage = () => {
           <div className="flex justify-between items-center">
             <h1 className="text-3xl text-green-500 font-extrabold">Shift Management</h1>
             {activeShift && <div className="space-x-2">
-                <Button variant="outline" onClick={simulateSale}>
-                  Simulate Sale (Demo)
-                </Button>
                 <Button variant="destructive" onClick={() => setIsCloseDialogOpen(true)}>
                   Close Shift
                 </Button>

@@ -1,23 +1,21 @@
 
-import { Shift, ShiftExpense } from '@/types/shift';
-import { Transaction, PaymentMethod } from '@/types/pos';
+import { Shift, Expense } from '@/types/shift';
+import { CartItem } from '@/types/pos';
+
+export type PaymentMethod = 'cash' | 'card' | 'mpesa' | 'mpesa-stk' | 'mpesa-till' | 'bank-transfer' | 'credit';
 
 export interface ShiftContextType {
   activeShift: Shift | null;
   isLoading: boolean;
-  startShift: (openingBalance: number, notes?: string) => boolean;
-  endShift: (notes?: string) => {
-    success: boolean;
-    shiftData?: Shift;
-    error?: string;
-  };
-  updateShiftWithSale: (amount: number, paymentMethod: PaymentMethod, transactionId?: string) => boolean;
-  updateShiftWithSplitSale: (payments: { method: PaymentMethod; amount: number }[]) => boolean;
-  addShiftExpense: (expense: Omit<ShiftExpense, 'id' | 'timestamp'>) => boolean;
-  getShiftHistory: () => Shift[];
-  getShiftById: (id: string) => Shift | null;
-  getShiftTransactions: (shiftId: string) => Transaction[];
-  shiftHistory: Shift[];
-  recordTransaction: (transaction: Transaction) => boolean;
-  updateTransactionStatus: (transactionId: string, status: Transaction['status'], paymentReference?: string) => boolean;
+  startShift: (openingBalance: number) => void;
+  closeShift: () => void;  // Add this back
+  endShift?: () => void;   // Make optional for backward compatibility
+  addExpense: (expense: Omit<Expense, "id" | "timestamp">) => void;
+  addShiftExpense?: (expense: Omit<Expense, "id" | "timestamp">) => void;
+  updateShiftWithSale: (items: CartItem[], paymentMethod: PaymentMethod, amount: number) => void;
+  updateShiftWithSplitSale: (items: CartItem[], paymentMethods: { method: PaymentMethod, amount: number }[]) => void;
+  getShiftHistory?: () => Shift[];
+  getShiftById?: (id: string) => Shift | undefined;
+  getActiveShift?: () => Shift | null;
+  refreshShiftData?: () => void;
 }

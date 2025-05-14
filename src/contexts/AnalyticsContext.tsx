@@ -2,8 +2,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Transaction } from '@/types/pos';
 import { Shift, ShiftSummary } from '@/types/shift';
-import { AccountSummary, AccountingStats } from '@/types/accounts';
-import { InventoryItem, Product } from '@/types/inventory';
+import { AccountSummary } from '@/types/accounts';
+import { InventoryItem } from '@/types/inventory';
 
 interface AnalyticsContextType {
   salesData: Transaction[];
@@ -50,15 +50,19 @@ const defaultAnalyticsContext: AnalyticsContextType = {
   isLoading: true,
 };
 
+// Create context with default values
 const AnalyticsContext = createContext<AnalyticsContextType>(defaultAnalyticsContext);
 
+// Export the useAnalytics hook
 export const useAnalytics = () => useContext(AnalyticsContext);
 
 interface AnalyticsProviderProps {
   children: ReactNode;
 }
 
+// Fix the AnalyticsProvider component
 export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }) => {
+  // Define state with useState hooks
   const [salesData, setSalesData] = useState<Transaction[]>([]);
   const [shiftData, setShiftData] = useState<ShiftSummary[]>([]);
   const [accountsData, setAccountsData] = useState<AccountSummary>(defaultAnalyticsContext.accountsData);

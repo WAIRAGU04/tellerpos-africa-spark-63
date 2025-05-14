@@ -1,4 +1,3 @@
-
 /**
  * M-Pesa Integration Service
  * Handles interactions with the M-Pesa API for Lipa na M-Pesa Online (STK Push)
@@ -309,4 +308,38 @@ export const formatPhoneNumber = (phoneNumber: string): string => {
   
   // If none of the above patterns match, return as is
   return digitsOnly;
+};
+
+/**
+ * Update M-Pesa transaction status
+ */
+export const updateMpesaTransaction = (transaction: Omit<MpesaTransaction, "status"> & { status: string }) => {
+  // Convert the string status to the enum type
+  const typedStatus: "completed" | "pending" | "failed" = 
+    transaction.status === "completed" || 
+    transaction.status === "pending" || 
+    transaction.status === "failed" 
+      ? transaction.status 
+      : "failed";
+  
+  const typedTransaction: MpesaTransaction = {
+    ...transaction,
+    status: typedStatus
+  };
+  
+  // Rest of the function implementation
+  const storedTransactions = localStorage.getItem('mpesaTransactions');
+  let transactions: MpesaTransaction[] = storedTransactions ? JSON.parse(storedTransactions) : [];
+  
+  // Update the transaction if it exists, otherwise add it
+  const index = transactions.findIndex(t => t.checkoutRequestId === typedTransaction.checkoutRequestId);
+  
+  if (index !== -1) {
+    transactions[index] = typedTransaction;
+  } else {
+    transactions.push(typedTransaction);
+  }
+  
+  localStorage.setItem('mpesaTransactions', JSON.stringify(transactions));
+  return typedTransaction;
 };

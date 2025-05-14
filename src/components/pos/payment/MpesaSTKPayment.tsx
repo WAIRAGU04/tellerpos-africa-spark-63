@@ -10,7 +10,7 @@ import {
 } from '@/services/mpesaService';
 import { nanoid } from 'nanoid';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, CheckCircle, XCircle, Smartphone, ArrowLeft, WifiOff } from 'lucide-react';
+import { AlertCircle, CheckCircle, XCircle, Smartphone, ArrowLeft, WifiOff, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -34,18 +34,26 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [networkError, setNetworkError] = useState(false);
+  const [checkCount, setCheckCount] = useState(0);
   const { toast } = useToast();
 
   // Function to poll payment status
   const checkPaymentStatus = useCallback(async (requestId: string) => {
+    if (!isOnline) {
+      setNetworkError(true);
+      return;
+    }
+    
     setStatus('checking');
     let retries = 0;
-    const maxRetries = 15; // Increase max retries for real API
+    const maxRetries = 15; // Maximum number of retries
     const retryInterval = 4000; // 4 seconds between retries
 
     const checkStatus = async () => {
       try {
-        console.log(`Checking payment status for request ID: ${requestId}`);
+        console.log(`Checking payment status for request ID: ${requestId} (Attempt ${retries + 1})`);
+        setCheckCount(prev => prev + 1);
+        
         const response = await querySTKStatus(requestId);
         console.log("Payment status response:", response);
         
@@ -85,6 +93,8 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
               response.error.includes("NetworkError") ||
               response.error.includes("CORS")) {
             setNetworkError(true);
+          } else {
+            setErrorMessage(response.error);
           }
         }
         
@@ -133,11 +143,66 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
           clearInterval(interval);
         }
       }, retryInterval);
+      
+      // Cleanup function
+      return () => {
+        clearInterval(interval);
+      };
     }, 5000); // Initial 5 second delay
+  }, [onSuccess, toast, isOnline]);
 
-    // Cleanup function
-    return () => {};
-  }, [onSuccess, toast]);
+  // Function to manually check payment status
+  const handleManualCheck = async () => {
+    if (!checkoutRequestId || !isOnline) return;
+    
+    try {
+      setErrorMessage('');
+      setNetworkError(false);
+      
+      // Increase progress to show activity
+      setProgress(prev => Math.min(prev + 10, 90));
+      
+      const response = await querySTKStatus(checkoutRequestId);
+      
+      if (response.success && response.data) {
+        if (response.data.ResultCode === "0") {
+          // Payment successful
+          setStatus('success');
+          setProgress(100);
+          toast({
+            title: "Payment Successful",
+            description: "Your M-Pesa payment has been processed successfully."
+          });
+          // Generate a reference for the transaction
+          const reference = `MPESA-${nanoid(8).toUpperCase()}`;
+          onSuccess(reference);
+        } else if (response.data.ResultCode) {
+          // Payment failed with a result code
+          setStatus('failed');
+          setErrorMessage(response.data.ResultDesc || "Payment failed");
+          toast({
+            title: "Payment Failed",
+            description: response.data.ResultDesc || "Payment failed",
+            variant: "destructive"
+          });
+        }
+      } else {
+        // Still processing or another error
+        toast({
+          title: "Payment Status",
+          description: "Still waiting for payment confirmation. Please try again in a moment."
+        });
+      }
+    } catch (error) {
+      console.error("Error manually checking payment status:", error);
+      setNetworkError(true);
+      toast({
+        title: "Check Failed",
+        description: "Could not check payment status. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Initiate STK Push
   const handleInitiatePayment = async () => {
@@ -165,6 +230,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
     setProgress(10);
     setErrorMessage('');
     setNetworkError(false);
+    setCheckCount(0);
 
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber);
@@ -247,7 +313,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
             <p className="text-sm text-muted-foreground">
               {status === 'processing' 
                 ? "Sending payment request to your phone..." 
-                : "Verifying payment status..."}
+                : `Verifying payment status... (Check ${checkCount})`}
             </p>
             
             {networkError && (
@@ -259,6 +325,18 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
                   please continue with the payment. We'll verify it once connection is restored.
                 </AlertDescription>
               </Alert>
+            )}
+            
+            {status === 'checking' && checkCount >= 3 && (
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={handleManualCheck}
+                disabled={!isOnline}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Manually Check Status
+              </Button>
             )}
             
             <Button 
@@ -312,6 +390,22 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
                 Try Again
               </Button>
             </div>
+            
+            {checkoutRequestId && (
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p>Transaction Reference: {checkoutRequestId}</p>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={handleManualCheck}
+                  disabled={!isOnline}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Check Status Again
+                </Button>
+              </div>
+            )}
           </div>
         );
       

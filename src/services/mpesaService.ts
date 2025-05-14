@@ -1,3 +1,4 @@
+
 /**
  * M-Pesa Integration Service
  * Handles interactions with the M-Pesa API for Lipa na M-Pesa Online (STK Push)
@@ -21,8 +22,8 @@ export interface MpesaTransaction {
 const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
 // const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
-// Development mode toggle
-const IS_DEVELOPMENT = true;  // Set to false for production
+// Development mode toggle - set to false for production
+const IS_DEVELOPMENT = true;
 
 // Base endpoints (will be prefixed with proxy in dev mode)
 const BASE_MPESA_ENDPOINTS = {
@@ -45,11 +46,11 @@ const MPESA_API_ENDPOINT = {
   stkQuery: IS_DEVELOPMENT ? `${CORS_PROXY}${BASE_MPESA_ENDPOINTS.stkQuery}` : BASE_MPESA_ENDPOINTS.stkQuery
 };
 
-// Real test credentials
+// Test credentials provided
 const DEFAULT_CREDENTIALS = {
   businessShortCode: "174379",
   passKey: "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919",
-  consumerKey: "rWtc2eFAjom4PlAszBn98mlOOqTC33bSAtLp7fRLSw0yE8k7",
+  consumerKey: "rWtc2eFAjom4PlAszBn98mlOOqTC33bSAtLp7fRLSw0yE8k7", 
   consumerSecret: "HF9qo7n9AbomCjcFhAjiOAHkfCwKSlmfxA7vbPRk6usrhqEIf2iuQcELWXBpyHmB",
   initiatorName: "testapi",
   initiatorPassword: "Safaricom123!!",
@@ -120,10 +121,38 @@ export interface STKQueryResponse {
   ResultDesc: string;
 }
 
-// Pending transactions cache key
+// Cache keys
 const PENDING_MPESA_TRANSACTIONS = "pending_mpesa_transactions";
 const ACCESS_TOKEN_KEY = "mpesa_access_token";
 const TOKEN_EXPIRY_KEY = "mpesa_token_expiry";
+
+/**
+ * Format phone number to international format (254XXXXXXXXX)
+ */
+export const formatPhoneNumber = (phoneNumber: string): string => {
+  // Remove any non-digit characters
+  const digitsOnly = phoneNumber.replace(/\D/g, '');
+  
+  // Check if the number starts with '0' (Kenyan format)
+  if (digitsOnly.startsWith('0') && digitsOnly.length === 10) {
+    // Replace the leading '0' with '254'
+    return `254${digitsOnly.substring(1)}`;
+  }
+  
+  // Check if the number starts with '7' or '1' (without country code)
+  if ((digitsOnly.startsWith('7') || digitsOnly.startsWith('1')) && digitsOnly.length === 9) {
+    // Add '254' prefix
+    return `254${digitsOnly}`;
+  }
+  
+  // If it already has the country code
+  if (digitsOnly.startsWith('254') && digitsOnly.length === 12) {
+    return digitsOnly;
+  }
+  
+  // If none of the above patterns match, return as is
+  return digitsOnly;
+};
 
 /**
  * Generate the password for M-Pesa API authentication
@@ -171,13 +200,11 @@ export const saveMpesaCredentials = (credentials: MpesaCredentials): void => {
 /**
  * Get OAuth access token for M-Pesa API authentication
  * Tokens are valid for 1 hour
- * 
- * In development mode with IS_DEVELOPMENT=true, this will use a mock token
  */
 export const getAccessToken = async (): Promise<string> => {
-  // For development mode, just return a fake token
+  // For development mode with no internet connection, return a mock token
   if (IS_DEVELOPMENT && !navigator.onLine) {
-    console.log("Development mode: Returning mock access token");
+    console.log("Development mode with no internet: Returning mock access token");
     return "mock-dev-access-token-for-testing";
   }
 
@@ -186,6 +213,7 @@ export const getAccessToken = async (): Promise<string> => {
   
   // Try to get from memory first
   if (oauthToken && tokenExpiry && currentTime < tokenExpiry) {
+    console.log("Using cached token from memory");
     return oauthToken;
   }
   
@@ -194,6 +222,7 @@ export const getAccessToken = async (): Promise<string> => {
   const cachedExpiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
   
   if (cachedToken && cachedExpiry && currentTime < parseInt(cachedExpiry)) {
+    console.log("Using cached token from localStorage");
     oauthToken = cachedToken;
     tokenExpiry = parseInt(cachedExpiry);
     return cachedToken;
@@ -253,7 +282,6 @@ export const getAccessToken = async (): Promise<string> => {
 
 /**
  * Initiate STK Push request to M-Pesa API
- * In development mode with IS_DEVELOPMENT=true, this will use mock responses
  */
 export const initiateSTKPush = async (
   requestData: STKPushRequest
@@ -261,11 +289,12 @@ export const initiateSTKPush = async (
   try {
     // Check if online
     if (!navigator.onLine) {
+      console.error("No internet connection available for STK Push");
       return { success: false, error: "No internet connection" };
     }
     
-    // Use mock response in development mode when specified
-    if (IS_DEVELOPMENT) {
+    // Use mock response in development mode without hitting API
+    if (IS_DEVELOPMENT && false) { // Set to true to force mock responses
       console.log("Development mode: Using mock STK Push response");
       console.log("Mock STK Push request:", requestData);
       
@@ -303,6 +332,11 @@ export const initiateSTKPush = async (
     
     // Get access token
     const accessToken = await getAccessToken();
+    console.log(`Using access token: ${accessToken.substring(0, 15)}...`);
+    
+    // Format phone number
+    const formattedPhone = formatPhoneNumber(requestData.phoneNumber);
+    console.log(`Formatted phone number: ${formattedPhone}`);
     
     // Prepare request body
     const requestBody = {
@@ -311,9 +345,9 @@ export const initiateSTKPush = async (
       Timestamp: timestamp,
       TransactionType: credentials.transactionType,
       Amount: requestData.amount.toString(),
-      PartyA: requestData.phoneNumber,
+      PartyA: formattedPhone,
       PartyB: credentials.businessShortCode,
-      PhoneNumber: requestData.phoneNumber,
+      PhoneNumber: formattedPhone,
       CallBackURL: credentials.callbackUrl,
       AccountReference: requestData.accountReference,
       TransactionDesc: requestData.transactionDesc
@@ -341,6 +375,7 @@ export const initiateSTKPush = async (
     try {
       responseData = JSON.parse(responseText);
     } catch (e) {
+      console.error("Failed to parse JSON response:", e);
       return { 
         success: false, 
         error: `Invalid response format: ${responseText}`
@@ -350,6 +385,7 @@ export const initiateSTKPush = async (
     console.log("STK Push parsed response:", responseData);
     
     if (!response.ok) {
+      console.error(`HTTP error! Status: ${response.status}`, responseData);
       return { 
         success: false, 
         error: responseData.errorMessage || `HTTP error! Status: ${response.status}` 
@@ -371,6 +407,7 @@ export const initiateSTKPush = async (
       
       pendingTransactions.push(newTransaction);
       savePendingTransactions(pendingTransactions);
+      console.log("Saved pending transaction:", newTransaction);
     }
 
     return { 
@@ -380,13 +417,15 @@ export const initiateSTKPush = async (
     };
   } catch (error) {
     console.error("Error initiating STK push:", error);
-    return { success: false, error: "Failed to initiate payment. Check console for details." };
+    return { 
+      success: false, 
+      error: `Failed to initiate payment: ${error.message}. Check console for details.` 
+    };
   }
 };
 
 /**
  * Query STK Push status from M-Pesa API
- * In development mode with IS_DEVELOPMENT=true, this will use mock responses
  */
 export const querySTKStatus = async (
   checkoutRequestId: string
@@ -394,11 +433,12 @@ export const querySTKStatus = async (
   try {
     // Check if online
     if (!navigator.onLine) {
+      console.error("No internet connection available for STK Query");
       return { success: false, error: "No internet connection" };
     }
     
-    // Use mock response in development mode
-    if (IS_DEVELOPMENT) {
+    // Use mock response in development mode without hitting API
+    if (IS_DEVELOPMENT && false) { // Set to true to force mock responses
       console.log("Development mode: Using mock STK Query response");
       console.log("Mock STK Query for CheckoutRequestID:", checkoutRequestId);
       
@@ -424,6 +464,7 @@ export const querySTKStatus = async (
     
     // Get access token
     const accessToken = await getAccessToken();
+    console.log(`Using access token for query: ${accessToken.substring(0, 15)}...`);
     
     // Prepare request body
     const requestBody = {
@@ -455,6 +496,7 @@ export const querySTKStatus = async (
     try {
       responseData = JSON.parse(responseText);
     } catch (e) {
+      console.error("Failed to parse JSON response:", e);
       return { 
         success: false, 
         error: `Invalid response format: ${responseText}`
@@ -464,6 +506,7 @@ export const querySTKStatus = async (
     console.log("STK Query parsed response:", responseData);
     
     if (!response.ok) {
+      console.error(`HTTP error! Status: ${response.status}`, responseData);
       return { 
         success: false, 
         error: responseData.errorMessage || `HTTP error! Status: ${response.status}` 
@@ -475,6 +518,7 @@ export const querySTKStatus = async (
       const resultCode = responseData.ResultCode;
       const newStatus: "completed" | "failed" = resultCode === "0" ? "completed" : "failed";
       updateTransactionStatus(checkoutRequestId, newStatus);
+      console.log(`Updated transaction status to ${newStatus}`);
     }
 
     return { 
@@ -484,7 +528,10 @@ export const querySTKStatus = async (
     };
   } catch (error) {
     console.error("Error querying STK status:", error);
-    return { success: false, error: "Failed to check payment status. Check console for details." };
+    return { 
+      success: false, 
+      error: `Failed to check payment status: ${error.message}. Check console for details.` 
+    };
   }
 };
 
@@ -540,41 +587,18 @@ export const reconcilePendingTransactions = async (): Promise<void> => {
   });
   
   for (const tx of pendingOnly) {
-    await querySTKStatus(tx.checkoutRequestId);
+    try {
+      console.log(`Reconciling transaction: ${tx.checkoutRequestId}`);
+      await querySTKStatus(tx.checkoutRequestId);
+    } catch (error) {
+      console.error(`Failed to reconcile transaction ${tx.checkoutRequestId}:`, error);
+    }
   }
   
   toast({
     title: "Reconciliation complete",
     description: "All pending M-Pesa transactions have been updated"
   });
-};
-
-/**
- * Format phone number to international format (254XXXXXXXXX)
- */
-export const formatPhoneNumber = (phoneNumber: string): string => {
-  // Remove any non-digit characters
-  const digitsOnly = phoneNumber.replace(/\D/g, '');
-  
-  // Check if the number starts with '0' (Kenyan format)
-  if (digitsOnly.startsWith('0') && digitsOnly.length === 10) {
-    // Replace the leading '0' with '254'
-    return `254${digitsOnly.substring(1)}`;
-  }
-  
-  // Check if the number starts with '7' or '1' (without country code)
-  if ((digitsOnly.startsWith('7') || digitsOnly.startsWith('1')) && digitsOnly.length === 9) {
-    // Add '254' prefix
-    return `254${digitsOnly}`;
-  }
-  
-  // If it already has the country code
-  if (digitsOnly.startsWith('254') && digitsOnly.length === 12) {
-    return digitsOnly;
-  }
-  
-  // If none of the above patterns match, return as is
-  return digitsOnly;
 };
 
 /**

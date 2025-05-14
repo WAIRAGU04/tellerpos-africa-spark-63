@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Transaction } from '@/types/pos';
 import { Shift, ShiftSummary } from '@/types/shift';
 import { AccountSummary, AccountingStats } from '@/types/accounts';
+import { InventoryItem, Product } from '@/types/inventory';
 
 interface AnalyticsContextType {
   salesData: Transaction[];
@@ -14,6 +15,7 @@ interface AnalyticsContextType {
     outOfStockCount: number;
     inventoryValue: number;
   };
+  inventoryData: InventoryItem[];
   userPerformanceData: {
     userId: string;
     salesCount: number;
@@ -42,6 +44,7 @@ const defaultAnalyticsContext: AnalyticsContextType = {
     outOfStockCount: 0,
     inventoryValue: 0,
   },
+  inventoryData: [],
   userPerformanceData: [],
   refreshAnalytics: () => {},
   isLoading: true,
@@ -60,9 +63,11 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
   const [shiftData, setShiftData] = useState<ShiftSummary[]>([]);
   const [accountsData, setAccountsData] = useState<AccountSummary>(defaultAnalyticsContext.accountsData);
   const [inventoryStats, setInventoryStats] = useState(defaultAnalyticsContext.inventoryStats);
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
   const [userPerformanceData, setUserPerformanceData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Load analytics data from storage and calculate derived statistics
   const loadAnalyticsData = () => {
     setIsLoading(true);
     
@@ -108,12 +113,14 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       localStorage.setItem('accountsSummary', JSON.stringify(summary));
     }
     
-    // Load inventory statistics
+    // Load inventory data and calculate stats
     const storedInventory = localStorage.getItem('inventory');
     if (storedInventory) {
       const inventory = JSON.parse(storedInventory);
+      setInventoryData(inventory);
+      
       const productItems = inventory.filter((item: any) => item.type === 'product');
-      const lowStockItems = productItems.filter((item: any) => item.quantity && item.quantity < item.lowStockThreshold);
+      const lowStockItems = productItems.filter((item: any) => item.quantity && item.quantity < item.reorderLevel);
       const outOfStockItems = productItems.filter((item: any) => !item.quantity || item.quantity === 0);
       
       const inventoryStats = {
@@ -157,7 +164,29 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       loadAnalyticsData();
     }, 5 * 60 * 1000);
     
-    return () => clearInterval(intervalId);
+    // Listen for storage changes to update data in real-time
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'transactions' || e.key === 'inventory' || e.key === 'accountsSummary' || e.key === 'shiftHistory') {
+        loadAnalyticsData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Add a custom event listener for real-time updates
+    const handleInventoryUpdate = () => {
+      loadAnalyticsData();
+    };
+    
+    window.addEventListener('inventory-updated', handleInventoryUpdate);
+    window.addEventListener('transaction-completed', handleInventoryUpdate);
+    
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('inventory-updated', handleInventoryUpdate);
+      window.removeEventListener('transaction-completed', handleInventoryUpdate);
+    };
   }, []);
   
   return (
@@ -167,6 +196,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         shiftData,
         accountsData,
         inventoryStats,
+        inventoryData,
         userPerformanceData,
         refreshAnalytics: loadAnalyticsData,
         isLoading,

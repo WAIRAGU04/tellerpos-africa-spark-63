@@ -5,6 +5,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceToNow } from 'date-fns';
 import { BarChart3, ShoppingBag, Package2, Calendar, Users, ArrowUp, ArrowDown } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface DashboardCardProps {
   title: string;
@@ -46,7 +47,12 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, trend
 
 const DashboardSummary: React.FC = () => {
   const { activeShift } = useShift();
-  const { salesData, inventoryStats, accountsData, isLoading } = useAnalytics();
+  const { salesData, inventoryStats, accountsData, isLoading, refreshAnalytics } = useAnalytics();
+  
+  // Refresh analytics data when component mounts
+  React.useEffect(() => {
+    refreshAnalytics();
+  }, [refreshAnalytics]);
   
   if (isLoading) {
     return (
@@ -73,25 +79,46 @@ const DashboardSummary: React.FC = () => {
     .filter(transaction => new Date(transaction.timestamp) >= today)
     .reduce((sum, transaction) => sum + transaction.total, 0);
   
+  // Calculate yesterday's sales for trend calculation
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayEnd = new Date(today);
+  yesterdayEnd.setMilliseconds(-1);
+  
+  const yesterdaySales = salesData
+    .filter(transaction => {
+      const date = new Date(transaction.timestamp);
+      return date >= yesterday && date < today;
+    })
+    .reduce((sum, transaction) => sum + transaction.total, 0);
+  
+  // Calculate trend percentage
+  const salesTrend = yesterdaySales > 0 
+    ? Math.round(((todaySales - yesterdaySales) / yesterdaySales) * 100) 
+    : 100;
+  
   // Get shift info
   const shiftInfo = activeShift
     ? `Started ${formatDistanceToNow(new Date(activeShift.clockInTime), { addSuffix: true })}`
     : "No active shift";
 
+  // Calculate products sold today
+  const productsSoldToday = salesData
+    .filter(transaction => new Date(transaction.timestamp) >= today)
+    .reduce((sum, transaction) => sum + transaction.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <DashboardCard
         title="Today's Sales"
-        value={`KSh ${todaySales.toLocaleString()}`}
+        value={formatCurrency(todaySales)}
         icon={<BarChart3 className="h-4 w-4 text-tellerpos" />}
-        trend={{ value: 12, label: "from yesterday" }}
+        trend={{ value: salesTrend, label: "from yesterday" }}
       />
       
       <DashboardCard
         title="Products Sold"
-        value={salesData.length > 0 ? salesData
-          .filter(transaction => new Date(transaction.timestamp) >= today)
-          .reduce((sum, transaction) => sum + transaction.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0) : 0}
+        value={productsSoldToday}
         icon={<ShoppingBag className="h-4 w-4 text-tellerpos" />}
         trend={{ value: 8, label: "from yesterday" }}
       />
@@ -105,7 +132,7 @@ const DashboardSummary: React.FC = () => {
       
       <DashboardCard
         title="Current Shift"
-        value={activeShift ? `KSh ${activeShift.totalSales.toLocaleString()}` : "No Shift"}
+        value={activeShift ? formatCurrency(activeShift.totalSales) : "No Shift"}
         icon={<Calendar className="h-4 w-4 text-tellerpos" />}
         description={shiftInfo}
       />

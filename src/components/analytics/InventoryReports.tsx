@@ -6,6 +6,7 @@ import DateRangePicker from "./DateRangePicker";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { formatCurrency } from "@/lib/utils";
 import ReportExport from "./ReportExport";
+import { useAnalytics } from "@/contexts/AnalyticsContext";
 import { 
   Select,
   SelectContent,
@@ -14,7 +15,6 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   BarChart,
@@ -30,13 +30,11 @@ import {
   Cell,
 } from "recharts";
 import { InventoryItem } from "@/types/inventory";
-import { Transaction } from "@/types/pos";
 import { Search } from "lucide-react";
 
 const InventoryReports: React.FC = () => {
   const { dateRange } = useDateRange();
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { salesData, inventoryData, isLoading, refreshAnalytics } = useAnalytics();
   const [inventoryWithSales, setInventoryWithSales] = useState<any[]>([]);
   const [filteredInventory, setFilteredInventory] = useState<any[]>([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState<any[]>([]);
@@ -46,30 +44,21 @@ const InventoryReports: React.FC = () => {
   const [activeReport, setActiveReport] = useState<"inventory" | "sales" | "categories">("inventory");
   
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
-  
-  // Load inventory and transactions from localStorage
+
+  // Manually refresh data when component mounts or when needed
   useEffect(() => {
-    const storedInventory = localStorage.getItem('inventory');
-    const storedTransactions = localStorage.getItem('transactions');
-    
-    if (storedInventory) {
-      setInventory(JSON.parse(storedInventory));
-    }
-    
-    if (storedTransactions) {
-      setTransactions(JSON.parse(storedTransactions));
-    }
-  }, []);
+    refreshAnalytics();
+  }, [refreshAnalytics]);
   
-  // Process inventory with sales data
+  // Process inventory with sales data whenever the underlying data changes
   useEffect(() => {
-    if (!inventory.length || !transactions.length) return;
+    if (isLoading || !inventoryData.length) return;
     
     const startDate = dateRange.startDate;
     const endDate = dateRange.endDate;
     
     // Filter transactions in date range
-    const filteredTransactions = transactions.filter(transaction => {
+    const filteredTransactions = salesData.filter(transaction => {
       const transactionDate = new Date(transaction.timestamp);
       return transactionDate >= startDate && 
              transactionDate <= endDate &&
@@ -88,7 +77,7 @@ const InventoryReports: React.FC = () => {
     });
     
     // Combine inventory with sales data
-    const inventoryWithSalesData = inventory.map(item => {
+    const inventoryWithSalesData = inventoryData.map(item => {
       const sales = salesMap.get(item.id) || { quantity: 0, revenue: 0 };
       return {
         ...item,
@@ -125,7 +114,7 @@ const InventoryReports: React.FC = () => {
     
     setCategoryBreakdown(Array.from(categories.values()));
     
-  }, [inventory, transactions, dateRange]);
+  }, [inventoryData, salesData, dateRange, isLoading]);
   
   // Handle search and filters
   useEffect(() => {
@@ -162,7 +151,7 @@ const InventoryReports: React.FC = () => {
     
   }, [inventoryWithSales, searchTerm, statusFilter, categoryFilter]);
   
-  // Calculate inventory statistics
+  // Calculate inventory statistics from filtered inventory
   const totalItems = filteredInventory.length;
   const totalStock = filteredInventory.reduce((sum, item) => sum + item.stock, 0);
   const totalValue = filteredInventory.reduce((sum, item) => sum + (item.price * item.stock), 0);
@@ -170,7 +159,7 @@ const InventoryReports: React.FC = () => {
   const outOfStockItems = filteredInventory.filter(item => item.stock === 0).length;
   
   // Get unique categories for filter
-  const categories = Array.from(new Set(inventory.map(item => item.category || 'Uncategorized')));
+  const categories = Array.from(new Set(inventoryData.map(item => item.category || 'Uncategorized')));
   
   // Get stock status label
   const getStockStatus = (item: any) => {
@@ -192,6 +181,45 @@ const InventoryReports: React.FC = () => {
         return null;
     }
   };
+
+  // Show loading state while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="h-10 bg-gray-200 animate-pulse rounded w-48"></div>
+          <div className="h-10 bg-gray-200 animate-pulse rounded w-36"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <div className="h-5 bg-gray-200 animate-pulse rounded w-1/3"></div>
+                <div className="h-8 bg-gray-200 animate-pulse rounded w-1/2 mt-2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-4 bg-gray-200 animate-pulse rounded w-3/4"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <div className="h-6 bg-gray-200 animate-pulse rounded w-1/4"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-10 bg-gray-200 animate-pulse rounded"></div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">

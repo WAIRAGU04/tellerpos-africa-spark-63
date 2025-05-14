@@ -141,8 +141,46 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     });
   }, [activeShift]);
   
+  // Update inventory stock levels based on a transaction
+  const updateInventoryStock = useCallback((items: CartItem[]) => {
+    try {
+      const storedInventory = localStorage.getItem('inventory');
+      if (!storedInventory) return;
+      
+      const inventory = JSON.parse(storedInventory);
+      
+      // Create updated inventory by reducing stock for each item in the transaction
+      const updatedInventory = inventory.map((inventoryItem: any) => {
+        const transactionItem = items.find(item => item.id === inventoryItem.id);
+        
+        if (transactionItem && inventoryItem.type === 'product') {
+          // Calculate new stock level
+          const newQuantity = Math.max(0, inventoryItem.quantity - transactionItem.quantity);
+          
+          return {
+            ...inventoryItem,
+            quantity: newQuantity,
+            stock: newQuantity,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        
+        return inventoryItem;
+      });
+      
+      // Save updated inventory back to localStorage
+      localStorage.setItem('inventory', JSON.stringify(updatedInventory));
+      
+      // Dispatch a custom event to notify other components about inventory update
+      window.dispatchEvent(new Event('inventory-updated'));
+      
+    } catch (error) {
+      console.error("Error updating inventory:", error);
+    }
+  }, []);
+  
   // Record a transaction in both the current shift and sales records
-  const recordTransaction = (transaction: Transaction) => {
+  const recordTransaction = useCallback((transaction: Transaction) => {
     if (!activeShift) {
       toast({
         title: "No active shift",
@@ -189,6 +227,12 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
       transactions.unshift(updatedTransaction);
       localStorage.setItem("transactions", JSON.stringify(transactions));
       
+      // Update inventory stock based on transaction items
+      updateInventoryStock(transaction.items);
+      
+      // Dispatch event for real-time analytics update
+      window.dispatchEvent(new Event('transaction-completed'));
+      
       return true;
     } catch (error) {
       console.error("Error recording transaction:", error);
@@ -199,7 +243,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
       });
       return false;
     }
-  };
+  }, [activeShift, toast, updateInventoryStock]);
   
   // Update shift with a new sale
   const updateShiftWithSale = (
@@ -232,12 +276,18 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     setActiveShift(updatedShift);
     localStorage.setItem("activeShift", JSON.stringify(updatedShift));
     
+    // Update inventory stock
+    updateInventoryStock(items);
+    
     // Update accounts in real-time
     recordSaleInAccounts(
       [{ method: paymentMethod, amount }],
       `sale-${Date.now()}`,
       activeShift.id
     );
+    
+    // Dispatch event for real-time analytics update
+    window.dispatchEvent(new Event('transaction-completed'));
   };
   
   // Handle split payment sales
@@ -274,12 +324,18 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     setActiveShift(updatedShift);
     localStorage.setItem("activeShift", JSON.stringify(updatedShift));
     
+    // Update inventory stock
+    updateInventoryStock(items);
+    
     // Update accounts in real-time
     recordSaleInAccounts(
       payments,
       `split-sale-${Date.now()}`,
       activeShift.id
     );
+    
+    // Dispatch event for real-time analytics update
+    window.dispatchEvent(new Event('transaction-completed'));
   };
   
   const value = {

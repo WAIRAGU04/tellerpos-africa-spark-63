@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { getAuthUser, getBusinessData } from "@/utils/authUtils";
@@ -18,6 +17,7 @@ export interface User {
   isTemporaryPassword?: boolean;
   createdAt: string;
   status: "active" | "inactive";
+  privileges: string[]; // Array of privilege IDs that this user has
 }
 
 interface UserContextType {
@@ -134,7 +134,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: temporaryPassword,
         isTemporaryPassword: true,
         createdAt: new Date().toISOString(),
-        status: "active"
+        status: "active",
+        privileges: userData.privileges || [] // Ensure privileges are included
       };
 
       // Save to localStorage

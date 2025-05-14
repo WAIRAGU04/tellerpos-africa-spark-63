@@ -8,65 +8,138 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useShift } from '@/contexts/shift';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
+import DashboardSummary from './DashboardSummary';
+import { format } from 'date-fns';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
 
 interface DashboardContentProps {
   activeModule: string;
 }
 
 const DashboardContent = ({ activeModule }: DashboardContentProps) => {
-  // Placeholder welcome content for dashboard
+  const { activeShift } = useShift();
+  const { salesData, shiftData, inventoryStats } = useAnalytics();
+  
+  // Get recent transactions
+  const recentTransactions = [...salesData]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 5);
+  
+  // Get low stock items
+  const lowStockItems = () => {
+    const storedInventory = localStorage.getItem('inventory');
+    if (storedInventory) {
+      const inventory = JSON.parse(storedInventory);
+      return inventory
+        .filter((item: any) => item.type === 'product' && item.quantity && item.quantity < item.lowStockThreshold)
+        .slice(0, 4);
+    }
+    return [];
+  };
+  
+  // Render dashboard content
   const renderDashboardContent = () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card>
-        <CardHeader>
-          <CardTitle>Sales Overview</CardTitle>
-          <CardDescription>Your sales performance this month</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-40 flex items-center justify-center bg-tellerpos-dark-accent/30 rounded-md">
-            Sales chart will be implemented here
-          </div>
-        </CardContent>
-        <CardFooter>
-          <p className="text-sm text-muted-foreground">
-            15% increase from last month
-          </p>
-        </CardFooter>
-      </Card>
+    <div className="space-y-6">
+      {/* Dashboard Summary Cards */}
+      <DashboardSummary />
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Popular Products</CardTitle>
-          <CardDescription>Your top selling items</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-40 flex items-center justify-center bg-tellerpos-dark-accent/30 rounded-md">
-            Product list will be implemented here
-          </div>
-        </CardContent>
-        <CardFooter>
-          <p className="text-sm text-muted-foreground">
-            Updated 2 hours ago
-          </p>
-        </CardFooter>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>Your latest sales</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-40 flex items-center justify-center bg-tellerpos-dark-accent/30 rounded-md">
-            Transaction list will be implemented here
-          </div>
-        </CardContent>
-        <CardFooter>
-          <p className="text-sm text-muted-foreground">
-            Last transaction 5 minutes ago
-          </p>
-        </CardFooter>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Recent Transactions */}
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle className="text-lg">Recent Transactions</CardTitle>
+            <CardDescription>Your latest sales</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentTransactions.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Receipt</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentTransactions.map(transaction => (
+                      <TableRow key={transaction.id}>
+                        <TableCell className="font-medium">{transaction.receiptNumber}</TableCell>
+                        <TableCell>KES {transaction.total.toLocaleString()}</TableCell>
+                        <TableCell>{format(new Date(transaction.timestamp), 'MMM d, HH:mm')}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              transaction.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 
+                              transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                            }
+                          >
+                            {transaction.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground">No transactions yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Low Stock Items */}
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle className="text-lg">Low Stock Items</CardTitle>
+            <CardDescription>Items that need restocking</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {lowStockItems().length > 0 ? (
+              <div className="space-y-4">
+                {lowStockItems().map((item: any) => (
+                  <div key={item.id} className="flex justify-between items-center p-3 bg-tellerpos-dark-accent/10 rounded-md">
+                    <div>
+                      <p className="font-semibold">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">SKU: {item.sku || '-'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-semibold ${item.quantity === 0 ? 'text-red-500' : 'text-yellow-500'}`}>
+                        {item.quantity} {item.unitOfMeasurement}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Min: {item.lowStockThreshold}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground">No low stock items</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            <p className="text-xs text-muted-foreground">
+              Total inventory value: KSh {inventoryStats.inventoryValue.toLocaleString()}
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
   

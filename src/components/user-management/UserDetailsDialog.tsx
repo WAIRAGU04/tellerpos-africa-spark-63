@@ -18,7 +18,7 @@ interface UserDetailsDialogProps {
 }
 
 const UserDetailsDialog = ({ user, open, onOpenChange }: UserDetailsDialogProps) => {
-  const [viewPrivileges, setViewPrivileges] = useState<string[]>(user.privileges || []);
+  const [viewPrivileges, setViewPrivileges] = useState<string[]>(user?.privileges || []);
   
   const getStatusColor = (status: string) => {
     return status === 'active' ? 'bg-green-500' : 'bg-red-500';
@@ -37,8 +37,10 @@ const UserDetailsDialog = ({ user, open, onOpenChange }: UserDetailsDialogProps)
     }
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const getInitials = (firstName?: string, lastName?: string) => {
+    const firstInitial = firstName && firstName.length > 0 ? firstName.charAt(0) : '';
+    const lastInitial = lastName && lastName.length > 0 ? lastName.charAt(0) : '';
+    return `${firstInitial}${lastInitial}`.toUpperCase() || 'U';
   };
 
   const formatDate = (dateString: string) => {
@@ -48,6 +50,11 @@ const UserDetailsDialog = ({ user, open, onOpenChange }: UserDetailsDialogProps)
       day: 'numeric',
     });
   };
+
+  // If user is undefined or null, don't render the dialog
+  if (!user) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

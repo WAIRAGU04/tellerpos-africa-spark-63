@@ -1,9 +1,21 @@
+
 /**
  * M-Pesa Integration Service
  * Handles interactions with the M-Pesa API for Lipa na M-Pesa Online (STK Push)
  */
 import { toast } from "@/hooks/use-toast";
 import { cacheData, getCachedData } from "./offlineService";
+
+// Define MpesaTransaction type to fix TypeScript errors
+export interface MpesaTransaction {
+  checkoutRequestId: string;
+  merchantRequestId: string;
+  amount: number;
+  phoneNumber: string;
+  accountReference: string;
+  timestamp: string;
+  status: "pending" | "completed" | "failed";
+}
 
 // Constants for M-Pesa integration
 const MPESA_API_ENDPOINT = {
@@ -130,7 +142,7 @@ export const initiateSTKPush = async (
 
     // Store pending transaction in localStorage for checking status later
     const pendingTransactions = getPendingTransactions();
-    const newTransaction = {
+    const newTransaction: MpesaTransaction = {
       checkoutRequestId: simulatedResponse.CheckoutRequestID,
       merchantRequestId: simulatedResponse.MerchantRequestID,
       amount: requestData.amount,
@@ -214,15 +226,7 @@ export const querySTKStatus = async (
 /**
  * Get all pending M-Pesa transactions
  */
-export const getPendingTransactions = (): Array<{
-  checkoutRequestId: string;
-  merchantRequestId: string;
-  amount: number;
-  phoneNumber: string;
-  accountReference: string;
-  timestamp: string;
-  status: "pending" | "completed" | "failed";
-}> => {
+export const getPendingTransactions = (): MpesaTransaction[] => {
   const storedTransactions = localStorage.getItem(PENDING_MPESA_TRANSACTIONS);
   return storedTransactions ? JSON.parse(storedTransactions) : [];
 };
@@ -230,7 +234,7 @@ export const getPendingTransactions = (): Array<{
 /**
  * Save pending M-Pesa transactions
  */
-export const savePendingTransactions = (transactions: Array<any>): void => {
+export const savePendingTransactions = (transactions: MpesaTransaction[]): void => {
   localStorage.setItem(PENDING_MPESA_TRANSACTIONS, JSON.stringify(transactions));
   
   // Also cache for offline access
@@ -319,7 +323,7 @@ export const updateMpesaTransaction = (transaction: Omit<MpesaTransaction, "stat
     transaction.status === "completed" || 
     transaction.status === "pending" || 
     transaction.status === "failed" 
-      ? transaction.status 
+      ? transaction.status as "completed" | "pending" | "failed"
       : "failed";
   
   const typedTransaction: MpesaTransaction = {

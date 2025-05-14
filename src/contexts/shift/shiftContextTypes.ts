@@ -1,6 +1,6 @@
 
 import { Shift, Expense } from '@/types/shift';
-import { CartItem } from '@/types/pos';
+import { CartItem, PaymentMethod, Transaction } from '@/types/pos';
 
 export type PaymentMethod = 'cash' | 'card' | 'mpesa' | 'mpesa-stk' | 'mpesa-till' | 'bank-transfer' | 'credit';
 
@@ -18,4 +18,5 @@ export interface ShiftContextType {
   getShiftById?: (id: string) => Shift | undefined;
   getActiveShift?: () => Shift | null;
   refreshShiftData?: () => void;
+  recordTransaction?: (transaction: Transaction) => boolean;
 }

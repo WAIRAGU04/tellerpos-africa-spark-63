@@ -1,11 +1,10 @@
-
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { Shift, PaymentMethodTotals, Expense } from '@/types/shift';
-import { CartItem, PaymentMethod, Transaction } from '@/types/pos';
+import { CartItem, PaymentMethod as PosPaymentMethod, Transaction } from '@/types/pos';
 import { useToast } from "@/hooks/use-toast";
 import { nanoid } from 'nanoid';
 import { recordSaleInAccounts } from '@/services/accountsService';
-import { ShiftContextType } from './shiftContextTypes';
+import { ShiftContextType, PaymentMethod } from './shiftContextTypes';
 import { calculateExpectedCash, mapPaymentMethod } from './shiftUtils';
 
 // Create the context with undefined as initial value
@@ -248,7 +247,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
   // Update shift with a new sale
   const updateShiftWithSale = (
     items: CartItem[], 
-    paymentMethod: PaymentMethod, 
+    paymentMethod: PosPaymentMethod, 
     amount: number
   ) => {
     if (!activeShift) {
@@ -293,7 +292,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
   // Handle split payment sales
   const updateShiftWithSplitSale = (
     items: CartItem[],
-    payments: Array<{method: PaymentMethod, amount: number}>
+    payments: Array<{method: PosPaymentMethod, amount: number}>
   ) => {
     if (!activeShift) {
       toast({
@@ -338,7 +337,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     window.dispatchEvent(new Event('transaction-completed'));
   };
   
-  const value = {
+  const value: ShiftContextType = {
     activeShift,
     isLoading,
     startShift,

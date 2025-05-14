@@ -1,6 +1,6 @@
 
 import { Shift, Expense } from '@/types/shift';
-import { CartItem, PaymentMethod, Transaction } from '@/types/pos';
+import { CartItem, PaymentMethod as PosPaymentMethod, Transaction } from '@/types/pos';
 
 export type PaymentMethod = 'cash' | 'card' | 'mpesa' | 'mpesa-stk' | 'mpesa-till' | 'bank-transfer' | 'credit';
 

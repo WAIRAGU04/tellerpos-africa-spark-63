@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { POSCheckoutProps, PaymentMethod } from '@/types/pos';
 import { useShift } from '@/contexts/shift';
 import { useToast } from '@/hooks/use-toast';
+import { nanoid } from 'nanoid';
 
 // Import the new components
 import POSReceiptGenerator from './POSReceiptGenerator';

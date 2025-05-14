@@ -58,7 +58,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/pos" 
+                  path="/dashboard/pos" 
                   element={
                     <ProtectedRoute>
                       <POSPage />
@@ -66,7 +66,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/sales" 
+                  path="/dashboard/sales" 
                   element={
                     <ProtectedRoute>
                       <SalesPage />
@@ -74,7 +74,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/shift" 
+                  path="/dashboard/shift" 
                   element={
                     <ProtectedRoute>
                       <ShiftPage />
@@ -82,7 +82,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/inventory" 
+                  path="/dashboard/inventory" 
                   element={
                     <ProtectedRoute>
                       <StockPage />
@@ -90,7 +90,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/accounts" 
+                  path="/dashboard/accounts" 
                   element={
                     <ProtectedRoute>
                       <AccountsPage />
@@ -98,7 +98,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/analytics" 
+                  path="/dashboard/analytics" 
                   element={
                     <ProtectedRoute>
                       <AnalyticsPage />
@@ -106,7 +106,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/settings" 
+                  path="/dashboard/settings" 
                   element={
                     <ProtectedRoute>
                       <SettingsPage />
@@ -114,7 +114,7 @@ function App() {
                   } 
                 />
                 
-                {/* Placeholder routes for modules */}
+                {/* Catch-all route for modules not implemented yet */}
                 <Route 
                   path="/dashboard/:module" 
                   element={

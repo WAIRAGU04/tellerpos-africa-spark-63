@@ -44,8 +44,9 @@ const DashboardSidebar = ({
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
   
-  const handleMenuClick = (moduleId: string) => {
+  const handleMenuClick = (moduleId: string, path: string) => {
     setActiveModule(moduleId);
+    navigate(path);
   };
   
   const handleLogout = () => {
@@ -80,7 +81,7 @@ const DashboardSidebar = ({
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton
                   isActive={activeModule === item.id}
-                  onClick={() => handleMenuClick(item.id)}
+                  onClick={() => handleMenuClick(item.id, item.path)}
                   tooltip={item.label}
                 >
                   <item.icon className="w-5 h-5" />
@@ -93,7 +94,7 @@ const DashboardSidebar = ({
             {(userData.role === 'Administrator' || userData.role === 'Manager') && (
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  isActive={window.location.pathname === '/dashboard/users'}
+                  isActive={activeModule === 'users'}
                   onClick={() => navigate('/dashboard/users')}
                   tooltip="User Management"
                 >

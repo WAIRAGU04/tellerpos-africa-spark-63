@@ -1,14 +1,19 @@
+
 import { useState, useEffect } from "react";
 import { UserData } from "@/types/dashboard";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { getGreeting } from "@/lib/utils";
+import OfflineStatusIndicator from "@/components/ui/offline-status-indicator";
+import { useOffline } from "@/hooks/use-offline";
 
 interface DashboardHeaderProps {
   userData: UserData;
+  onManualSync?: () => Promise<void>;
 }
 
-const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
+const DashboardHeader = ({ userData, onManualSync }: DashboardHeaderProps) => {
   const [greeting, setGreeting] = useState("");
+  const { isOnline } = useOffline(false);
   
   useEffect(() => {
     // Set initial greeting
@@ -37,7 +42,14 @@ const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          <OfflineStatusIndicator 
+            showLastSync={true}
+            showManualSync={true}
+            onManualSync={onManualSync}
+            compact={true}
+            className="mr-2"
+          />
           {/* We'll implement notifications, settings, etc. later */}
         </div>
       </div>

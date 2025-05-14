@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -10,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { CalendarClock, BarChart3 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { useOffline } from '@/hooks/use-offline';
-import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
 import OfflineAlert from '@/components/ui/offline-alert';
+import UnsynchronizedSales from '@/components/ui/unsynchronized-sales';
 import { cacheData, getCachedData, CACHE_KEYS } from '@/services/offlineService';
 
 const POSPage = () => {
@@ -19,12 +18,13 @@ const POSPage = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [unsyncedSales, setUnsyncedSales] = useState<Transaction[]>([]);
   const { isOnline, setLastSyncTime } = useOffline();
   const { toast } = useToast();
   const { activeShift, isLoading: isShiftLoading } = useShift();
   const navigate = useNavigate();
 
-  // Load inventory, cart data, and recent transactions
+  // Load inventory, cart data, recent transactions, and unsynced sales
   const loadData = () => {
     // Load inventory from localStorage
     const storedInventory = localStorage.getItem('inventory');
@@ -55,6 +55,12 @@ const POSPage = () => {
       // Only get the 5 most recent transactions
       setRecentTransactions(parsedTransactions.slice(0, 5));
     }
+
+    // Load unsynced sales
+    const storedUnsyncedSales = localStorage.getItem('unsynced_sales');
+    if (storedUnsyncedSales) {
+      setUnsyncedSales(JSON.parse(storedUnsyncedSales));
+    }
     
     setIsLoading(false);
     setLastSyncTime(new Date().toISOString());
@@ -72,8 +78,47 @@ const POSPage = () => {
     }
   }, [cart, isLoading]);
 
+  // Sync function to handle syncing unsynced sales to the server
+  const syncSales = async () => {
+    if (!isOnline) {
+      toast({
+        title: "Sync failed",
+        description: "You are currently offline. Please connect to the internet and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // In a real implementation, this would make API calls to sync with a server
+      // For now, we'll simulate a successful sync with a delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // After successful sync, clear the unsynced sales
+      setUnsyncedSales([]);
+      localStorage.removeItem('unsynced_sales');
+      
+      // Update last sync time
+      const newSyncTime = new Date().toISOString();
+      setLastSyncTime(newSyncTime);
+      
+      toast({
+        title: "Sync successful",
+        description: "All sales have been synchronized successfully.",
+      });
+    } catch (error) {
+      console.error("Sync failed:", error);
+      toast({
+        title: "Sync failed",
+        description: "An error occurred while syncing. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleManualSync = async () => {
     // In a real app, this would sync with a server
+    await syncSales();
     loadData();
   };
 
@@ -192,13 +237,25 @@ const POSPage = () => {
     });
   };
 
-  // Handle successful payment - refresh recent transactions
-  const handlePaymentComplete = () => {
+  // Handle successful payment - refresh recent transactions and handle offline sales
+  const handlePaymentComplete = (transaction?: Transaction) => {
     // Reload recent transactions
     const storedTransactions = localStorage.getItem('transactions');
     if (storedTransactions) {
       const parsedTransactions = JSON.parse(storedTransactions);
       setRecentTransactions(parsedTransactions.slice(0, 5));
+    }
+
+    // If offline, add transaction to unsynced sales
+    if (!isOnline && transaction) {
+      const newUnsyncedSales = [...unsyncedSales, transaction];
+      setUnsyncedSales(newUnsyncedSales);
+      localStorage.setItem('unsynced_sales', JSON.stringify(newUnsyncedSales));
+      
+      toast({
+        title: "Sale saved offline",
+        description: "This sale will be synchronized when you're back online.",
+      });
     }
   };
 
@@ -233,7 +290,7 @@ const POSPage = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout onManualSync={handleManualSync}>
       <div className="p-4 flex justify-between items-center">
         <div>
           <h2 className="text-lg font-medium">Active Shift: Started {new Date(activeShift.clockInTime).toLocaleString()}</h2>
@@ -241,6 +298,13 @@ const POSPage = () => {
         </div>
         
         <div className="flex gap-2">
+          {unsyncedSales.length > 0 && (
+            <UnsynchronizedSales 
+              unsyncedSales={unsyncedSales} 
+              onSyncSales={syncSales} 
+            />
+          )}
+          
           <Button
             variant="outline"
             size="sm"
@@ -250,11 +314,6 @@ const POSPage = () => {
             <BarChart3 className="h-4 w-4" />
             View Sales
           </Button>
-          
-          <OfflineStatusIndicator 
-            showManualSync={true}
-            onManualSync={handleManualSync}
-          />
         </div>
       </div>
       

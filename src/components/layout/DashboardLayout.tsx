@@ -5,6 +5,7 @@ import { cn, getGreeting } from "@/lib/utils";
 import { UserData } from "@/types/dashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 
 // Sidebar menu items - updated to remove "sell" and keep only "pos"
 const sidebarItems = [{
@@ -60,9 +61,11 @@ const sidebarItems = [{
 }];
 interface DashboardLayoutProps {
   children: ReactNode;
+  onManualSync?: () => Promise<void>;
 }
 const DashboardLayout = ({
-  children
+  children,
+  onManualSync
 }: DashboardLayoutProps) => {
   // Get collapsed state from localStorage if available
   const getInitialCollapsedState = () => {
@@ -271,24 +274,7 @@ const DashboardLayout = ({
       {/* Main Content */}
       <main className={cn("flex-1 transition-all duration-300 ease-in-out flex flex-col", collapsed ? "md:ml-20" : "md:ml-64")}>
         {/* Top Header Bar */}
-        <header className="h-16 flex items-center justify-between px-4 bg-white dark:bg-tellerpos-dark-accent border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
-          <button onClick={toggleMobileMenu} className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 md:hidden">
-            <Menu size={20} />
-          </button>
-          
-          <div className="flex-1 md:ml-4">
-            <h1 className="font-semibold text-xl text-green-500">{sidebarItems.find(item => item.id === activeModule)?.label || "Dashboard"}</h1>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label="Notifications">
-              <Bell size={20} />
-            </button>
-            <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}>
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-          </div>
-        </header>
+        <DashboardHeader userData={userData} onManualSync={onManualSync} />
         
         {/* Module Content */}
         <div className="flex-grow overflow-auto">

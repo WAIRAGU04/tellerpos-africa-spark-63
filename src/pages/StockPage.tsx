@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { nanoid } from 'nanoid';
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, FileUp, FileDown, Grid, List } from "lucide-react";
+import { Plus, FileUp, FileDown, Grid, List, Edit } from "lucide-react";
 import { InventoryItem, Product, Service } from "@/types/inventory";
 import ProductForm from "@/components/inventory/ProductForm";
 import ServiceForm from "@/components/inventory/ServiceForm";
@@ -12,6 +13,8 @@ import InventoryList from "@/components/inventory/InventoryList";
 import InventoryGrid from "@/components/inventory/InventoryGrid";
 import ImportProducts from "@/components/inventory/ImportProducts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import UpdateStockDialog from "@/components/inventory/UpdateStockDialog";
+
 const StockPage = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -20,9 +23,9 @@ const StockPage = () => {
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addServiceOpen, setAddServiceOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const [updateStockOpen, setUpdateStockOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const { toast } = useToast();
 
   // Load inventory from localStorage
   useEffect(() => {
@@ -94,6 +97,57 @@ const StockPage = () => {
     });
   };
 
+  // Update an existing item in inventory
+  const updateItem = (updatedItem: InventoryItem) => {
+    setInventory(prev => 
+      prev.map(item => 
+        item.id === updatedItem.id 
+          ? { ...updatedItem, updatedAt: new Date().toISOString() } 
+          : item
+      )
+    );
+    
+    setSelectedItem(null);
+    toast({
+      title: 'Item Updated',
+      description: `${updatedItem.name} has been updated successfully.`
+    });
+  };
+
+  // Update stock level of a product
+  const updateStock = (id: string, newQuantity: number, reason: string) => {
+    setInventory(prev => 
+      prev.map(item => {
+        if (item.id === id && item.type === 'product') {
+          const product = item as Product;
+          return {
+            ...product,
+            quantity: newQuantity,
+            stock: newQuantity,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return item;
+      })
+    );
+    
+    setUpdateStockOpen(false);
+    setSelectedItem(null);
+    
+    toast({
+      title: 'Stock Updated',
+      description: `Stock level updated. ${reason}`
+    });
+  };
+
+  // Handle edit button click
+  const handleEdit = (item: InventoryItem) => {
+    setSelectedItem(item);
+    if (item.type === 'product') {
+      setUpdateStockOpen(true);
+    }
+  };
+
   // Filter inventory based on active tab
   const filteredInventory = inventory.filter(item => {
     if (activeTab === 'all') return true;
@@ -139,6 +193,7 @@ const StockPage = () => {
       description: 'Inventory template has been downloaded.'
     });
   };
+
   if (isLoading) {
     return <DashboardLayout>
         <div className="flex items-center justify-center h-full">
@@ -146,6 +201,7 @@ const StockPage = () => {
         </div>
       </DashboardLayout>;
   }
+
   return <DashboardLayout>
       <div className="p-6 max-w-full mx-auto">
         <div className="flex flex-col space-y-6">
@@ -195,7 +251,11 @@ const StockPage = () => {
                   <DialogHeader>
                     <DialogTitle>Import Products</DialogTitle>
                   </DialogHeader>
-                  <ImportProducts onImport={importProducts} onCancel={() => setImportOpen(false)} />
+                  <ImportProducts 
+                    onImport={importProducts} 
+                    onCancel={() => setImportOpen(false)}
+                    existingItems={inventory} 
+                  />
                 </DialogContent>
               </Dialog>
               
@@ -231,11 +291,42 @@ const StockPage = () => {
                     {activeTab === 'all' ? "Start by adding products or services to your inventory" : activeTab === 'products' ? "No products in your inventory" : activeTab === 'services' ? "No services added yet" : "No items with low stock"}
                   </p>
                   {activeTab === 'all' || activeTab === 'products' ? <Button onClick={() => setAddProductOpen(true)}>Add Product</Button> : activeTab === 'services' ? <Button onClick={() => setAddServiceOpen(true)}>Add Service</Button> : null}
-                </div> : viewMode === 'grid' ? <InventoryGrid items={filteredInventory} onAddToCart={addToCart} /> : <InventoryList items={filteredInventory} onAddToCart={addToCart} />}
+                </div> : viewMode === 'grid' ? 
+                <InventoryGrid 
+                  items={filteredInventory} 
+                  onAddToCart={addToCart}
+                  onEdit={handleEdit}
+                /> : 
+                <InventoryList 
+                  items={filteredInventory} 
+                  onAddToCart={addToCart}
+                  onEdit={handleEdit} 
+                />
+              }
             </TabsContent>
           </Tabs>
         </div>
       </div>
+
+      {/* Update Stock Dialog */}
+      <Dialog open={updateStockOpen && selectedItem !== null} onOpenChange={setUpdateStockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Stock Level</DialogTitle>
+          </DialogHeader>
+          {selectedItem && selectedItem.type === 'product' && (
+            <UpdateStockDialog 
+              product={selectedItem as Product} 
+              onUpdate={updateStock}
+              onCancel={() => {
+                setUpdateStockOpen(false);
+                setSelectedItem(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>;
 };
+
 export default StockPage;

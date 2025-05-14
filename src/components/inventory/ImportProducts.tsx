@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
-import { ImportProductRow, Product, UnitOfMeasurement } from '@/types/inventory';
+import { ImportProductRow, Product, UnitOfMeasurement, InventoryItem } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FileUp, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
+import { FileUp, AlertTriangle, CheckCircle, Trash2, AlertCircle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,12 +17,14 @@ import {
 interface ImportProductsProps {
   onImport: (products: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'type'>[]) => void;
   onCancel: () => void;
+  existingItems?: InventoryItem[]; // Add this to check for duplicates
 }
 
-const ImportProducts = ({ onImport, onCancel }: ImportProductsProps) => {
+const ImportProducts = ({ onImport, onCancel, existingItems = [] }: ImportProductsProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [parsedProducts, setParsedProducts] = useState<ImportProductRow[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [duplicateWarnings, setDuplicateWarnings] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,6 +37,7 @@ const ImportProducts = ({ onImport, onCancel }: ImportProductsProps) => {
   const parseFile = (file: File) => {
     setIsLoading(true);
     setErrors([]);
+    setDuplicateWarnings([]);
     setParsedProducts([]);
     
     const reader = new FileReader();
@@ -64,6 +68,7 @@ const ImportProducts = ({ onImport, onCancel }: ImportProductsProps) => {
         // Parse data rows
         const products: ImportProductRow[] = [];
         const rowErrors: string[] = [];
+        const duplicates: string[] = [];
         
         for (let i = 1; i < rows.length; i++) {
           // Skip empty rows
@@ -121,6 +126,25 @@ const ImportProducts = ({ onImport, onCancel }: ImportProductsProps) => {
             continue;
           }
           
+          // Check for duplicates in existing inventory
+          const duplicateInInventory = existingItems.find(item => 
+            item.type === 'product' && 
+            ((item as Product).sku === product.sku || item.name.toLowerCase() === product.name?.toLowerCase())
+          );
+          
+          if (duplicateInInventory) {
+            duplicates.push(`Row ${i}: "${product.name}" (SKU: ${product.sku}) already exists in inventory`);
+          }
+          
+          // Check for duplicates within the import file
+          const duplicateInImport = products.find(p => 
+            p.sku === product.sku || p.name.toLowerCase() === product.name?.toLowerCase()
+          );
+          
+          if (duplicateInImport) {
+            duplicates.push(`Row ${i}: "${product.name}" (SKU: ${product.sku}) appears multiple times in the import file`);
+          }
+          
           // Add defaults if needed
           product.description = product.description || '';
           product.reorderLevel = product.reorderLevel || 5;
@@ -131,12 +155,14 @@ const ImportProducts = ({ onImport, onCancel }: ImportProductsProps) => {
         
         if (rowErrors.length > 0) {
           setErrors(rowErrors);
-          setIsLoading(false);
-          return;
+        }
+        
+        if (duplicates.length > 0) {
+          setDuplicateWarnings(duplicates);
         }
         
         if (products.length === 0) {
-          setErrors(['No valid products found in the file.']);
+          setErrors(prev => [...prev, 'No valid products found in the file.']);
           setIsLoading(false);
           return;
         }
@@ -179,6 +205,16 @@ const ImportProducts = ({ onImport, onCancel }: ImportProductsProps) => {
   
   const removeProduct = (index: number) => {
     setParsedProducts(prev => prev.filter((_, i) => i !== index));
+    
+    // Clean up any warnings related to the removed product
+    const removedProduct = parsedProducts[index];
+    if (removedProduct) {
+      setDuplicateWarnings(prev => 
+        prev.filter(warning => 
+          !warning.includes(removedProduct.name) && !warning.includes(removedProduct.sku)
+        )
+      );
+    }
   };
   
   const downloadTemplate = () => {
@@ -245,6 +281,21 @@ const ImportProducts = ({ onImport, onCancel }: ImportProductsProps) => {
                 <li key={index}>{error}</li>
               ))}
             </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {duplicateWarnings.length > 0 && (
+        <Alert variant="warning" className="bg-yellow-50 text-yellow-800 border-yellow-200">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Duplicate Products Detected</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {duplicateWarnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-sm font-medium">You may continue with import, but duplicate products will be added as new items.</p>
           </AlertDescription>
         </Alert>
       )}

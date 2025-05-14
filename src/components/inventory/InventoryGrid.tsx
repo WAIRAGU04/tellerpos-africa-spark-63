@@ -3,15 +3,16 @@ import React from 'react';
 import { InventoryItem, Product, Service } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { ShoppingCart, Package2, FileText } from 'lucide-react';
+import { ShoppingCart, Package2, FileText, Edit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface InventoryGridProps {
   items: InventoryItem[];
   onAddToCart: (item: InventoryItem) => void;
+  onEdit?: (item: InventoryItem) => void;
 }
 
-const InventoryGrid = ({ items, onAddToCart }: InventoryGridProps) => {
+const InventoryGrid = ({ items, onAddToCart, onEdit }: InventoryGridProps) => {
   // Helper to render the item's image or color
   const renderItemVisual = (item: InventoryItem) => {
     if (item.imageUrl) {
@@ -99,9 +100,9 @@ const InventoryGrid = ({ items, onAddToCart }: InventoryGridProps) => {
             </div>
           </CardContent>
           
-          <CardFooter className="mt-auto pt-2">
+          <CardFooter className="mt-auto pt-2 flex gap-2">
             <Button 
-              className="w-full" 
+              className="flex-1" 
               variant="default"
               onClick={() => onAddToCart(item)}
               disabled={(item.type === 'product' && (item as Product).quantity <= 0) || 
@@ -110,6 +111,17 @@ const InventoryGrid = ({ items, onAddToCart }: InventoryGridProps) => {
               <ShoppingCart className="mr-2 h-4 w-4" />
               Add to Cart
             </Button>
+            
+            {onEdit && (
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => onEdit(item)}
+                className="flex-none"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
           </CardFooter>
         </Card>
       ))}

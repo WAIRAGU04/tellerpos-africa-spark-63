@@ -2,8 +2,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertCircle, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Smartphone, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, Smartphone, RefreshCw } from 'lucide-react';
 
 interface MpesaProcessingStateProps {
   status: 'processing' | 'checking';

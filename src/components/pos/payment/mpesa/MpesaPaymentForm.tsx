@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { validatePhoneNumber } from '@/services/mpesaService';
+import { formatPhoneNumber } from '@/services/mpesaService';
 
 interface MpesaPaymentFormProps {
   onInitiatePayment: (phoneNumber: string) => void;
@@ -41,6 +41,14 @@ const MpesaPaymentForm: React.FC<MpesaPaymentFormProps> = ({
       // Basic validation - can be enhanced further
       if (phoneNumber.length < 9) {
         setPhoneError('Phone number is too short');
+        return;
+      }
+
+      // Use the formatPhoneNumber function to validate
+      try {
+        formatPhoneNumber(phoneNumber);
+      } catch (error) {
+        setPhoneError(error.message);
         return;
       }
 

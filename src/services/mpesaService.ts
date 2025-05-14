@@ -19,19 +19,35 @@ export interface MpesaTransaction {
 
 // Constants for M-Pesa integration
 const MPESA_API_ENDPOINT = {
+  authToken: "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
   stkPush: "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
   stkQuery: "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
 };
 
-// Default test credentials
+// Production endpoints (uncomment when moving to production)
+// const MPESA_API_ENDPOINT = {
+//   authToken: "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+//   stkPush: "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+//   stkQuery: "https://api.safaricom.co.ke/mpesa/stkpushquery/v1/query"
+// };
+
+// Real test credentials
 const DEFAULT_CREDENTIALS = {
   businessShortCode: "174379",
   passKey: "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919",
-  consumerKey: "your-consumer-key", // These would be replaced with actual keys
-  consumerSecret: "your-consumer-secret", // These would be replaced with actual keys
-  callbackUrl: "https://example.com/callback", // This would be replaced in a real implementation
+  consumerKey: "rWtc2eFAjom4PlAszBn98mlOOqTC33bSAtLp7fRLSw0yE8k7",
+  consumerSecret: "HF9qo7n9AbomCjcFhAjiOAHkfCwKSlmfxA7vbPRk6usrhqEIf2iuQcELWXBpyHmB",
+  initiatorName: "testapi",
+  initiatorPassword: "Safaricom123!!",
+  partyA: "600984",
+  partyB: "600000",
+  callbackUrl: "https://mydomain.com/callback", // Would be replaced in production
   transactionType: "CustomerPayBillOnline"
 };
+
+// Token cache
+let oauthToken: string | null = null;
+let tokenExpiry: number | null = null;
 
 // Types for M-Pesa API
 export interface MpesaCredentials {
@@ -39,6 +55,10 @@ export interface MpesaCredentials {
   passKey: string;
   consumerKey: string;
   consumerSecret: string;
+  initiatorName: string;
+  initiatorPassword: string;
+  partyA: string;
+  partyB: string;
   callbackUrl: string;
   transactionType: string;
 }
@@ -69,13 +89,14 @@ export interface STKQueryResponse {
 
 // Pending transactions cache key
 const PENDING_MPESA_TRANSACTIONS = "pending_mpesa_transactions";
+const ACCESS_TOKEN_KEY = "mpesa_access_token";
+const TOKEN_EXPIRY_KEY = "mpesa_token_expiry";
 
 /**
  * Generate the password for M-Pesa API authentication
  * Format: Base64(BusinessShortCode + PassKey + Timestamp)
  */
 export const generatePassword = (businessShortCode: string, passKey: string, timestamp: string): string => {
-  // In a browser environment, we'd use btoa for Base64 encoding
   try {
     return btoa(`${businessShortCode}${passKey}${timestamp}`);
   } catch (error) {
@@ -100,7 +121,7 @@ export const generateTimestamp = (): string => {
 };
 
 /**
- * Get M-Pesa credentials from localStorage or use defaults (for demo/development)
+ * Get M-Pesa credentials from localStorage or use defaults
  */
 export const getMpesaCredentials = (): MpesaCredentials => {
   const storedCredentials = localStorage.getItem("mpesa_credentials");
@@ -115,13 +136,78 @@ export const saveMpesaCredentials = (credentials: MpesaCredentials): void => {
 };
 
 /**
- * Initiate STK Push request
- * This would normally call the M-Pesa API, but for demo purposes it simulates the response
+ * Get OAuth access token for M-Pesa API authentication
+ * Tokens are valid for 1 hour
+ */
+export const getAccessToken = async (): Promise<string> => {
+  // Check if we have a cached token that hasn't expired
+  const currentTime = Date.now();
+  
+  // Try to get from memory first
+  if (oauthToken && tokenExpiry && currentTime < tokenExpiry) {
+    return oauthToken;
+  }
+  
+  // Try to get from localStorage next
+  const cachedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+  const cachedExpiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+  
+  if (cachedToken && cachedExpiry && currentTime < parseInt(cachedExpiry)) {
+    oauthToken = cachedToken;
+    tokenExpiry = parseInt(cachedExpiry);
+    return cachedToken;
+  }
+
+  // If no valid token found, get a new one
+  const credentials = getMpesaCredentials();
+  
+  try {
+    const auth = btoa(`${credentials.consumerKey}:${credentials.consumerSecret}`);
+    
+    const response = await fetch(MPESA_API_ENDPOINT.authToken, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${auth}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.access_token) {
+      throw new Error('No access token received');
+    }
+    
+    // Cache the token (valid for 1 hour)
+    oauthToken = data.access_token;
+    tokenExpiry = currentTime + (data.expires_in * 1000 || 3600000); // Default to 1 hour if not specified
+    
+    // Store in localStorage as backup
+    localStorage.setItem(ACCESS_TOKEN_KEY, oauthToken);
+    localStorage.setItem(TOKEN_EXPIRY_KEY, tokenExpiry.toString());
+    
+    return data.access_token;
+  } catch (error) {
+    console.error("Error fetching access token:", error);
+    throw error;
+  }
+};
+
+/**
+ * Initiate STK Push request to M-Pesa API
  */
 export const initiateSTKPush = async (
   requestData: STKPushRequest
 ): Promise<{ success: boolean; data?: STKPushResponse; error?: string }> => {
   try {
+    // Check if online
+    if (!navigator.onLine) {
+      return { success: false, error: "No internet connection" };
+    }
+    
     const credentials = getMpesaCredentials();
     const timestamp = generateTimestamp();
     const password = generatePassword(
@@ -129,33 +215,69 @@ export const initiateSTKPush = async (
       credentials.passKey,
       timestamp
     );
-
-    // In a real implementation, this would be an actual API call
-    // For demonstration, we'll simulate a response based on test data
-    const simulatedResponse: STKPushResponse = {
-      MerchantRequestID: `merc-${Math.random().toString(36).substring(2, 10)}`,
-      CheckoutRequestID: `ws_CO_${timestamp}_${Math.random().toString(36).substring(2, 10)}`,
-      ResponseCode: "0",
-      ResponseDescription: "Success. Request accepted for processing",
-      CustomerMessage: "Success. Request accepted for processing"
-    };
-
-    // Store pending transaction in localStorage for checking status later
-    const pendingTransactions = getPendingTransactions();
-    const newTransaction: MpesaTransaction = {
-      checkoutRequestId: simulatedResponse.CheckoutRequestID,
-      merchantRequestId: simulatedResponse.MerchantRequestID,
-      amount: requestData.amount,
-      phoneNumber: requestData.phoneNumber,
-      accountReference: requestData.accountReference,
-      timestamp: new Date().toISOString(),
-      status: "pending"
+    
+    // Get access token
+    const accessToken = await getAccessToken();
+    
+    // Prepare request body
+    const requestBody = {
+      BusinessShortCode: credentials.businessShortCode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: credentials.transactionType,
+      Amount: requestData.amount.toString(),
+      PartyA: requestData.phoneNumber,
+      PartyB: credentials.businessShortCode,
+      PhoneNumber: requestData.phoneNumber,
+      CallBackURL: credentials.callbackUrl,
+      AccountReference: requestData.accountReference,
+      TransactionDesc: requestData.transactionDesc
     };
     
-    pendingTransactions.push(newTransaction);
-    savePendingTransactions(pendingTransactions);
+    console.log("STK Push request:", requestBody);
+    
+    // Make API call
+    const response = await fetch(MPESA_API_ENDPOINT.stkPush, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    const responseData = await response.json();
+    console.log("STK Push response:", responseData);
+    
+    if (!response.ok) {
+      return { 
+        success: false, 
+        error: responseData.errorMessage || `HTTP error! Status: ${response.status}` 
+      };
+    }
+    
+    // Store pending transaction for checking status later
+    if (responseData.ResponseCode === "0") {
+      const pendingTransactions = getPendingTransactions();
+      const newTransaction: MpesaTransaction = {
+        checkoutRequestId: responseData.CheckoutRequestID,
+        merchantRequestId: responseData.MerchantRequestID,
+        amount: requestData.amount,
+        phoneNumber: requestData.phoneNumber,
+        accountReference: requestData.accountReference,
+        timestamp: new Date().toISOString(),
+        status: "pending"
+      };
+      
+      pendingTransactions.push(newTransaction);
+      savePendingTransactions(pendingTransactions);
+    }
 
-    return { success: true, data: simulatedResponse };
+    return { 
+      success: responseData.ResponseCode === "0", 
+      data: responseData,
+      error: responseData.ResponseCode !== "0" ? responseData.ResponseDescription : undefined
+    };
   } catch (error) {
     console.error("Error initiating STK push:", error);
     return { success: false, error: "Failed to initiate payment" };
@@ -163,13 +285,17 @@ export const initiateSTKPush = async (
 };
 
 /**
- * Query STK Push status
- * This would normally call the M-Pesa API query endpoint, but for demo purposes it simulates the response
+ * Query STK Push status from M-Pesa API
  */
 export const querySTKStatus = async (
   checkoutRequestId: string
 ): Promise<{ success: boolean; data?: STKQueryResponse; error?: string }> => {
   try {
+    // Check if online
+    if (!navigator.onLine) {
+      return { success: false, error: "No internet connection" };
+    }
+    
     const credentials = getMpesaCredentials();
     const timestamp = generateTimestamp();
     const password = generatePassword(
@@ -177,46 +303,52 @@ export const querySTKStatus = async (
       credentials.passKey,
       timestamp
     );
-
-    // In a real implementation, this would be an actual API call
-    // For demonstration, we'll simulate a response
-    // Let's simulate different responses based on the checkoutRequestId
-    // to demonstrate different scenarios
     
-    // Find the pending transaction
-    const pendingTransactions = getPendingTransactions();
-    const transaction = pendingTransactions.find(tx => tx.checkoutRequestId === checkoutRequestId);
+    // Get access token
+    const accessToken = await getAccessToken();
     
-    if (!transaction) {
-      return {
-        success: false,
-        error: "Transaction not found"
+    // Prepare request body
+    const requestBody = {
+      BusinessShortCode: credentials.businessShortCode,
+      Password: password,
+      Timestamp: timestamp,
+      CheckoutRequestID: checkoutRequestId
+    };
+    
+    console.log("STK Query request:", requestBody);
+    
+    // Make API call
+    const response = await fetch(MPESA_API_ENDPOINT.stkQuery, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    const responseData = await response.json();
+    console.log("STK Query response:", responseData);
+    
+    if (!response.ok) {
+      return { 
+        success: false, 
+        error: responseData.errorMessage || `HTTP error! Status: ${response.status}` 
       };
     }
-
-    // For demo purposes, we'll randomly determine success or failure
-    // In a real app, this would come from the actual API response
-    const isSuccess = Math.random() > 0.3; // 70% success rate for demo
-
-    const simulatedResponse: STKQueryResponse = {
-      ResponseCode: "0",
-      ResponseDescription: "The service request has been accepted successfully",
-      MerchantRequestID: transaction.merchantRequestId,
-      CheckoutRequestID: checkoutRequestId,
-      ResultCode: isSuccess ? "0" : "1032",
-      ResultDesc: isSuccess 
-        ? "The service request is processed successfully."
-        : "Request cancelled by user"
-    };
-
-    // Update the status of the pending transaction
-    if (isSuccess) {
-      updateTransactionStatus(checkoutRequestId, "completed");
-    } else {
-      updateTransactionStatus(checkoutRequestId, "failed");
+    
+    // Update transaction status based on response
+    if (responseData.ResponseCode === "0") {
+      const resultCode = responseData.ResultCode;
+      const newStatus: "completed" | "failed" = resultCode === "0" ? "completed" : "failed";
+      updateTransactionStatus(checkoutRequestId, newStatus);
     }
 
-    return { success: true, data: simulatedResponse };
+    return { 
+      success: responseData.ResponseCode === "0", 
+      data: responseData,
+      error: responseData.ResponseCode !== "0" ? responseData.ResponseDescription : undefined
+    };
   } catch (error) {
     console.error("Error querying STK status:", error);
     return { success: false, error: "Failed to check payment status" };
@@ -274,8 +406,6 @@ export const reconcilePendingTransactions = async (): Promise<void> => {
     description: `Reconciling ${pendingOnly.length} pending transactions`
   });
   
-  // In a real app, we would query each transaction
-  // For demo, we'll just simulate completion after a delay
   for (const tx of pendingOnly) {
     await querySTKStatus(tx.checkoutRequestId);
   }

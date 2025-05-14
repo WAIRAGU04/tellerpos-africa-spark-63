@@ -38,14 +38,17 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
   const checkPaymentStatus = useCallback(async (requestId: string) => {
     setStatus('checking');
     let retries = 0;
-    const maxRetries = 10;
+    const maxRetries = 15; // Increase max retries for real API
+    const retryInterval = 4000; // 4 seconds between retries
 
     const checkStatus = async () => {
       try {
+        console.log(`Checking payment status for request ID: ${requestId}`);
         const response = await querySTKStatus(requestId);
+        console.log("Payment status response:", response);
         
         if (response.success && response.data) {
-          if (response.data.ResultCode === '0') {
+          if (response.data.ResultCode === "0") {
             // Payment successful
             setStatus('success');
             setProgress(100);
@@ -57,8 +60,8 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
             const reference = `MPESA-${nanoid(8).toUpperCase()}`;
             onSuccess(reference);
             return true;
-          } else {
-            // Payment failed
+          } else if (response.data.ResultCode) {
+            // Payment failed with a result code
             setStatus('failed');
             setErrorMessage(response.data.ResultDesc);
             toast({
@@ -76,7 +79,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
           setProgress(Math.round((retries / maxRetries) * 80) + 10);
           return false;
         } else {
-          // Max retries reached, assume failure
+          // Max retries reached, assume timeout
           setStatus('failed');
           setErrorMessage("Payment verification timed out. If money was deducted, please contact support.");
           toast({
@@ -88,25 +91,33 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
         }
       } catch (error) {
         console.error("Error checking payment status:", error);
+        if (retries < maxRetries) {
+          retries++;
+          setProgress(Math.round((retries / maxRetries) * 80) + 10);
+          return false;
+        }
         setStatus('failed');
         setErrorMessage("Failed to verify payment. Please check your M-Pesa app.");
         return true;
       }
     };
 
-    // Initial poll
-    const finished = await checkStatus();
-    if (finished) return;
-
-    // Continue polling every 3 seconds
-    const interval = setInterval(async () => {
+    // Initial poll with a slight delay to let the STK push be processed
+    setTimeout(async () => {
       const finished = await checkStatus();
-      if (finished) {
-        clearInterval(interval);
-      }
-    }, 3000);
+      if (finished) return;
 
-    return () => clearInterval(interval);
+      // Continue polling every retryInterval seconds
+      const interval = setInterval(async () => {
+        const finished = await checkStatus();
+        if (finished) {
+          clearInterval(interval);
+        }
+      }, retryInterval);
+    }, 5000); // Initial 5 second delay
+
+    // Cleanup function
+    return () => {};
   }, [onSuccess, toast]);
 
   // Initiate STK Push
@@ -132,15 +143,20 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
     setIsProcessing(true);
     setStatus('processing');
     setProgress(10);
+    setErrorMessage('');
 
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber);
+      console.log(`Initiating STK Push to phone number: ${formattedPhone}`);
+      
       const response = await initiateSTKPush({
         phoneNumber: formattedPhone,
         amount,
         accountReference: `TellerPOS-${nanoid(6)}`,
         transactionDesc: "Purchase at TellerPOS"
       });
+
+      console.log("STK Push response:", response);
 
       if (response.success && response.data) {
         setCheckoutRequestId(response.data.CheckoutRequestID);
@@ -258,6 +274,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="e.g., 0712345678"
                 className="w-full"
+                disabled={isProcessing}
               />
               <p className="text-xs text-muted-foreground">
                 Enter your phone number in format 07XX XXX XXX
@@ -268,7 +285,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
               <Button 
                 className="w-full"
                 onClick={handleInitiatePayment}
-                disabled={!phoneNumber.trim() || !isOnline}
+                disabled={!phoneNumber.trim() || !isOnline || isProcessing}
               >
                 Pay KES {amount.toLocaleString()}
               </Button>
@@ -277,6 +294,7 @@ const MpesaSTKPayment: React.FC<MpesaSTKPaymentProps> = ({
                 variant="ghost" 
                 className="w-full mt-2" 
                 onClick={onCancel}
+                disabled={isProcessing}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>

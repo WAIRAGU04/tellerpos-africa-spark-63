@@ -8,12 +8,14 @@ interface PaymentMethodSelectorProps {
   selectedMethod: PaymentMethod;
   onSelectMethod: (method: PaymentMethod) => void;
   isCustomerSelected: boolean;
+  isOnline?: boolean;
 }
 
 const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   selectedMethod,
   onSelectMethod,
-  isCustomerSelected
+  isCustomerSelected,
+  isOnline = true
 }) => {
   return (
     <div className="grid grid-cols-2 gap-3 mt-4">
@@ -29,6 +31,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         onClick={() => onSelectMethod('mpesa-stk')}
         variant={selectedMethod === 'mpesa-stk' ? 'default' : 'outline'}
         className="h-20 flex flex-col items-center justify-center"
+        disabled={!isOnline}
       >
         <SmartphoneIcon className="h-6 w-6 mb-2" />
         M-Pesa STK

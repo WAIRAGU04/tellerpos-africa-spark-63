@@ -13,6 +13,7 @@ import { useOffline } from '@/hooks/use-offline';
 import OfflineStatusIndicator from '@/components/ui/offline-status-indicator';
 import OfflineAlert from '@/components/ui/offline-alert';
 import { cacheData, getCachedData, CACHE_KEYS } from '@/services/offlineService';
+import { reconcilePendingTransactions } from '@/services/mpesaService';
 
 const POSPage = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -72,9 +73,21 @@ const POSPage = () => {
     }
   }, [cart, isLoading]);
 
+  // Handle online status changes to reconcile pending M-Pesa transactions
+  useEffect(() => {
+    if (isOnline) {
+      reconcilePendingTransactions();
+    }
+  }, [isOnline]);
+
   const handleManualSync = async () => {
     // In a real app, this would sync with a server
     loadData();
+    
+    // Also reconcile any pending M-Pesa transactions
+    if (isOnline) {
+      await reconcilePendingTransactions();
+    }
   };
 
   // Update the addToCart function to use the correct CartItem properties

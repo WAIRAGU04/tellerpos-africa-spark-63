@@ -1,14 +1,23 @@
 
-import { Shift, Expense } from '@/types/shift';
-import { CartItem, PaymentMethod, Transaction } from '@/types/pos';
+import { Shift, ShiftExpense } from '@/types/shift';
+import { Transaction, PaymentMethod } from '@/types/pos';
 
-export type ShiftContextType = {
+export interface ShiftContextType {
   activeShift: Shift | null;
   isLoading: boolean;
-  startShift: (openingBalance: number) => void;
-  closeShift: () => void;
-  addExpense: (expense: Omit<Expense, 'id' | 'timestamp'>) => void;
-  updateShiftWithSale: (items: CartItem[], paymentMethod: PaymentMethod, amount: number) => void;
-  updateShiftWithSplitSale: (items: CartItem[], payments: Array<{method: PaymentMethod, amount: number}>) => void;
+  startShift: (openingBalance: number, notes?: string) => boolean;
+  endShift: (notes?: string) => {
+    success: boolean;
+    shiftData?: Shift;
+    error?: string;
+  };
+  updateShiftWithSale: (amount: number, paymentMethod: PaymentMethod, transactionId?: string) => boolean;
+  updateShiftWithSplitSale: (payments: { method: PaymentMethod; amount: number }[]) => boolean;
+  addShiftExpense: (expense: Omit<ShiftExpense, 'id' | 'timestamp'>) => boolean;
+  getShiftHistory: () => Shift[];
+  getShiftById: (id: string) => Shift | null;
+  getShiftTransactions: (shiftId: string) => Transaction[];
+  shiftHistory: Shift[];
   recordTransaction: (transaction: Transaction) => boolean;
-};
+  updateTransactionStatus: (transactionId: string, status: Transaction['status'], paymentReference?: string) => boolean;
+}

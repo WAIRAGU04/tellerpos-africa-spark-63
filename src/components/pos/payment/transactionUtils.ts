@@ -40,6 +40,9 @@ export const createTransactionObject = (
   // Generate appropriate document number
   const documentNumber = isInvoice ? generateInvoiceNumber() : generateReceiptNumber();
   
+  // For M-Pesa payments, we might have a pending status initially
+  const initialStatus = paymentMethod === 'mpesa-stk' ? 'pending' : (isInvoice ? 'pending' : 'completed');
+  
   return {
     id: nanoid(),
     items: cart,
@@ -54,7 +57,7 @@ export const createTransactionObject = (
     customerId: customerId || undefined,
     timestamp: new Date().toISOString(),
     receiptNumber: documentNumber,
-    status: isInvoice ? 'pending' : 'completed',
+    status: initialStatus,
     customerName: customerId ? 'Selected Customer' : undefined,
     userId: '',
     isInvoice: isInvoice,

@@ -31,6 +31,13 @@ export interface Payment {
   amount: number;
   reference?: string;
   timestamp: string;
+  mpesaDetails?: {
+    phoneNumber?: string;
+    checkoutRequestId?: string;
+    merchantRequestId?: string;
+    resultCode?: string;
+    resultDesc?: string;
+  };
 }
 
 export interface Transaction {

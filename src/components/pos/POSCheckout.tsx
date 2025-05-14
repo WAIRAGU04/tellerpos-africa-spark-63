@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { POSCheckoutProps, PaymentMethod } from '@/types/pos';
@@ -14,6 +15,7 @@ import CheckoutHeader from './payment/CheckoutHeader';
 import PaymentMethodSelector from './payment/PaymentMethodSelector';
 import CheckoutSummary from './payment/CheckoutSummary';
 import PaymentSuccessCard from './payment/PaymentSuccessCard';
+import MpesaSTKPayment from './payment/MpesaSTKPayment';
 import { createTransactionObject } from './payment/transactionUtils';
 
 const POSCheckout: React.FC<POSCheckoutProps> = ({ 
@@ -32,6 +34,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [isOnline] = useState(navigator.onLine);
   const [transactionData, setTransactionData] = useState(null);
+  const [showMpesaSTK, setShowMpesaSTK] = useState(false);
   const { updateShiftWithSale, updateShiftWithSplitSale, activeShift, recordTransaction } = useShift();
   const { toast } = useToast();
 
@@ -53,6 +56,12 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
         description: "Please select a customer for credit payment",
         variant: "destructive"
       });
+      return;
+    }
+
+    // For M-Pesa STK Push, show the STK payment screen
+    if (paymentMethod === 'mpesa-stk') {
+      setShowMpesaSTK(true);
       return;
     }
 
@@ -88,6 +97,41 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
       toast({
         title: "Payment error",
         description: "There was an issue processing your payment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle M-Pesa STK Push payment success
+  const handleMpesaSuccess = (reference: string) => {
+    try {
+      // Create transaction object for M-Pesa payment
+      const transaction = createTransactionObject(cart, cartTotal, 'mpesa-stk', selectedCustomerId, false);
+      
+      // Add the reference to payments
+      if (transaction.payments && transaction.payments.length > 0) {
+        transaction.payments[0].reference = reference;
+      }
+      
+      // Record the transaction
+      const success = recordTransaction(transaction);
+      
+      if (success) {
+        // Mark payment as complete and store transaction data for receipt
+        setTransactionData(transaction);
+        setShowMpesaSTK(false);
+        setIsPaymentComplete(true);
+        
+        // Notify parent component (if callback provided)
+        if (onPaymentComplete) {
+          onPaymentComplete('mpesa-stk', cartTotal);
+        }
+      }
+    } catch (error) {
+      console.error("Error recording M-Pesa payment:", error);
+      toast({
+        title: "Payment error",
+        description: "There was an issue recording your M-Pesa payment",
         variant: "destructive"
       });
     }
@@ -243,6 +287,23 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
     );
   }
 
+  // If showing M-Pesa STK Push payment screen
+  if (showMpesaSTK) {
+    return (
+      <div className="h-full flex flex-col">
+        <CheckoutHeader onBackToCart={() => setShowMpesaSTK(false)} />
+        <div className="flex-1 overflow-auto">
+          <MpesaSTKPayment
+            amount={cartTotal}
+            onSuccess={handleMpesaSuccess}
+            onCancel={() => setShowMpesaSTK(false)}
+            isOnline={isOnline}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -276,6 +337,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
               selectedMethod={paymentMethod}
               onSelectMethod={setPaymentMethod}
               isCustomerSelected={!!selectedCustomerId}
+              isOnline={isOnline}
             />
             
             <div className="flex justify-center mt-4">
@@ -299,7 +361,7 @@ const POSCheckout: React.FC<POSCheckoutProps> = ({
           <Button 
             onClick={handlePayment} 
             className="w-full h-16 text-lg" 
-            disabled={(paymentMethod === 'credit' && !selectedCustomerId) || (!isOnline && paymentMethod !== 'cash')}
+            disabled={(paymentMethod === 'credit' && !selectedCustomerId) || (!isOnline && paymentMethod === 'mpesa-stk')}
           >
             Pay KES {cartTotal.toLocaleString()}
           </Button>

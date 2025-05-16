@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "@/components/ui/theme-provider";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 // Sidebar menu items with submenus
 const sidebarItems = [
@@ -294,58 +295,62 @@ const DashboardLayout = ({
   // Determine if dark mode is active
   const isDarkTheme = theme === "dark";
   
-  return <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
-      {/* Mobile sidebar overlay */}
-      <div className={cn("fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity md:hidden", mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none")} onClick={() => setMobileMenuOpen(false)} />
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
+        {/* Mobile sidebar overlay */}
+        <div className={cn("fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity md:hidden", mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none")} onClick={() => setMobileMenuOpen(false)} />
 
-      {/* Use the enhanced DashboardSidebar component for both desktop and mobile */}
-      {/* Desktop Sidebar */}
-      <div className={cn("fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out hidden md:block", collapsed ? "w-20" : "w-64")}>
-        <DashboardSidebar 
-          userData={userData}
-          activeModule={activeModule}
-          setActiveModule={setActiveModule}
-          menuItems={sidebarItems}
-        />
-      </div>
-      
-      {/* Mobile Sidebar */}
-      <div className={cn("fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-tellerpos-dark-accent transition-transform md:hidden", mobileMenuOpen ? "translate-x-0" : "-translate-x-full")}>
-        <DashboardSidebar 
-          userData={userData}
-          activeModule={activeModule}
-          setActiveModule={setActiveModule}
-          menuItems={sidebarItems}
-        />
-      </div>
-
-      {/* Main Content */}
-      <main className={cn("flex-1 transition-all duration-300 ease-in-out flex flex-col", collapsed ? "md:ml-20" : "md:ml-64")}>
-        {/* Top Header Bar */}
-        <header className="h-16 flex items-center justify-between px-4 bg-white dark:bg-tellerpos-dark-accent border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
-          <button onClick={toggleMobileMenu} className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 md:hidden">
-            <Menu size={20} />
-          </button>
-          
-          <div className="flex-1 md:ml-4">
-            <h1 className="font-semibold text-xl text-green-500">{sidebarItems.find(item => item.id === activeModule)?.label || "Dashboard"}</h1>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label="Notifications">
-              <Bell size={20} />
-            </button>
-            <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label={isDarkTheme ? "Switch to light mode" : "Switch to dark mode"}>
-              {isDarkTheme ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-          </div>
-        </header>
-        
-        {/* Module Content */}
-        <div className="flex-grow overflow-auto">
-          {children}
+        {/* Use the enhanced DashboardSidebar component for both desktop and mobile */}
+        {/* Desktop Sidebar */}
+        <div className={cn("fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out hidden md:block", collapsed ? "w-20" : "w-64")}>
+          <DashboardSidebar 
+            userData={userData}
+            activeModule={activeModule}
+            setActiveModule={setActiveModule}
+            menuItems={sidebarItems}
+          />
         </div>
-      </main>
-    </div>;
+        
+        {/* Mobile Sidebar */}
+        <div className={cn("fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-tellerpos-dark-accent transition-transform md:hidden", mobileMenuOpen ? "translate-x-0" : "-translate-x-full")}>
+          <DashboardSidebar 
+            userData={userData}
+            activeModule={activeModule}
+            setActiveModule={setActiveModule}
+            menuItems={sidebarItems}
+          />
+        </div>
+
+        {/* Main Content */}
+        <main className={cn("flex-1 transition-all duration-300 ease-in-out flex flex-col", collapsed ? "md:ml-20" : "md:ml-64")}>
+          {/* Top Header Bar */}
+          <header className="h-16 flex items-center justify-between px-4 bg-white dark:bg-tellerpos-dark-accent border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
+            <button onClick={toggleMobileMenu} className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 md:hidden">
+              <Menu size={20} />
+            </button>
+            
+            <div className="flex-1 md:ml-4">
+              <h1 className="font-semibold text-xl text-green-500">{sidebarItems.find(item => item.id === activeModule)?.label || "Dashboard"}</h1>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label="Notifications">
+                <Bell size={20} />
+              </button>
+              <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50" aria-label={isDarkTheme ? "Switch to light mode" : "Switch to dark mode"}>
+                {isDarkTheme ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+            </div>
+          </header>
+          
+          {/* Module Content */}
+          <div className="flex-grow overflow-auto">
+            {children}
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
+  );
 };
 export default DashboardLayout;

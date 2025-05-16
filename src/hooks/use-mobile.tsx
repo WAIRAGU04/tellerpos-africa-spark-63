@@ -4,7 +4,7 @@ import * as React from "react"
 const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState<boolean>(false)
 
   React.useEffect(() => {
     // Check if window exists (for SSR)
@@ -44,5 +44,5 @@ export function useIsMobile() {
   }, [])
 
   // Return boolean value (false as fallback)
-  return !!isMobile
+  return isMobile
 }

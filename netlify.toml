@@ -1,4 +1,5 @@
 
+# Netlify configuration for SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"

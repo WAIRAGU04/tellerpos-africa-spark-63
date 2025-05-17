@@ -111,7 +111,7 @@ const POSLayout: React.FC<POSLayoutProps> = ({
             <Sheet open={showMobileCart} onOpenChange={setShowMobileCart}>
               <SheetTrigger asChild>
                 <Button 
-                  className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg z-50"
+                  className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg z-50 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                   size="icon"
                 >
                   <ShoppingCart className="h-6 w-6" />

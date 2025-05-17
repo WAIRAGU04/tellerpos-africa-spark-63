@@ -1,7 +1,11 @@
-import React from 'react';
+
+import React, { useRef, useEffect } from 'react';
 import { CartItem } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Trash2, Minus, Plus, Package2, FileText, ArrowRight, X } from 'lucide-react';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from '@/hooks/use-mobile';
+
 interface POSCartProps {
   cart: CartItem[];
   updateQuantity: (id: string, quantity: number) => void;
@@ -11,6 +15,7 @@ interface POSCartProps {
   itemCount: number;
   onCheckout: () => void;
 }
+
 const POSCart: React.FC<POSCartProps> = ({
   cart,
   updateQuantity,
@@ -20,6 +25,8 @@ const POSCart: React.FC<POSCartProps> = ({
   itemCount,
   onCheckout
 }) => {
+  const isMobile = useIsMobile();
+  
   // Helper to render the item's image or color
   const renderItemVisual = (item: CartItem) => {
     if (item.imageUrl) {
@@ -42,7 +49,9 @@ const POSCart: React.FC<POSCartProps> = ({
         {item.type === 'product' ? <Package2 className="w-5 h-5 text-gray-400" /> : <FileText className="w-5 h-5 text-gray-400" />}
       </div>;
   };
-  return <div className="flex flex-col h-full">
+
+  return (
+    <div className="flex flex-col h-full">
       {/* Cart header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center">
@@ -60,56 +69,64 @@ const POSCart: React.FC<POSCartProps> = ({
         </div>
       </div>
       
-      {/* Cart items */}
-      <div className="flex-grow overflow-auto">
-        {cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center p-4 text-center">
+      {/* Cart items with scroll area */}
+      <div className="flex-grow overflow-hidden">
+        {cart.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center p-4 text-center">
             <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-4">
               <ShoppingCart className="h-12 w-12 text-gray-400" />
             </div>
             <h3 className="text-lg font-medium mb-2">Your cart is empty</h3>
             <p className="text-muted-foreground">Add items from the inventory to start a sale</p>
-          </div> : <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {cart.map(item => <li key={item.id} className="p-3 hover:bg-gray-50 dark:hover:bg-tellerpos-bg/20">
-                <div className="flex items-center">
-                  {renderItemVisual(item)}
-                  
-                  <div className="ml-3 flex-grow overflow-hidden">
-                    <p className="font-medium truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Intl.NumberFormat('en-KE', {
-                  style: 'currency',
-                  currency: 'KES'
-                }).format(item.price)} each
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
-                        <Minus className="h-3.5 w-3.5" />
-                      </Button>
-                      
-                      <span className="min-w-[2rem] text-center">{item.quantity}</span>
-                      
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
+          </div>
+        ) : (
+          <ScrollArea className="h-[calc(100%-140px)] min-h-[200px] max-h-[500px]">
+            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+              {cart.map(item => (
+                <li key={item.id} className="p-3 hover:bg-gray-50 dark:hover:bg-tellerpos-bg/20">
+                  <div className="flex items-center">
+                    {renderItemVisual(item)}
+                    
+                    <div className="ml-3 flex-grow overflow-hidden">
+                      <p className="font-medium truncate">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Intl.NumberFormat('en-KE', {
+                          style: 'currency',
+                          currency: 'KES'
+                        }).format(item.price)} each
+                      </p>
                     </div>
                     
-                    <div className="text-right min-w-[4.5rem]">
-                      {new Intl.NumberFormat('en-KE', {
-                  style: 'currency',
-                  currency: 'KES'
-                }).format(item.price * item.quantity)}
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                          <Minus className="h-3.5 w-3.5" />
+                        </Button>
+                        
+                        <span className="min-w-[2rem] text-center">{item.quantity}</span>
+                        
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      
+                      <div className="text-right min-w-[4.5rem]">
+                        {new Intl.NumberFormat('en-KE', {
+                          style: 'currency',
+                          currency: 'KES'
+                        }).format(item.price * item.quantity)}
+                      </div>
+                      
+                      <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)} className="text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 h-7 w-7">
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                    
-                    <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)} className="text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 h-7 w-7">
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
-                </div>
-              </li>)}
-          </ul>}
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+        )}
       </div>
       
       {/* Cart total and checkout button */}
@@ -118,16 +135,23 @@ const POSCart: React.FC<POSCartProps> = ({
           <span className="text-muted-foreground">Subtotal</span>
           <span className="font-medium">
             {new Intl.NumberFormat('en-KE', {
-            style: 'currency',
-            currency: 'KES'
-          }).format(cartTotal)}
+              style: 'currency',
+              currency: 'KES'
+            }).format(cartTotal)}
           </span>
         </div>
         
-        <Button size="lg" disabled={cart.length === 0} onClick={onCheckout} className="w-full text-xl font-extrabold text-pink-950">
-          Proceed to Checkout <ArrowRight className="ml-2 h-4 w-4" />
+        <Button 
+          size="lg" 
+          disabled={cart.length === 0} 
+          onClick={onCheckout} 
+          className={`w-full text-xl font-bold ${isMobile ? 'py-6' : ''} bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg`}
+        >
+          Proceed to Checkout <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default POSCart;

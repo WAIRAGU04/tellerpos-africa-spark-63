@@ -43,9 +43,9 @@ const Hero = () => {
             <div className="relative">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-tellerpos to-tellerpos-light rounded-2xl blur opacity-30"></div>
               <img 
-                src="https://images.unsplash.com/photo-1617919162188-aebe34840be7?auto=format&fit=crop&q=80&w=800&h=600" 
+                src="/placeholder.svg" 
                 alt="TellerPOS in action in an African retail store" 
-                className="relative z-10 rounded-2xl shadow-2xl w-full object-cover"
+                className="relative z-10 rounded-2xl shadow-2xl w-full object-cover h-[600px]"
               />
             </div>
           </div>

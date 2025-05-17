@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BusinessRegistrationDialog from "./business-registration/BusinessRegistrationDialog";
+import { MessageSquare } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 const Hero = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -37,6 +39,11 @@ const Hero = () => {
                 Book Demo
               </a>
             </div>
+
+            <div className="mt-6">
+              <p className="text-gray-300 mb-2">Contact us:</p>
+              <p className="text-gray-300">+254743788818, +254104801608</p>
+            </div>
           </div>
           
           <div className="md:w-1/2 mt-12 md:mt-0 animate-fade-in-left">
@@ -50,6 +57,25 @@ const Hero = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* WhatsApp floating button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <a 
+              href="https://wa.me/254743788818" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#128C7E] transition-colors duration-300 shadow-lg"
+            >
+              <MessageSquare className="h-7 w-7 text-white" />
+            </a>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-auto p-2">
+            <p className="text-sm font-medium">Chat with us on WhatsApp</p>
+          </HoverCardContent>
+        </HoverCard>
       </div>
     </section>
   );

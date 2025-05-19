@@ -1,45 +1,45 @@
-import { useState, useEffect } from "react";
-import { UserData } from "@/types/dashboard";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { getGreeting } from "@/lib/utils";
+
+import { Bell, Sun, Moon, Menu } from "lucide-react";
+import { sidebarItems } from "./SidebarItems";
 
 interface DashboardHeaderProps {
-  userData: UserData;
+  activeModule: string;
+  isDarkMode: boolean;
+  toggleTheme: () => void;
+  toggleMobileMenu: () => void;
 }
 
-const DashboardHeader = ({ userData }: DashboardHeaderProps) => {
-  const [greeting, setGreeting] = useState("");
-  
-  useEffect(() => {
-    // Set initial greeting
-    setGreeting(getGreeting());
-    
-    // Update greeting if user keeps app open across time boundaries (check every minute)
-    const intervalId = setInterval(() => {
-      setGreeting(getGreeting());
-    }, 60000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
-  
+const DashboardHeader = ({
+  activeModule,
+  isDarkMode,
+  toggleTheme,
+  toggleMobileMenu
+}: DashboardHeaderProps) => {
   return (
-    <header className="bg-tellerpos-dark-accent/50 backdrop-blur-lg border-b border-tellerpos-dark-accent/30 p-4 sticky top-0 z-10">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <SidebarTrigger className="mr-4" />
-          <div>
-            <h1 className="text-xl font-semibold text-white">
-              {greeting}, {userData.firstName}
-            </h1>
-            <p className="text-sm text-tellerpos-gray-light">
-              Welcome to your TellerPOS dashboard
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {/* We'll implement notifications, settings, etc. later */}
-        </div>
+    <header className="h-16 flex items-center justify-between px-4 bg-white dark:bg-tellerpos-dark-accent border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
+      <button 
+        onClick={toggleMobileMenu} 
+        className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 md:hidden"
+      >
+        <Menu size={20} />
+      </button>
+      
+      <div className="flex-1 md:ml-4">
+        <h1 className="text-green-500 font-extrabold text-2xl">
+          {sidebarItems.find(item => item.id === activeModule)?.label || "Dashboard"}
+        </h1>
+      </div>
+      
+      <div className="flex items-center space-x-3">
+        <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50">
+          <Bell size={20} />
+        </button>
+        <button 
+          onClick={toggleTheme} 
+          className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50"
+        >
+          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
       </div>
     </header>
   );

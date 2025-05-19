@@ -39,8 +39,8 @@ const DashboardContent = ({ activeModule }: DashboardContentProps) => {
   const lowStockItems = inventoryData
     .filter(item => 
       item.type === 'product' && 
-      item.quantity !== undefined && 
-      item.lowStockThreshold !== undefined && 
+      'quantity' in item && 
+      'lowStockThreshold' in item && 
       item.quantity < item.lowStockThreshold
     )
     .slice(0, 4);
@@ -110,20 +110,24 @@ const DashboardContent = ({ activeModule }: DashboardContentProps) => {
           <CardContent>
             {lowStockItems.length > 0 ? (
               <div className="space-y-4">
-                {lowStockItems.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center p-3 bg-tellerpos-dark-accent/10 rounded-md">
-                    <div>
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">SKU: {item.sku || '-'}</p>
+                {lowStockItems.map((item) => {
+                  // Here we safely cast to any since we already filtered for products
+                  const productItem = item as any;
+                  return (
+                    <div key={item.id} className="flex justify-between items-center p-3 bg-tellerpos-dark-accent/10 rounded-md">
+                      <div>
+                        <p className="font-semibold">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">SKU: {productItem.sku || '-'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-semibold ${productItem.quantity === 0 ? 'text-red-500' : 'text-yellow-500'}`}>
+                          {productItem.quantity} {productItem.unitOfMeasurement || 'units'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Min: {productItem.lowStockThreshold}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-semibold ${item.quantity === 0 ? 'text-red-500' : 'text-yellow-500'}`}>
-                        {item.quantity} {item.unitOfMeasurement || 'units'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Min: {item.lowStockThreshold}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-6">

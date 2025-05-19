@@ -12,7 +12,9 @@ const DashboardContent = ({ collapsed }: DashboardContentProps) => {
   return (
     <div className={cn("p-4 md:p-6")}>
       <DashboardSummary />
-      <RecentSalesTable />
+      <div className="mb-6">
+        <RecentSalesTable />
+      </div>
       <LowStockAlerts />
     </div>
   );

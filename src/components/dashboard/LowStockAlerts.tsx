@@ -24,7 +24,7 @@ const LowStockAlerts = () => {
       return aRatio - bRatio;
     })
     .slice(0, 4); // Take only top 4 lowest stock items
-  
+
   // Show loading state
   if (isLoading) {
     return (

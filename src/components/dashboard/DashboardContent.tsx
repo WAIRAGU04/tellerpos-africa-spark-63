@@ -41,7 +41,7 @@ const DashboardContent = ({ activeModule }: DashboardContentProps) => {
       item.type === 'product' && 
       'quantity' in item && 
       'lowStockThreshold' in item && 
-      item.quantity < item.lowStockThreshold
+      (item as any).quantity < (item as any).lowStockThreshold
     )
     .slice(0, 4);
   

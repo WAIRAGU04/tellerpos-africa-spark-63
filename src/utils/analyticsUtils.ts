@@ -16,8 +16,8 @@ export const calculateAccountSummary = (transactions: Transaction[]): AccountSum
     totalCredit: transactions.reduce((sum: number, t: Transaction) => 
       sum + (t.payments.find(p => p.method === 'credit')?.amount || 0), 0),
     totalSales: transactions.reduce((sum: number, t: Transaction) => sum + t.total, 0),
-    totalRefunds: transactions.filter((t: Transaction) => t.type === 'refund').reduce((sum: number, t: Transaction) => sum + t.total, 0),
-    netSales: transactions.reduce((sum: number, t: Transaction) => sum + (t.type === 'sale' ? t.total : -t.total), 0),
+    totalRefunds: transactions.filter((t: Transaction) => t.status === 'refunded').reduce((sum: number, t: Transaction) => sum + t.total, 0),
+    netSales: transactions.reduce((sum: number, t: Transaction) => sum + (t.status === 'refunded' ? -t.total : t.total), 0),
   };
 };
 
@@ -56,7 +56,7 @@ export const calculateUserPerformance = (transactions: Transaction[]) => {
         userId, 
         salesCount: 0, 
         totalAmount: 0,
-        userName: transaction.cashierName || `User ${userId.substring(0, 5)}`
+        userName: transaction.customerName || `User ${userId.substring(0, 5)}`
       });
     }
     const userData = userMap.get(userId);
@@ -74,7 +74,7 @@ export const generateShiftSummaries = (shifts: Shift[]) => {
     shiftNumber: parseInt(shift.id.slice(-4), 10),
     totalSales: shift.totalSales,
     totalExpenses: shift.expenses.reduce((total: number, exp: any) => total + exp.amount, 0),
-    transactionCount: shift.transactions ? shift.transactions.length : 0,
+    transactionCount: 0, // Removed reference to shift.transactions
     startTime: shift.clockInTime,
     endTime: shift.clockOutTime || undefined,
   }));

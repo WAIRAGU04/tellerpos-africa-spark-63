@@ -12,16 +12,6 @@ import { InventoryItem } from '@/types/inventory';
 import { AccountSummary } from '@/types/accounts';
 import { InventoryStats, UserPerformance } from '@/types/analytics';
 
-export interface AnalyticsData {
-  salesData: Transaction[];
-  shiftData: ShiftSummary[];
-  accountsData: AccountSummary;
-  inventoryStats: InventoryStats;
-  inventoryData: InventoryItem[];
-  userPerformanceData: UserPerformance[];
-  isLoading: boolean;
-}
-
 export const useAnalyticsData = () => {
   // Define state
   const [salesData, setSalesData] = useState<Transaction[]>([]);
@@ -50,8 +40,8 @@ export const useAnalyticsData = () => {
     setIsLoading(true);
     
     // Load transactions data for sales analysis
-    const storedTransactions = localStorage.getItem('transactions');
-    const transactions = storedTransactions ? JSON.parse(storedTransactions) : [];
+    const storedTransactionsData = localStorage.getItem('transactions');
+    const transactions = storedTransactionsData ? JSON.parse(storedTransactionsData) : [];
     setSalesData(transactions);
     
     // Load shift history data

@@ -1,13 +1,14 @@
 
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { InventoryItem } from '@/types/inventory';
+import { InventoryItem, Product } from '@/types/inventory';
 
 const LowStockAlerts = () => {
   const { inventoryData, isLoading } = useAnalytics();
   
-  // Filter to get only low stock items
+  // Filter to get only products (not services) with low stock
   const lowStockItems = inventoryData
-    .filter((item: InventoryItem) => 
+    .filter((item: InventoryItem): item is Product => 
+      item.type === 'product' && 
       item.stock !== undefined && 
       item.reorderLevel !== undefined && 
       item.stock < item.reorderLevel
@@ -16,12 +17,11 @@ const LowStockAlerts = () => {
       // Sort out of stock first, then by how critically low they are
       if (a.stock === 0 && b.stock !== 0) return -1;
       if (a.stock !== 0 && b.stock === 0) return 1;
-      if (a.stock !== undefined && b.stock !== undefined && a.reorderLevel !== undefined && b.reorderLevel !== undefined) {
-        const aRatio = a.stock / a.reorderLevel;
-        const bRatio = b.stock / b.reorderLevel;
-        return aRatio - bRatio;
-      }
-      return 0;
+      
+      // Both items have reorderLevel because of our filter above
+      const aRatio = a.stock / a.reorderLevel;
+      const bRatio = b.stock / b.reorderLevel;
+      return aRatio - bRatio;
     })
     .slice(0, 4); // Take only top 4 lowest stock items
   

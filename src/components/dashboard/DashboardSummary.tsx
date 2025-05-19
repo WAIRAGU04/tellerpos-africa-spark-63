@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useShift } from '@/contexts/shift';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceToNow } from 'date-fns';
-import { BarChart3, ShoppingBag, Package2, Calendar, Users, ArrowUp, ArrowDown } from 'lucide-react';
+import { BarChart3, ShoppingBag, Package2, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 interface DashboardCardProps {
@@ -47,10 +47,10 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, trend
 
 const DashboardSummary: React.FC = () => {
   const { activeShift } = useShift();
-  const { salesData, inventoryStats, accountsData, isLoading, refreshAnalytics } = useAnalytics();
+  const { salesData, inventoryStats, isLoading, refreshAnalytics } = useAnalytics();
   
   // Refresh analytics data when component mounts
-  React.useEffect(() => {
+  useEffect(() => {
     refreshAnalytics();
   }, [refreshAnalytics]);
   
@@ -95,7 +95,7 @@ const DashboardSummary: React.FC = () => {
   // Calculate trend percentage
   const salesTrend = yesterdaySales > 0 
     ? Math.round(((todaySales - yesterdaySales) / yesterdaySales) * 100) 
-    : 100;
+    : 0;
   
   // Get shift info
   const shiftInfo = activeShift
@@ -106,6 +106,19 @@ const DashboardSummary: React.FC = () => {
   const productsSoldToday = salesData
     .filter(transaction => new Date(transaction.timestamp) >= today)
     .reduce((sum, transaction) => sum + transaction.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+  
+  // Calculate products sold yesterday
+  const productsSoldYesterday = salesData
+    .filter(transaction => {
+      const date = new Date(transaction.timestamp);
+      return date >= yesterday && date < today;
+    })
+    .reduce((sum, transaction) => sum + transaction.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+  
+  // Calculate product trend
+  const productTrend = productsSoldYesterday > 0 
+    ? Math.round(((productsSoldToday - productsSoldYesterday) / productsSoldYesterday) * 100) 
+    : 0;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -120,7 +133,7 @@ const DashboardSummary: React.FC = () => {
         title="Products Sold"
         value={productsSoldToday}
         icon={<ShoppingBag className="h-4 w-4 text-tellerpos" />}
-        trend={{ value: 8, label: "from yesterday" }}
+        trend={{ value: productTrend, label: "from yesterday" }}
       />
       
       <DashboardCard

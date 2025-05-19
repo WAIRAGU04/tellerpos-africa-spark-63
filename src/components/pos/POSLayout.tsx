@@ -80,6 +80,10 @@ const POSLayout: React.FC<POSLayoutProps> = ({
     // Return to inventory view
     setIsCheckoutMode(false);
     
+    // Dispatch custom event for real-time dashboard updates
+    const transactionCompletedEvent = new CustomEvent('transaction-completed');
+    window.dispatchEvent(transactionCompletedEvent);
+    
     // Call the parent callback if provided
     if (onPaymentComplete) {
       onPaymentComplete();

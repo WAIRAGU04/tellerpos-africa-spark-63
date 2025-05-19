@@ -28,24 +28,22 @@ interface DashboardContentProps {
 
 const DashboardContent = ({ activeModule }: DashboardContentProps) => {
   const { activeShift } = useShift();
-  const { salesData, shiftData, inventoryStats } = useAnalytics();
+  const { salesData, inventoryStats, inventoryData, refreshAnalytics } = useAnalytics();
   
-  // Get recent transactions
+  // Get recent transactions - sort by timestamp descending
   const recentTransactions = [...salesData]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 5);
   
-  // Get low stock items
-  const lowStockItems = () => {
-    const storedInventory = localStorage.getItem('inventory');
-    if (storedInventory) {
-      const inventory = JSON.parse(storedInventory);
-      return inventory
-        .filter((item: any) => item.type === 'product' && item.quantity && item.quantity < item.lowStockThreshold)
-        .slice(0, 4);
-    }
-    return [];
-  };
+  // Get low stock items from real inventory data
+  const lowStockItems = inventoryData
+    .filter(item => 
+      item.type === 'product' && 
+      item.quantity !== undefined && 
+      item.lowStockThreshold !== undefined && 
+      item.quantity < item.lowStockThreshold
+    )
+    .slice(0, 4);
   
   // Render dashboard content
   const renderDashboardContent = () => (
@@ -110,9 +108,9 @@ const DashboardContent = ({ activeModule }: DashboardContentProps) => {
             <CardDescription>Items that need restocking</CardDescription>
           </CardHeader>
           <CardContent>
-            {lowStockItems().length > 0 ? (
+            {lowStockItems.length > 0 ? (
               <div className="space-y-4">
-                {lowStockItems().map((item: any) => (
+                {lowStockItems.map((item) => (
                   <div key={item.id} className="flex justify-between items-center p-3 bg-tellerpos-dark-accent/10 rounded-md">
                     <div>
                       <p className="font-semibold">{item.name}</p>
@@ -120,7 +118,7 @@ const DashboardContent = ({ activeModule }: DashboardContentProps) => {
                     </div>
                     <div className="text-right">
                       <p className={`font-semibold ${item.quantity === 0 ? 'text-red-500' : 'text-yellow-500'}`}>
-                        {item.quantity} {item.unitOfMeasurement}
+                        {item.quantity} {item.unitOfMeasurement || 'units'}
                       </p>
                       <p className="text-xs text-muted-foreground">Min: {item.lowStockThreshold}</p>
                     </div>

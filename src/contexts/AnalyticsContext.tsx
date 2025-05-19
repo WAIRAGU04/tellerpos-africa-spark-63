@@ -60,7 +60,6 @@ interface AnalyticsProviderProps {
   children: ReactNode;
 }
 
-// Fix the AnalyticsProvider component
 export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }) => {
   // Define state with useState hooks
   const [salesData, setSalesData] = useState<Transaction[]>([]);
@@ -90,7 +89,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         shiftNumber: parseInt(shift.id.slice(-4), 10),
         totalSales: shift.totalSales,
         totalExpenses: shift.expenses.reduce((total: number, exp: any) => total + exp.amount, 0),
-        transactionCount: Math.floor(Math.random() * 20) + 5, // Placeholder
+        transactionCount: shift.transactions ? shift.transactions.length : 0,
         startTime: shift.clockInTime,
         endTime: shift.clockOutTime || undefined,
       }));
@@ -98,24 +97,20 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     }
     
     // Load accounts summary
-    const storedAccountsSummary = localStorage.getItem('accountsSummary');
-    if (storedAccountsSummary) {
-      setAccountsData(JSON.parse(storedAccountsSummary));
-    } else {
-      // Generate sample data if not available
-      const transactions = salesData.length > 0 ? salesData : [];
-      const summary: AccountSummary = {
-        totalCash: transactions.reduce((sum, t) => sum + (t.payments.find(p => p.method === 'cash')?.amount || 0), 0),
-        totalMpesa: transactions.reduce((sum, t) => sum + (t.payments.find(p => p.method === 'mpesa-stk' || p.method === 'mpesa-till')?.amount || 0), 0),
-        totalBankTransfer: transactions.reduce((sum, t) => sum + (t.payments.find(p => p.method === 'bank-transfer')?.amount || 0), 0),
-        totalCredit: transactions.reduce((sum, t) => sum + (t.payments.find(p => p.method === 'credit')?.amount || 0), 0),
-        totalSales: transactions.reduce((sum, t) => sum + t.total, 0),
-        totalRefunds: 0, // Placeholder
-        netSales: transactions.reduce((sum, t) => sum + t.total, 0),
-      };
-      setAccountsData(summary);
-      localStorage.setItem('accountsSummary', JSON.stringify(summary));
-    }
+    const storedTransactions = localStorage.getItem('transactions');
+    const transactions = storedTransactions ? JSON.parse(storedTransactions) : [];
+    
+    // Calculate account summary from actual transaction data
+    const summary: AccountSummary = {
+      totalCash: transactions.reduce((sum: number, t: Transaction) => sum + (t.payments.find(p => p.method === 'cash')?.amount || 0), 0),
+      totalMpesa: transactions.reduce((sum: number, t: Transaction) => sum + (t.payments.find(p => p.method === 'mpesa-stk' || p.method === 'mpesa-till')?.amount || 0), 0),
+      totalBankTransfer: transactions.reduce((sum: number, t: Transaction) => sum + (t.payments.find(p => p.method === 'bank-transfer')?.amount || 0), 0),
+      totalCredit: transactions.reduce((sum: number, t: Transaction) => sum + (t.payments.find(p => p.method === 'credit')?.amount || 0), 0),
+      totalSales: transactions.reduce((sum: number, t: Transaction) => sum + t.total, 0),
+      totalRefunds: transactions.filter((t: Transaction) => t.type === 'refund').reduce((sum: number, t: Transaction) => sum + t.total, 0),
+      netSales: transactions.reduce((sum: number, t: Transaction) => sum + (t.type === 'sale' ? t.total : -t.total), 0),
+    };
+    setAccountsData(summary);
     
     // Load inventory data and calculate stats
     const storedInventory = localStorage.getItem('inventory');
@@ -124,29 +119,38 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       setInventoryData(inventory);
       
       const productItems = inventory.filter((item: any) => item.type === 'product');
-      const lowStockItems = productItems.filter((item: any) => item.quantity && item.quantity < item.reorderLevel);
-      const outOfStockItems = productItems.filter((item: any) => !item.quantity || item.quantity === 0);
+      const lowStockItems = productItems.filter((item: any) => 
+        item.quantity !== undefined && 
+        item.lowStockThreshold !== undefined && 
+        item.quantity < item.lowStockThreshold
+      );
+      const outOfStockItems = productItems.filter((item: any) => 
+        item.quantity === undefined || 
+        item.quantity === 0
+      );
       
       const inventoryStats = {
         totalProducts: productItems.length,
         lowStockCount: lowStockItems.length,
         outOfStockCount: outOfStockItems.length,
-        inventoryValue: productItems.reduce((sum: number, item: any) => sum + (item.price * (item.quantity || 0)), 0),
+        inventoryValue: productItems.reduce((sum: number, item: any) => 
+          sum + ((item.price || 0) * (item.quantity || 0)), 0
+        ),
       };
       setInventoryStats(inventoryStats);
     }
     
-    // Generate user performance data
-    const userMap = new Map();
-    if (salesData.length > 0) {
-      salesData.forEach(transaction => {
+    // Generate user performance data from actual transactions
+    if (transactions.length > 0) {
+      const userMap = new Map();
+      transactions.forEach((transaction: Transaction) => {
         const userId = transaction.userId;
         if (!userMap.has(userId)) {
           userMap.set(userId, { 
             userId, 
             salesCount: 0, 
             totalAmount: 0,
-            userName: `User ${userId.substring(0, 5)}` // Placeholder
+            userName: transaction.cashierName || `User ${userId.substring(0, 5)}`
           });
         }
         const userData = userMap.get(userId);
@@ -159,37 +163,41 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     setIsLoading(false);
   };
   
-  // Initial load and periodic refresh
+  // Initial load and real-time event handlers
   useEffect(() => {
     loadAnalyticsData();
     
-    // Refresh analytics data every 5 minutes
-    const intervalId = setInterval(() => {
-      loadAnalyticsData();
-    }, 5 * 60 * 1000);
-    
     // Listen for storage changes to update data in real-time
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'transactions' || e.key === 'inventory' || e.key === 'accountsSummary' || e.key === 'shiftHistory') {
+      if (e.key === 'transactions' || e.key === 'inventory' || e.key === 'shiftHistory') {
         loadAnalyticsData();
       }
     };
     
     window.addEventListener('storage', handleStorageChange);
     
-    // Add a custom event listener for real-time updates
+    // Add custom event listeners for real-time updates from other modules
     const handleInventoryUpdate = () => {
       loadAnalyticsData();
     };
     
+    const handleTransactionCompleted = () => {
+      loadAnalyticsData();
+    };
+    
+    const handleShiftUpdate = () => {
+      loadAnalyticsData();
+    };
+    
     window.addEventListener('inventory-updated', handleInventoryUpdate);
-    window.addEventListener('transaction-completed', handleInventoryUpdate);
+    window.addEventListener('transaction-completed', handleTransactionCompleted);
+    window.addEventListener('shift-updated', handleShiftUpdate);
     
     return () => {
-      clearInterval(intervalId);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('inventory-updated', handleInventoryUpdate);
-      window.removeEventListener('transaction-completed', handleInventoryUpdate);
+      window.removeEventListener('transaction-completed', handleTransactionCompleted);
+      window.removeEventListener('shift-updated', handleShiftUpdate);
     };
   }, []);
   

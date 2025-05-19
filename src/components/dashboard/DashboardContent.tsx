@@ -1,6 +1,6 @@
 
 import { cn } from "@/lib/utils";
-import DashboardCards from "./DashboardCards";
+import DashboardSummary from "./DashboardSummary";
 import RecentSalesTable from "./RecentSalesTable";
 import LowStockAlerts from "./LowStockAlerts";
 
@@ -11,7 +11,7 @@ interface DashboardContentProps {
 const DashboardContent = ({ collapsed }: DashboardContentProps) => {
   return (
     <div className={cn("p-4 md:p-6")}>
-      <DashboardCards />
+      <DashboardSummary />
       <RecentSalesTable />
       <LowStockAlerts />
     </div>

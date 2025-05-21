@@ -7,6 +7,7 @@ import { sidebarItems } from "./SidebarItems";
 import { useUserManagement } from "@/contexts/UserContext";
 import { useEffect, useState } from "react";
 import { loadUserData } from "@/utils/settingsUtils";
+import { logoutUser } from "@/utils/authUtils";
 
 interface DashboardSidebarProps {
   collapsed: boolean;
@@ -53,6 +54,12 @@ const DashboardSidebar = ({
       businessName: settingsUserData.businessName || prev.businessName || ""
     }));
   }, [currentUser]);
+
+  // Handle logout
+  const handleLogout = () => {
+    logoutUser();
+    navigate("/signup");
+  };
   
   return (
     <aside className={cn("fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-white dark:bg-tellerpos-dark-accent border-r border-gray-200 dark:border-gray-800 hidden md:block", collapsed ? "w-20" : "w-64")}>
@@ -116,7 +123,7 @@ const DashboardSidebar = ({
         {/* Logout Button */}
         <div className="px-2 py-4 border-t border-gray-200 dark:border-gray-800">
           <button 
-            onClick={() => navigate("/")} 
+            onClick={handleLogout}
             className={cn(
               "flex items-center w-full px-2 py-3 rounded-md transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50", 
               collapsed ? "justify-center" : "justify-start"

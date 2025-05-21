@@ -7,6 +7,7 @@ import { sidebarItems } from "./SidebarItems";
 import { useUserManagement } from "@/contexts/UserContext";
 import { useEffect, useState } from "react";
 import { loadUserData } from "@/utils/settingsUtils";
+import { logoutUser } from "@/utils/authUtils";
 
 interface MobileSidebarProps {
   mobileMenuOpen: boolean;
@@ -54,6 +55,12 @@ const MobileSidebar = ({
     }));
   }, [currentUser]);
 
+  // Handle logout
+  const handleLogout = () => {
+    logoutUser();
+    navigate("/signup");
+  };
+
   return (
     <div className={cn("fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity md:hidden", mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none")}>
       <div className={cn("fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-tellerpos-dark-accent transition-transform", mobileMenuOpen ? "translate-x-0" : "-translate-x-full")}>
@@ -98,7 +105,7 @@ const MobileSidebar = ({
         {/* Mobile Logout Button */}
         <div className="absolute bottom-0 left-0 right-0 px-2 py-4 border-t border-gray-200 dark:border-gray-800">
           <button 
-            onClick={() => navigate("/")} 
+            onClick={handleLogout}
             className="flex items-center w-full px-2 py-3 rounded-md transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-tellerpos-bg/50"
           >
             <LogOut size={20} className="mr-3" />

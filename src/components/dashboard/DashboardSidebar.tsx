@@ -1,12 +1,14 @@
 
 import { cn } from "@/lib/utils";
-import { LogOut, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UserData } from "@/types/dashboard";
 import { sidebarItems } from "./SidebarItems";
+import { useUserManagement } from "@/contexts/UserContext";
+import { useEffect, useState } from "react";
+import { loadUserData } from "@/utils/settingsUtils";
 
 interface DashboardSidebarProps {
-  userData: UserData;
   collapsed: boolean;
   activeModule: string;
   greeting: string;
@@ -15,7 +17,6 @@ interface DashboardSidebarProps {
 }
 
 const DashboardSidebar = ({
-  userData,
   collapsed,
   activeModule,
   greeting,
@@ -23,6 +24,35 @@ const DashboardSidebar = ({
   handleNavigation
 }: DashboardSidebarProps) => {
   const navigate = useNavigate();
+  const { currentUser } = useUserManagement();
+  const [userData, setUserData] = useState<UserData>({
+    firstName: "",
+    lastName: "",
+    businessName: ""
+  });
+  
+  // Load user data on component mount
+  useEffect(() => {
+    // If we have currentUser from context, use that
+    if (currentUser) {
+      setUserData({
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+        businessName: "", // Will be populated from loadUserData if available
+        email: currentUser.email,
+        phoneNumber: currentUser.phoneNumber,
+        role: currentUser.role,
+        agentCode: currentUser.agentCode
+      });
+    }
+    
+    // Get additional user data from settings utils (which includes business name)
+    const settingsUserData = loadUserData();
+    setUserData(prev => ({
+      ...prev,
+      businessName: settingsUserData.businessName || prev.businessName || ""
+    }));
+  }, [currentUser]);
   
   return (
     <aside className={cn("fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-white dark:bg-tellerpos-dark-accent border-r border-gray-200 dark:border-gray-800 hidden md:block", collapsed ? "w-20" : "w-64")}>
@@ -47,7 +77,11 @@ const DashboardSidebar = ({
           {collapsed ? (
             <div className="flex flex-col items-center">
               <div className="w-10 h-10 rounded-full bg-tellerpos text-white flex items-center justify-center">
-                <User size={20} />
+                {userData.firstName && userData.lastName ? (
+                  <span>{userData.firstName[0]}{userData.lastName[0]}</span>
+                ) : (
+                  <span>U</span>
+                )}
               </div>
             </div>
           ) : (

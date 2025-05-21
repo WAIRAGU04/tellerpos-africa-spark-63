@@ -4,9 +4,11 @@ import { LogOut, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UserData } from "@/types/dashboard";
 import { sidebarItems } from "./SidebarItems";
+import { useUserManagement } from "@/contexts/UserContext";
+import { useEffect, useState } from "react";
+import { loadUserData } from "@/utils/settingsUtils";
 
 interface MobileSidebarProps {
-  userData: UserData;
   mobileMenuOpen: boolean;
   activeModule: string;
   greeting: string;
@@ -15,7 +17,6 @@ interface MobileSidebarProps {
 }
 
 const MobileSidebar = ({
-  userData,
   mobileMenuOpen,
   activeModule,
   greeting,
@@ -23,6 +24,35 @@ const MobileSidebar = ({
   handleNavigation
 }: MobileSidebarProps) => {
   const navigate = useNavigate();
+  const { currentUser } = useUserManagement();
+  const [userData, setUserData] = useState<UserData>({
+    firstName: "",
+    lastName: "",
+    businessName: ""
+  });
+  
+  // Load user data on component mount
+  useEffect(() => {
+    // If we have currentUser from context, use that
+    if (currentUser) {
+      setUserData({
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+        businessName: "", // Will be populated from loadUserData if available
+        email: currentUser.email,
+        phoneNumber: currentUser.phoneNumber,
+        role: currentUser.role,
+        agentCode: currentUser.agentCode
+      });
+    }
+    
+    // Get additional user data from settings utils (which includes business name)
+    const settingsUserData = loadUserData();
+    setUserData(prev => ({
+      ...prev,
+      businessName: settingsUserData.businessName || prev.businessName || ""
+    }));
+  }, [currentUser]);
 
   return (
     <div className={cn("fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity md:hidden", mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none")}>

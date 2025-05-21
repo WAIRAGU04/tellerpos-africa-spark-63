@@ -88,9 +88,49 @@ const userIdExists = (userId: string): boolean => {
   return false;
 };
 
+// Check if email already exists in the system
+const emailExists = (email: string): boolean => {
+  try {
+    return localStorage.getItem(`user_${email}`) !== null;
+  } catch (error) {
+    console.error('Error checking email existence:', error);
+    return false;
+  }
+};
+
+// Check if phone number already exists in the system
+const phoneNumberExists = (phone: string): boolean => {
+  try {
+    // Iterate through all user records to check for phone number
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('user_')) {
+        const userData = JSON.parse(localStorage.getItem(key) || '{}');
+        if (userData.phoneNumber === phone) {
+          return true;
+        }
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error('Error checking phone number existence:', error);
+    return false;
+  }
+};
+
 // Save user registration data to localStorage
 export const saveUserRegistrationData = (userData: UserFormData, businessData: BusinessFormData) => {
   try {
+    // Check if email already exists
+    if (emailExists(userData.email)) {
+      return { success: false, error: "Email is already registered" };
+    }
+    
+    // Check if phone number already exists
+    if (phoneNumberExists(userData.phoneNumber)) {
+      return { success: false, error: "Phone number is already registered" };
+    }
+    
     const businessId = getNextBusinessId();
     const userId = generateUserId();
     
@@ -208,6 +248,9 @@ export const authenticateUser = (businessId: string, email: string, password: st
     if (!businessData) {
       return { success: false, message: "Business not found" };
     }
+    
+    // Clean any existing session data to ensure fresh session
+    logoutUser();
     
     // Set current session
     localStorage.setItem('currentSession', JSON.stringify({
@@ -385,9 +428,17 @@ export const getBusinessData = () => {
 
 // Logout the current user
 export const logoutUser = () => {
+  // Clear all session-related data
   localStorage.removeItem('currentSession');
-  // Also remove legacy authentication data
   localStorage.removeItem('userData');
   localStorage.removeItem('businessData');
+  
+  // Clear any cached data that might be specific to a user's session
+  localStorage.removeItem('cachedInventory');
+  localStorage.removeItem('cachedSales');
+  localStorage.removeItem('cachedDashboardData');
+  localStorage.removeItem('cachedUserSettings');
+  localStorage.removeItem('cachedShiftData');
+  
   return true;
 };

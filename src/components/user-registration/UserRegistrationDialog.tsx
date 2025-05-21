@@ -75,7 +75,7 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
       setSuccessDialogOpen(true);
     } else {
       toast.error("Registration failed", {
-        description: "There was an error creating your account. Please try again."
+        description: result.error || "There was an error creating your account. Please try again."
       });
     }
     

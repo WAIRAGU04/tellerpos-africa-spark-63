@@ -106,7 +106,6 @@ const Dashboard = () => {
     <div className="flex h-screen bg-gray-100 dark:bg-tellerpos-bg text-gray-800 dark:text-gray-100">
       {/* Desktop Sidebar */}
       <DashboardSidebar 
-        userData={userData} 
         collapsed={collapsed} 
         activeModule={activeModule}
         greeting={greeting} 
@@ -116,7 +115,6 @@ const Dashboard = () => {
 
       {/* Mobile Sidebar */}
       <MobileSidebar
-        userData={userData}
         mobileMenuOpen={mobileMenuOpen}
         activeModule={activeModule}
         greeting={greeting}

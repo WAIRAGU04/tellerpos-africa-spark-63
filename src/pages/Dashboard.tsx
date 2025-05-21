@@ -7,6 +7,7 @@ import MobileSidebar from "@/components/dashboard/MobileSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import { sidebarItems } from "@/components/dashboard/SidebarItems";
+import { isAuthenticated } from "@/utils/authUtils";
 
 const Dashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -22,6 +23,14 @@ const Dashboard = () => {
     lastName: "",
     businessName: ""
   });
+
+  // Check authentication status on mount
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate("/signup");
+      return;
+    }
+  }, [navigate]);
 
   // Load user data from localStorage on component mount
   useEffect(() => {

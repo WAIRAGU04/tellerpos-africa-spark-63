@@ -26,10 +26,12 @@ export const AuthenticatedRoute = ({
   redirectTo = "/dashboard" 
 }: ProtectedRouteProps) => {
   const location = useLocation();
+  const state = location.state as { from?: string } | undefined;
   
   if (isAuthenticated()) {
-    // Redirect to dashboard if already logged in
-    return <Navigate to={redirectTo} replace />;
+    // Redirect to dashboard if already logged in or to the original requested route if available
+    const redirectPath = state?.from || redirectTo;
+    return <Navigate to={redirectPath} replace />;
   }
   
   return <>{children}</>;

@@ -1,12 +1,19 @@
 
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
+import { isAuthenticated } from '@/utils/authUtils';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
+    // Check authentication status on mount and update state
+    setIsLoggedIn(isAuthenticated());
+    
     const handleScroll = () => {
       const isScrolled = window.scrollY > 10;
       if (isScrolled !== scrolled) {
@@ -19,6 +26,14 @@ const Navbar = () => {
       document.removeEventListener('scroll', handleScroll);
     };
   }, [scrolled]);
+
+  const handleGetStarted = () => {
+    if (isLoggedIn) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signup');
+    }
+  };
 
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${
@@ -43,7 +58,9 @@ const Navbar = () => {
               <a href="#testimonials" className="nav-link font-medium">Testimonials</a>
               <a href="#about" className="nav-link font-medium">About Us</a>
               <a href="#contact" className="nav-link font-medium">Contact</a>
-              <a href="#getstarted" className="btn-primary">Get Started</a>
+              <button onClick={handleGetStarted} className="btn-primary">
+                {isLoggedIn ? 'Go to Dashboard' : 'Get Started'}
+              </button>
             </div>
           </div>
           
@@ -67,7 +84,9 @@ const Navbar = () => {
             <a href="#testimonials" className="nav-link block px-3 py-2 rounded-md text-base font-medium">Testimonials</a>
             <a href="#about" className="nav-link block px-3 py-2 rounded-md text-base font-medium">About Us</a>
             <a href="#contact" className="nav-link block px-3 py-2 rounded-md text-base font-medium">Contact</a>
-            <a href="#getstarted" className="btn-primary block text-center mx-3 my-4">Get Started</a>
+            <button onClick={handleGetStarted} className="btn-primary block text-center mx-3 my-4 w-[calc(100%-1.5rem)]">
+              {isLoggedIn ? 'Go to Dashboard' : 'Get Started'}
+            </button>
           </div>
         </div>
       )}

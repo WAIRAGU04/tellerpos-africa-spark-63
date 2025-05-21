@@ -1,4 +1,3 @@
-
 import { BusinessFormData } from "@/components/business-registration/businessRegistrationUtils";
 import { UserFormData } from "@/components/user-registration/userRegistrationUtils";
 
@@ -387,6 +386,8 @@ export const getBusinessData = () => {
 // Logout the current user
 export const logoutUser = () => {
   localStorage.removeItem('currentSession');
-  // Don't remove the actual user and business data, just the session
+  // Also remove legacy authentication data
+  localStorage.removeItem('userData');
+  localStorage.removeItem('businessData');
   return true;
 };

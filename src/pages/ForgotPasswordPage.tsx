@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, ArrowLeft, Briefcase } from "lucide-react";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { requestPasswordReset } from "@/services/authService";
+import { generatePasswordResetToken } from "@/services/authService";
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -42,7 +41,7 @@ const ForgotPasswordPage = () => {
     setIsSubmitting(true);
     
     try {
-      const result = await requestPasswordReset(formData.businessId, formData.email);
+      const result = await generatePasswordResetToken(formData.businessId, formData.email);
       
       if (result.success) {
         toast.success("Reset instructions sent!", {

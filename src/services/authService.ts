@@ -1,14 +1,57 @@
-
 import { BusinessFormData } from "@/components/business-registration/businessRegistrationUtils";
 import { UserFormData } from "@/components/user-registration/userRegistrationUtils";
 
-// Simple password hashing using Web Crypto API
-const hashPassword = async (password: string): Promise<string> => {
+// Enhanced password hashing using Web Crypto API with salt
+const generateSalt = (): string => {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const hashPasswordWithSalt = async (password: string, salt: string): Promise<string> => {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password);
+  const data = encoder.encode(password + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+// JWT-like token generation and validation
+const createJWTLikeToken = (payload: any): string => {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const tokenPayload = {
+    ...payload,
+    iat: now,
+    exp: now + (24 * 60 * 60), // 24 hours
+    jti: crypto.randomUUID()
+  };
+  
+  const headerB64 = btoa(JSON.stringify(header));
+  const payloadB64 = btoa(JSON.stringify(tokenPayload));
+  const signature = generateSecureToken().substring(0, 43); // Simulate signature
+  
+  return `${headerB64}.${payloadB64}.${signature}`;
+};
+
+const validateJWTLikeToken = (token: string): { valid: boolean; payload?: any; expired?: boolean } => {
+  try {
+    const [header, payload, signature] = token.split('.');
+    if (!header || !payload || !signature) {
+      return { valid: false };
+    }
+    
+    const decodedPayload = JSON.parse(atob(payload));
+    const now = Math.floor(Date.now() / 1000);
+    
+    if (decodedPayload.exp < now) {
+      return { valid: false, expired: true };
+    }
+    
+    return { valid: true, payload: decodedPayload };
+  } catch {
+    return { valid: false };
+  }
 };
 
 // Generate secure token
@@ -18,9 +61,10 @@ const generateSecureToken = (): string => {
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 };
 
-// Token management
+// Enhanced token management with secure storage
 export const tokenManager = {
   setToken: (token: string) => {
+    // Use sessionStorage for tokens (more secure than localStorage)
     sessionStorage.setItem('authToken', token);
   },
   
@@ -30,15 +74,38 @@ export const tokenManager = {
   
   removeToken: () => {
     sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('currentSession');
   },
   
   isTokenValid: (): boolean => {
     const token = tokenManager.getToken();
     if (!token) return false;
     
+    const validation = validateJWTLikeToken(token);
+    if (!validation.valid) {
+      if (validation.expired) {
+        console.log('Token expired, cleaning up...');
+        tokenManager.removeToken();
+      }
+      return false;
+    }
+    
+    return true;
+  },
+  
+  refreshToken: async (): Promise<boolean> => {
     try {
-      const session = sessionStorage.getItem('currentSession');
-      return session !== null;
+      const currentToken = tokenManager.getToken();
+      if (!currentToken) return false;
+      
+      const validation = validateJWTLikeToken(currentToken);
+      if (!validation.valid) return false;
+      
+      // Create new token with extended expiry
+      const newToken = createJWTLikeToken(validation.payload);
+      tokenManager.setToken(newToken);
+      
+      return true;
     } catch {
       return false;
     }
@@ -190,9 +257,10 @@ export const registerUser = async (userData: UserFormData, businessData: Busines
     
     const businessId = getNextBusinessId();
     const userId = generateUserId();
-    const hashedPassword = await hashPassword(userData.password);
+    const salt = generateSalt();
+    const hashedPassword = await hashPasswordWithSalt(userData.password, salt);
     
-    // Save user data with hashed password
+    // Save user data with hashed password and salt
     const userObj = {
       userId,
       firstName: userData.firstName,
@@ -200,6 +268,7 @@ export const registerUser = async (userData: UserFormData, businessData: Busines
       email: userData.email,
       phoneNumber: userData.phoneNumber,
       password: hashedPassword,
+      salt: salt,
       role: 'Administrator',
       agentCode: `AG${Math.floor(1000 + Math.random() * 9000)}`,
       businessId,
@@ -251,27 +320,32 @@ export const authenticateUser = async (businessId: string, email: string, passwo
     
     const userData = localStorage.getItem(`user_${email}`);
     if (!userData) {
-      return { success: false, message: "User not found" };
+      return { success: false, message: "Invalid credentials" };
     }
     
     const user = JSON.parse(userData);
     
     // Verify business ID
     if (user.businessId !== businessId) {
-      return { success: false, message: "Invalid business ID" };
+      return { success: false, message: "Invalid credentials" };
     }
     
-    // Check password
-    const hashedPassword = await hashPassword(password);
-    if (user.password) {
-      if (user.password !== hashedPassword) {
-        return { success: false, message: "Invalid password" };
-      }
+    // Check password with salt
+    let passwordValid = false;
+    if (user.password && user.salt) {
+      const hashedPassword = await hashPasswordWithSalt(password, user.salt);
+      passwordValid = user.password === hashedPassword;
+    } else if (user.password) {
+      // Legacy password check (backward compatibility)
+      const legacyHash = await hashPasswordWithSalt(password, '');
+      passwordValid = user.password === legacyHash;
     } else {
       // Legacy users (admin) use email as password
-      if (email !== password) { 
-        return { success: false, message: "Invalid password" };
-      }
+      passwordValid = email === password;
+    }
+    
+    if (!passwordValid) {
+      return { success: false, message: "Invalid credentials" };
     }
     
     // Check if user is active
@@ -288,8 +362,15 @@ export const authenticateUser = async (businessId: string, email: string, passwo
     // Clear any existing session
     await logoutUser();
     
-    // Generate secure token and create session
-    const token = generateSecureToken();
+    // Generate JWT-like token
+    const tokenPayload = {
+      userId: user.userId,
+      businessId,
+      email,
+      role: user.role
+    };
+    
+    const token = createJWTLikeToken(tokenPayload);
     tokenManager.setToken(token);
     
     const sessionData = {
@@ -330,21 +411,29 @@ export const changeUserPassword = async (email: string, oldPassword: string, new
     const user = JSON.parse(userData);
     
     // Verify old password
-    const hashedOldPassword = await hashPassword(oldPassword);
-    if (user.password) {
-      if (user.password !== hashedOldPassword) {
-        return { success: false, message: "Current password is incorrect" };
-      }
+    let oldPasswordValid = false;
+    if (user.password && user.salt) {
+      const hashedOldPassword = await hashPasswordWithSalt(oldPassword, user.salt);
+      oldPasswordValid = user.password === hashedOldPassword;
+    } else if (user.password) {
+      // Legacy password check
+      const legacyHash = await hashPasswordWithSalt(oldPassword, '');
+      oldPasswordValid = user.password === legacyHash;
     } else {
       // Legacy users (admin) use email as password
-      if (email !== oldPassword) { 
-        return { success: false, message: "Current password is incorrect" };
-      }
+      oldPasswordValid = email === oldPassword;
     }
     
-    // Update password
-    const hashedNewPassword = await hashPassword(newPassword);
+    if (!oldPasswordValid) {
+      return { success: false, message: "Current password is incorrect" };
+    }
+    
+    // Generate new salt and hash new password
+    const newSalt = generateSalt();
+    const hashedNewPassword = await hashPasswordWithSalt(newPassword, newSalt);
+    
     user.password = hashedNewPassword;
+    user.salt = newSalt;
     user.isTemporaryPassword = false;
     
     localStorage.setItem(`user_${email}`, JSON.stringify(user));
@@ -413,9 +502,109 @@ export const requestPasswordReset = async (businessId: string, email: string) =>
   }
 };
 
-// Check if the user is authenticated
+// Password reset with secure token generation
+export const generatePasswordResetToken = async (businessId: string, email: string) => {
+  try {
+    const userData = localStorage.getItem(`user_${email}`);
+    if (!userData) {
+      return { success: false, message: "Email not registered" };
+    }
+    
+    const user = JSON.parse(userData);
+    if (user.businessId !== businessId) {
+      return { success: false, message: "Invalid business ID for this email" };
+    }
+    
+    // Generate secure reset token
+    const resetToken = generateSecureToken();
+    const resetExpiry = Date.now() + (15 * 60 * 1000); // 15 minutes
+    
+    // Store reset token temporarily (in real app, this would be in database)
+    const resetData = {
+      email,
+      businessId,
+      token: resetToken,
+      expiry: resetExpiry
+    };
+    
+    sessionStorage.setItem(`reset_${resetToken}`, JSON.stringify(resetData));
+    
+    console.log(`Password reset token generated: ${resetToken}`);
+    console.log(`Reset link: /reset-password/${resetToken}`);
+    
+    return { 
+      success: true, 
+      token: resetToken,
+      message: "Password reset token generated successfully"
+    };
+  } catch (error) {
+    console.error('Error generating reset token:', error);
+    return { success: false, message: "Failed to generate reset token" };
+  }
+};
+
+// Validate and use password reset token
+export const resetPasswordWithToken = async (token: string, newPassword: string) => {
+  try {
+    const resetData = sessionStorage.getItem(`reset_${token}`);
+    if (!resetData) {
+      return { success: false, message: "Invalid or expired reset token" };
+    }
+    
+    const { email, expiry } = JSON.parse(resetData);
+    
+    if (Date.now() > expiry) {
+      sessionStorage.removeItem(`reset_${token}`);
+      return { success: false, message: "Reset token has expired" };
+    }
+    
+    const userData = localStorage.getItem(`user_${email}`);
+    if (!userData) {
+      return { success: false, message: "User not found" };
+    }
+    
+    const user = JSON.parse(userData);
+    
+    // Generate new salt and hash new password
+    const newSalt = generateSalt();
+    const hashedNewPassword = await hashPasswordWithSalt(newPassword, newSalt);
+    
+    user.password = hashedNewPassword;
+    user.salt = newSalt;
+    user.isTemporaryPassword = false;
+    
+    localStorage.setItem(`user_${email}`, JSON.stringify(user));
+    
+    // Remove used reset token
+    sessionStorage.removeItem(`reset_${token}`);
+    
+    return { success: true, message: "Password reset successfully" };
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    return { success: false, message: "Failed to reset password" };
+  }
+};
+
+// Enhanced authentication check with automatic token refresh
 export const isAuthenticated = (): boolean => {
-  return tokenManager.isTokenValid() && sessionStorage.getItem('currentSession') !== null;
+  const valid = tokenManager.isTokenValid();
+  
+  if (valid) {
+    // Auto-refresh token if it's valid but will expire soon
+    const token = tokenManager.getToken();
+    if (token) {
+      const validation = validateJWTLikeToken(token);
+      if (validation.valid && validation.payload) {
+        const timeUntilExpiry = validation.payload.exp - Math.floor(Date.now() / 1000);
+        // Refresh if less than 1 hour remaining
+        if (timeUntilExpiry < 3600) {
+          tokenManager.refreshToken();
+        }
+      }
+    }
+  }
+  
+  return valid && sessionStorage.getItem('currentSession') !== null;
 };
 
 // Get authenticated user data
@@ -467,7 +656,6 @@ export const logoutUser = async () => {
   try {
     // Clear session storage
     tokenManager.removeToken();
-    sessionStorage.removeItem('currentSession');
     
     // Clear legacy localStorage items
     localStorage.removeItem('userData');

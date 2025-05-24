@@ -1,7 +1,10 @@
-
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Index from "./pages/Index";
 import SignupPage from "./pages/SignupPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import BusinessRecoveryPage from "./pages/BusinessRecoveryPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import Dashboard from "./pages/Dashboard";
 import POSPage from "./pages/POSPage";
 import SalesPage from "./pages/SalesPage";
@@ -40,6 +43,34 @@ function App() {
                         <SignupPage />
                       </AuthenticatedRoute>
                     } 
+                  />
+                  <Route 
+                    path="/forgot-password" 
+                    element={
+                      <AuthenticatedRoute>
+                        <ForgotPasswordPage />
+                      </AuthenticatedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/reset-password/:token" 
+                    element={
+                      <AuthenticatedRoute>
+                        <ResetPasswordPage />
+                      </AuthenticatedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/business-recovery" 
+                    element={
+                      <AuthenticatedRoute>
+                        <BusinessRecoveryPage />
+                      </AuthenticatedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/change-password" 
+                    element={<ChangePasswordPage />} 
                   />
                   
                   {/* Protected routes */}

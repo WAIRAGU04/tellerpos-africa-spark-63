@@ -3,24 +3,20 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BusinessRegistrationDialog from "@/components/business-registration/BusinessRegistrationDialog";
 import SignInDialog from "@/components/SignInDialog";
-import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 const SignupPage = () => {
   const [activeTab, setActiveTab] = useState("register");
   const [businessDialogOpen, setBusinessDialogOpen] = useState(true);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === "register") {
       setBusinessDialogOpen(true);
       setSignInDialogOpen(false);
-      setForgotPasswordOpen(false);
     } else if (value === "login") {
       setBusinessDialogOpen(false);
       setSignInDialogOpen(true);
-      setForgotPasswordOpen(false);
     }
   };
 
@@ -80,11 +76,6 @@ const SignupPage = () => {
           </Tabs>
         </div>
       </div>
-
-      <ForgotPasswordDialog 
-        open={forgotPasswordOpen} 
-        onOpenChange={setForgotPasswordOpen} 
-      />
     </div>
   );
 };

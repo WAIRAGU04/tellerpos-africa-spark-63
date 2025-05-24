@@ -41,7 +41,17 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
     setIsSubmitting(true);
     
     try {
-      const result = await registerUser(data, businessData);
+      // Convert UserRegistrationFormData to the format expected by registerUser
+      const userFormData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        password: data.password,
+        confirmPassword: data.confirmPassword
+      };
+      
+      const result = await registerUser(userFormData, businessData);
       
       if (result.success) {
         toast.success("Registration successful!", {

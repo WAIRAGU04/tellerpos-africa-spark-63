@@ -23,30 +23,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Briefcase, Mail, Lock, EyeIcon, EyeOffIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
 import { authenticateUser } from "@/services/authService";
+import { signInSchema, SignInFormData } from "@/schemas/authSchemas";
+import { useErrorHandler } from "@/services/errorService";
 
 interface SignInDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-// Define form schema
-const formSchema = z.object({
-  businessId: z.string().min(1, { message: "Business ID is required." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
 const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   const navigate = useNavigate();
+  const { handleRetryableError } = useErrorHandler();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<SignInFormData>({
+    resolver: zodResolver(signInSchema),
     defaultValues: {
       businessId: "",
       email: "",
@@ -54,30 +47,24 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
     },
   });
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: SignInFormData) => {
     setIsSubmitting(true);
     
     try {
-      // Authenticate with our service
       const result = await authenticateUser(data.businessId, data.email, data.password);
       
       if (result.success) {
-        // Check if user has a temporary password
         if (result.isTemporaryPassword) {
-          // Redirect to change password page with email parameter
           onOpenChange(false);
           navigate(`/change-password?email=${encodeURIComponent(data.email)}&firstLogin=true`);
           return;
         }
         
         toast.success("Signed in successfully!", {
-          description: `Welcome back to TellerPOS!`,
+          description: "Welcome back to TellerPOS!",
         });
         
-        // Close the dialog
         onOpenChange(false);
-        
-        // Redirect to dashboard
         navigate("/dashboard");
       } else {
         toast.error("Sign in failed", {
@@ -85,10 +72,7 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
         });
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      toast.error("Sign in failed", {
-        description: "Please check your credentials and try again.",
-      });
+      handleRetryableError(error, () => onSubmit(data), 'Sign in');
     } finally {
       setIsSubmitting(false);
     }
@@ -240,3 +224,4 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
 };
 
 export default SignInDialog;
+

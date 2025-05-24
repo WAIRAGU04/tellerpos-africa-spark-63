@@ -13,8 +13,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import SignInDialog from "../SignInDialog";
 import RegistrationSuccessDialog from "../RegistrationSuccessDialog";
 import UserRegistrationForm from "./UserRegistrationForm";
-import { validateUserRegistration, countryCodes, UserFormData } from "./userRegistrationUtils";
+import { countryCodes, UserFormData } from "./userRegistrationUtils";
 import { registerUser } from "@/services/authService";
+import { UserRegistrationFormData } from "@/schemas/authSchemas";
+import { useErrorHandler } from "@/services/errorService";
 
 interface UserRegistrationDialogProps {
   open: boolean;
@@ -28,43 +30,22 @@ interface UserRegistrationDialogProps {
 
 const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegistrationDialogProps) => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<UserFormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phoneNumber: countryCodes[businessData.country] || "",
-    password: "",
-    confirmPassword: ""
-  });
+  const { handleRetryableError } = useErrorHandler();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [registrationResult, setRegistrationResult] = useState<{businessId: string, userId: string} | undefined>(undefined);
   
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    const validation = validateUserRegistration(formData);
-    if (!validation.isValid) {
-      toast.error(validation.errorMessage);
-      return;
-    }
-    
+  const handleSubmit = async (data: UserRegistrationFormData) => {
     setIsSubmitting(true);
     
     try {
-      // Use the new async registration service
-      const result = await registerUser(formData, businessData);
+      const result = await registerUser(data, businessData);
       
       if (result.success) {
         toast.success("Registration successful!", {
-          description: `Welcome to TellerPOS, ${formData.firstName}! Your account has been created.`
+          description: `Welcome to TellerPOS, ${data.firstName}! Your account has been created.`
         });
         
         if ('businessId' in result && 'userId' in result) {
@@ -80,10 +61,7 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
         });
       }
     } catch (error) {
-      console.error('Registration error:', error);
-      toast.error("Registration failed", {
-        description: "There was an error creating your account. Please try again."
-      });
+      handleRetryableError(error, () => handleSubmit(data), 'User registration');
     } finally {
       setIsSubmitting(false);
     }
@@ -98,14 +76,6 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
     setSuccessDialogOpen(open);
     if (!open) {
       onOpenChange(false);
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phoneNumber: countryCodes[businessData.country] || "",
-        password: "",
-        confirmPassword: ""
-      });
     }
   };
   
@@ -126,11 +96,10 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
             </DialogHeader>
             
             <UserRegistrationForm
-              formData={formData}
-              handleChange={handleChange}
-              isSubmitting={isSubmitting}
               onSubmit={handleSubmit}
               onSignInClick={handleSignIn}
+              isSubmitting={isSubmitting}
+              countryCode={countryCodes[businessData.country] || ""}
             />
           </ScrollArea>
         </DialogContent>
@@ -141,9 +110,9 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
         onOpenChange={handleSuccessDialogClose}
         businessData={businessData}
         userData={{
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email
+          firstName: registrationResult?.userId ? "User" : "",
+          lastName: "",
+          email: ""
         }}
         registrationResult={registrationResult}
       />
@@ -157,3 +126,4 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
 };
 
 export default UserRegistrationDialog;
+

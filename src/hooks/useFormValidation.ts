@@ -8,7 +8,7 @@ export interface ValidationResult {
 }
 
 export const useFormValidation = <T extends Record<string, any>>(
-  schema: z.ZodSchema<T>
+  schema: z.ZodObject<any>
 ) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -35,7 +35,7 @@ export const useFormValidation = <T extends Record<string, any>>(
   const validateField = (fieldName: keyof T, value: any): string | null => {
     try {
       // Create a partial schema for single field validation
-      const fieldSchema = z.object({ [fieldName]: schema.shape[fieldName as string] });
+      const fieldSchema = schema.pick({ [fieldName as string]: true });
       fieldSchema.parse({ [fieldName]: value });
       
       // Clear error for this field

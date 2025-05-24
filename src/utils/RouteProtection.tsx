@@ -1,6 +1,6 @@
 
 import { Navigate, useLocation } from "react-router-dom";
-import { isAuthenticated } from "./authUtils";
+import { isAuthenticated } from "@/services/authService";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,7 +14,6 @@ export const ProtectedRoute = ({
   const location = useLocation();
   
   if (!isAuthenticated()) {
-    // Redirect to the signup/login page
     return <Navigate to={redirectTo} state={{ from: location.pathname }} replace />;
   }
   
@@ -29,7 +28,6 @@ export const AuthenticatedRoute = ({
   const state = location.state as { from?: string } | undefined;
   
   if (isAuthenticated()) {
-    // Redirect to dashboard if already logged in or to the original requested route if available
     const redirectPath = state?.from || redirectTo;
     return <Navigate to={redirectPath} replace />;
   }

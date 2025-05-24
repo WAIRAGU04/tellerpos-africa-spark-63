@@ -14,7 +14,7 @@ import SignInDialog from "../SignInDialog";
 import RegistrationSuccessDialog from "../RegistrationSuccessDialog";
 import UserRegistrationForm from "./UserRegistrationForm";
 import { validateUserRegistration, countryCodes, UserFormData } from "./userRegistrationUtils";
-import { saveUserRegistrationData } from "@/utils/authUtils";
+import { registerUser } from "@/services/authService";
 
 interface UserRegistrationDialogProps {
   open: boolean;
@@ -46,7 +46,7 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
     setFormData(prev => ({ ...prev, [field]: value }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -58,32 +58,38 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
     
     setIsSubmitting(true);
     
-    // Save registration data using the utility function
-    const result = saveUserRegistrationData(formData, businessData);
-    
-    if (result.success) {
-      toast.success("Registration successful!", {
-        description: `Welcome to TellerPOS, ${formData.firstName}! Your account has been created.`
-      });
-      // Save the generated IDs to pass to the success dialog
-      if ('businessId' in result && 'userId' in result) {
-        setRegistrationResult({
-          businessId: result.businessId,
-          userId: result.userId
+    try {
+      // Use the new async registration service
+      const result = await registerUser(formData, businessData);
+      
+      if (result.success) {
+        toast.success("Registration successful!", {
+          description: `Welcome to TellerPOS, ${formData.firstName}! Your account has been created.`
+        });
+        
+        if ('businessId' in result && 'userId' in result) {
+          setRegistrationResult({
+            businessId: result.businessId,
+            userId: result.userId
+          });
+        }
+        setSuccessDialogOpen(true);
+      } else {
+        toast.error("Registration failed", {
+          description: result.error || "There was an error creating your account. Please try again."
         });
       }
-      setSuccessDialogOpen(true);
-    } else {
+    } catch (error) {
+      console.error('Registration error:', error);
       toast.error("Registration failed", {
-        description: result.error || "There was an error creating your account. Please try again."
+        description: "There was an error creating your account. Please try again."
       });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   const handleSignIn = () => {
-    // Close the user registration dialog and open sign in dialog
     onOpenChange(false);
     setSignInDialogOpen(true);
   };
@@ -91,7 +97,6 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
   const handleSuccessDialogClose = (open: boolean) => {
     setSuccessDialogOpen(open);
     if (!open) {
-      // Reset and close registration form when success dialog is closed
       onOpenChange(false);
       setFormData({
         firstName: "",

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
-import { requestPasswordReset } from "@/utils/authUtils";
+import { requestPasswordReset } from "@/services/authService";
 
 interface ForgotPasswordDialogProps {
   open: boolean;
@@ -32,7 +32,7 @@ const ForgotPasswordDialog = ({ open, onOpenChange }: ForgotPasswordDialogProps)
     setFormData(prev => ({ ...prev, [field]: value }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -53,11 +53,9 @@ const ForgotPasswordDialog = ({ open, onOpenChange }: ForgotPasswordDialogProps)
     
     setIsSubmitting(true);
     
-    // Request password reset
-    const result = requestPasswordReset(formData.businessId, formData.email);
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Request password reset
+      const result = await requestPasswordReset(formData.businessId, formData.email);
       
       if (result.success) {
         onOpenChange(false);
@@ -65,7 +63,12 @@ const ForgotPasswordDialog = ({ open, onOpenChange }: ForgotPasswordDialogProps)
       } else {
         toast.error(result.message || "Password reset request failed");
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast.error("Password reset request failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const validateEmail = (email: string) => {

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -26,7 +27,7 @@ import * as z from "zod";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
 import BusinessIdRecoveryDialog from "./BusinessIdRecoveryDialog";
 import ChangePasswordDialog from "./user-management/ChangePasswordDialog";
-import { authenticateUser } from "@/utils/authUtils";
+import { authenticateUser } from "@/services/authService";
 
 interface SignInDialogProps {
   open: boolean;
@@ -63,14 +64,12 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     
-    // Authenticate with our utility
-    const result = authenticateUser(data.businessId, data.email, data.password);
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Authenticate with our service
+      const result = await authenticateUser(data.businessId, data.email, data.password);
       
       if (result.success) {
         // Check if user has a temporary password
@@ -99,7 +98,14 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
           description: result.message || "Please check your credentials and try again.",
         });
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Sign in error:', error);
+      toast.error("Sign in failed", {
+        description: "Please check your credentials and try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleShowPassword = () => {

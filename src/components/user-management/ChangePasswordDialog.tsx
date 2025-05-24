@@ -2,14 +2,14 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { changeUserPassword } from '@/utils/authUtils';
+import { changePasswordSchema, ChangePasswordFormData } from '@/schemas/authSchemas';
+import { changeUserPassword } from '@/services/authService';
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -18,17 +18,6 @@ interface ChangePasswordDialogProps {
   isFirstLogin: boolean;
   onComplete: () => void;
 }
-
-const formSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
-}).refine(data => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type FormValues = z.infer<typeof formSchema>;
 
 const ChangePasswordDialog = ({
   open,
@@ -42,8 +31,8 @@ const ChangePasswordDialog = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
     defaultValues: {
       currentPassword: '',
       newPassword: '',
@@ -51,26 +40,30 @@ const ChangePasswordDialog = ({
     },
   });
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: ChangePasswordFormData) => {
     setIsSubmitting(true);
     
-    const result = await changeUserPassword(
-      email,
-      data.currentPassword,
-      data.newPassword
-    );
+    try {
+      const result = await changeUserPassword(
+        email,
+        data.currentPassword,
+        data.newPassword
+      );
 
-    setIsSubmitting(false);
-
-    if (result.success) {
-      toast.success("Password changed successfully");
-      form.reset();
-      onOpenChange(false);
-      onComplete();
-    } else {
-      toast.error("Failed to change password", {
-        description: result.message
-      });
+      if (result.success) {
+        toast.success("Password changed successfully");
+        form.reset();
+        onOpenChange(false);
+        onComplete();
+      } else {
+        toast.error("Failed to change password", {
+          description: result.message
+        });
+      }
+    } catch (error) {
+      toast.error("An error occurred while changing password");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -157,7 +150,7 @@ const ChangePasswordDialog = ({
                     </button>
                   </div>
                   <FormDescription>
-                    Password must be at least 6 characters
+                    Password must meet security requirements
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

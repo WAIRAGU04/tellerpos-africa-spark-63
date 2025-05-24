@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { 
   Dialog, 
   DialogContent, 
@@ -8,7 +7,6 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
 import { 
   Form, 
   FormControl, 
@@ -23,9 +21,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Briefcase, Mail, Lock, EyeIcon, EyeOffIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { authenticateUser } from "@/services/authService";
 import { signInSchema, SignInFormData } from "@/schemas/authSchemas";
-import { useErrorHandler } from "@/services/errorService";
+import { useSignIn } from "@/hooks/useSignIn";
 
 interface SignInDialogProps {
   open: boolean;
@@ -33,10 +30,8 @@ interface SignInDialogProps {
 }
 
 const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
-  const navigate = useNavigate();
-  const { handleRetryableError } = useErrorHandler();
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn, isSubmitting, navigateToForgotPassword, navigateToBusinessRecovery } = useSignIn();
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -48,33 +43,9 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   });
 
   const onSubmit = async (data: SignInFormData) => {
-    setIsSubmitting(true);
-    
-    try {
-      const result = await authenticateUser(data.businessId, data.email, data.password);
-      
-      if (result.success) {
-        if (result.isTemporaryPassword) {
-          onOpenChange(false);
-          navigate(`/change-password?email=${encodeURIComponent(data.email)}&firstLogin=true`);
-          return;
-        }
-        
-        toast.success("Signed in successfully!", {
-          description: "Welcome back to TellerPOS!",
-        });
-        
-        onOpenChange(false);
-        navigate("/dashboard");
-      } else {
-        toast.error("Sign in failed", {
-          description: result.message || "Please check your credentials and try again.",
-        });
-      }
-    } catch (error) {
-      handleRetryableError(error, () => onSubmit(data), 'Sign in');
-    } finally {
-      setIsSubmitting(false);
+    const result = await signIn(data);
+    if (result.success) {
+      onOpenChange(false);
     }
   };
 
@@ -84,12 +55,12 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
 
   const handleForgotPassword = () => {
     onOpenChange(false);
-    navigate("/forgot-password");
+    navigateToForgotPassword();
   };
   
   const handleForgotBusinessId = () => {
     onOpenChange(false);
-    navigate("/business-recovery");
+    navigateToBusinessRecovery();
   };
   
   return (
@@ -224,4 +195,3 @@ const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
 };
 
 export default SignInDialog;
-

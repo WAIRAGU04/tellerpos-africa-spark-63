@@ -1,8 +1,8 @@
 
-import { z } from 'zod';
 import { useState } from 'react';
+import { z } from 'zod';
 
-export interface ValidationResult {
+interface ValidationResult {
   isValid: boolean;
   errors: Record<string, string>;
 }
@@ -12,59 +12,68 @@ export const useFormValidation = <T extends Record<string, any>>(
 ) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const validate = (data: Partial<T>): ValidationResult => {
+  const validateForm = (data: T): ValidationResult => {
     try {
       schema.parse(data);
       setErrors({});
       return { isValid: true, errors: {} };
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const fieldErrors: Record<string, string> = {};
+        const validationErrors: Record<string, string> = {};
         error.errors.forEach((err) => {
-          if (err.path) {
-            fieldErrors[err.path.join('.')] = err.message;
+          if (err.path.length > 0) {
+            validationErrors[err.path[0] as string] = err.message;
           }
         });
-        setErrors(fieldErrors);
-        return { isValid: false, errors: fieldErrors };
+        setErrors(validationErrors);
+        return { isValid: false, errors: validationErrors };
       }
       return { isValid: false, errors: { general: 'Validation failed' } };
     }
   };
 
+  const clearErrors = () => {
+    setErrors({});
+  };
+
+  const clearFieldError = (fieldName: string) => {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[fieldName];
+      return newErrors;
+    });
+  };
+
   const validateField = (fieldName: keyof T, value: any): string | null => {
     try {
-      // Create a partial schema for single field validation
-      const fieldSchema = schema.pick({ [fieldName as string]: true });
-      fieldSchema.parse({ [fieldName]: value });
+      // For single field validation, we'll validate the entire form but only return the specific field error
+      const partialData = { [fieldName]: value } as Partial<T>;
+      schema.partial().parse(partialData);
       
       // Clear error for this field
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldName as string];
-        return newErrors;
-      });
-      
+      clearFieldError(fieldName as string);
       return null;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errorMessage = error.errors[0]?.message || 'Invalid value';
+        const fieldError = error.errors.find(err => 
+          err.path.length > 0 && err.path[0] === fieldName
+        );
         
-        setErrors(prev => ({
-          ...prev,
-          [fieldName as string]: errorMessage
-        }));
-        
-        return errorMessage;
+        if (fieldError) {
+          const errorMessage = fieldError.message;
+          setErrors(prev => ({ ...prev, [fieldName as string]: errorMessage }));
+          return errorMessage;
+        }
       }
-      return 'Validation failed';
+      return 'Validation error';
     }
   };
 
   return {
-    validate,
-    validateField,
     errors,
-    clearErrors: () => setErrors({})
+    validateForm,
+    validateField,
+    clearErrors,
+    clearFieldError,
   };
 };

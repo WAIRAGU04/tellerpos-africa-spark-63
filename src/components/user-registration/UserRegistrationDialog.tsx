@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import SignInDialog from "../SignInDialog";
 import RegistrationSuccessDialog from "../RegistrationSuccessDialog";
 import UserRegistrationForm from "./UserRegistrationForm";
-import { countryCodes, UserFormData } from "./userRegistrationUtils";
+import { countryCodes } from "./userRegistrationUtils";
 import { registerUser } from "@/services/authService";
 import { UserRegistrationFormData } from "@/schemas/authSchemas";
 import { useErrorHandler } from "@/services/errorService";
@@ -126,4 +126,3 @@ const UserRegistrationDialog = ({ open, onOpenChange, businessData }: UserRegist
 };
 
 export default UserRegistrationDialog;
-
